@@ -1,0 +1,83 @@
+/* CORE - BASE STYLES
+   Transportation Dispatch Dashboard
+   Foundation styles with responsive design system
+   Contains: CSS variables, resets, base styles
+   Dependencies: None (foundation module)
+   Updated: 2025-09-12
+*/
+
+:root {
+  /* Base font sizes for different screen types */
+  --text-xs: clamp(0.65rem, 0.8vw, 0.875rem);
+  --text-sm: clamp(0.75rem, 1vw, 1rem);
+  --text-base: clamp(0.875rem, 1.2vw, 1.125rem);
+  --text-lg: clamp(1rem, 1.4vw, 1.25rem);
+  --text-xl: clamp(1.125rem, 1.6vw, 1.5rem);
+  --text-2xl: clamp(1.25rem, 2vw, 1.875rem);
+  
+  /* Spacing scale that adapts to screen size */
+  --spacing-1: clamp(0.25rem, 0.3vw, 0.5rem);
+  --spacing-2: clamp(0.5rem, 0.6vw, 0.75rem);
+  --spacing-3: clamp(0.75rem, 0.9vw, 1rem);
+  --spacing-4: clamp(1rem, 1.2vw, 1.5rem);
+  --spacing-6: clamp(1.5rem, 1.8vw, 2.25rem);
+  --spacing-8: clamp(2rem, 2.4vw, 3rem);
+  
+  /* Touch targets that scale appropriately */
+  --touch-target: clamp(44px, 3vw, 60px);
+  --touch-padding: clamp(8px, 1vw, 16px);
+  
+  /* Panel and container dimensions */
+  --sidebar-width: clamp(280px, 20vw, 400px);
+  --card-min-width: clamp(200px, 15vw, 280px);
+  --modal-width: clamp(300px, 25vw, 500px);
+  
+  /* Grid system for different screen sizes */
+  --grid-cols-desktop: 3;
+  --grid-cols-large: 4;
+  --grid-cols-xl: 5;
+  --grid-cols-xxl: 6;
+}
+
+/* Tablet breakpoint adjustments */
+@media (max-width: 1024px) {
+  :root {
+    --grid-cols-desktop: 2;
+    --grid-cols-large: 3;
+    --grid-cols-xl: 4;
+    --sidebar-width: clamp(250px, 25vw, 320px);
+  }
+}
+
+/* Mobile breakpoint adjustments */
+@media (max-width: 768px) {
+  :root {
+    --grid-cols-desktop: 1;
+    --grid-cols-large: 2;
+    --grid-cols-xl: 3;
+    --sidebar-width: 100%;
+  }
+}
+
+/* Enhanced touch targets for mobile */
+@media (max-width: 768px) {
+  :root {
+    --touch-target: clamp(48px, 2.5vw, 72px);
+    --touch-padding: clamp(12px, 0.8vw, 20px);
+  }
+}
+
+/* Base body styles */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Universal box-sizing reset */
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}

@@ -1,0 +1,282 @@
+/* LAYOUT - POSITIONING STYLES
+   Transportation Dispatch Dashboard
+   Positioning utilities, mobile layouts, spacing system
+   Contains: Position utilities, mobile sidebar, spacing, z-index, focus states
+   Dependencies: core/base.css (uses spacing variables)
+   Updated: 2025-09-12
+*/
+
+/* ==========================================================================
+   MOBILE-SPECIFIC POSITIONING
+   ========================================================================== */
+
+/* Mobile responsive sidebar */
+.screen-mobile .responsive-sidebar {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  height: 100vh;
+  z-index: 1000;
+  transition: right 0.3s ease;
+  background: white;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+}
+
+.screen-mobile .responsive-sidebar.open {
+  right: 0;
+}
+
+/* ==========================================================================
+   COMPONENT POSITIONING ENHANCEMENTS
+   ========================================================================== */
+
+/* Enhanced route cards for touch interface */
+.route-card {
+  padding: var(--spacing-6);
+  margin-bottom: var(--spacing-6);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+  border-width: 4px;
+  position: relative;
+}
+
+/* Enhanced radio button size for touch */
+input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  margin-right: var(--spacing-3);
+}
+
+/* ==========================================================================
+   FOCUS AND ACCESSIBILITY
+   ========================================================================== */
+
+/* Enhanced keyboard focus for accessibility */
+.keyboard-focusable:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  z-index: 1;
+  position: relative;
+}
+
+/* Focus visible for better UX */
+.keyboard-focusable:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* ==========================================================================
+   TOUCH INTERACTION ENHANCEMENTS
+   ========================================================================== */
+
+/* Pinch-to-zoom feedback */
+.pinch-zoom-active {
+  transition: transform 0.1s ease;
+  z-index: 10;
+  position: relative;
+  transform-origin: center;
+}
+
+/* ==========================================================================
+   SPACING UTILITIES (MARGIN-BASED)
+   ========================================================================== */
+
+/* Horizontal spacing */
+.space-x-0 > * + * {
+  margin-left: 0;
+}
+
+.space-x-1 > * + * {
+  margin-left: var(--spacing-1);
+}
+
+.space-x-2 > * + * {
+  margin-left: var(--spacing-2);
+}
+
+.space-x-3 > * + * {
+  margin-left: var(--spacing-3);
+}
+
+.space-x-4 > * + * {
+  margin-left: var(--spacing-4);
+}
+
+.space-x-6 > * + * {
+  margin-left: var(--spacing-6);
+}
+
+/* Vertical spacing */
+.space-y-0 > * + * {
+  margin-top: 0;
+}
+
+.space-y-1 > * + * {
+  margin-top: var(--spacing-1);
+}
+
+.space-y-2 > * + * {
+  margin-top: var(--spacing-2);
+}
+
+.space-y-3 > * + * {
+  margin-top: var(--spacing-3);
+}
+
+.space-y-4 > * + * {
+  margin-top: var(--spacing-4);
+}
+
+.space-y-6 > * + * {
+  margin-top: var(--spacing-6);
+}
+
+/* ==========================================================================
+   POSITION UTILITIES
+   ========================================================================== */
+
+.static {
+  position: static;
+}
+
+.fixed {
+  position: fixed;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.relative {
+  position: relative;
+}
+
+.sticky {
+  position: sticky;
+}
+
+/* ==========================================================================
+   Z-INDEX UTILITIES
+   ========================================================================== */
+
+.z-0 {
+  z-index: 0;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+.z-20 {
+  z-index: 20;
+}
+
+.z-30 {
+  z-index: 30;
+}
+
+.z-40 {
+  z-index: 40;
+}
+
+.z-50 {
+  z-index: 50;
+}
+
+.z-auto {
+  z-index: auto;
+}
+
+/* High-priority z-indices for modals and overlays */
+.z-modal {
+  z-index: 1000;
+}
+
+.z-dropdown {
+  z-index: 1010;
+}
+
+.z-tooltip {
+  z-index: 1020;
+}
+
+.z-notification {
+  z-index: 1030;
+}
+
+/* ==========================================================================
+   INSET UTILITIES (TOP, RIGHT, BOTTOM, LEFT)
+   ========================================================================== */
+
+.inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.inset-auto {
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+}
+
+/* Top */
+.top-0 {
+  top: 0;
+}
+
+.top-auto {
+  top: auto;
+}
+
+/* Right */
+.right-0 {
+  right: 0;
+}
+
+.right-auto {
+  right: auto;
+}
+
+/* Bottom */
+.bottom-0 {
+  bottom: 0;
+}
+
+.bottom-auto {
+  bottom: auto;
+}
+
+/* Left */
+.left-0 {
+  left: 0;
+}
+
+.left-auto {
+  left: auto;
+}
+
+/* ==========================================================================
+   LEGACY COMPONENT STYLES
+   ========================================================================== */
+
+.route-section {
+  margin-bottom: var(--spacing-4);
+}
+
+.assignment-details {
+  background-color: #f5f5f5;
+  padding: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+  border-radius: 4px;
+}
+
+.notes-section {
+  border-top: 1px solid #ccc;
+  padding-top: var(--spacing-2);
+  margin-top: var(--spacing-2);
+}

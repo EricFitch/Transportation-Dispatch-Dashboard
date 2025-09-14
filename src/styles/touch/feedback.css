@@ -1,0 +1,356 @@
+/* TOUCH - FEEDBACK STYLES
+   Transportation Dispatch Dashboard
+   Touch feedback and interaction response system
+   Contains: Hover effects, focus states, animations, transitions
+   Dependencies: core/base.css (uses CSS variables)
+   Updated: 2025-09-12
+*/
+
+/* ==========================================================================
+   TRANSITION UTILITIES
+   ========================================================================== */
+
+.transition-shadow {
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.transition-transform {
+  transition: transform 0.2s ease;
+}
+
+.transition-colors {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.transition-all {
+  transition: all 0.2s ease;
+}
+
+/* ==========================================================================
+   TOUCH-SPECIFIC INTERACTION STATES
+   ========================================================================== */
+
+/* Disable scale hover effects on touch-primary devices */
+.touch-primary .hover\\:scale-105:hover {
+  transform: none !important;
+}
+
+/* Enhanced hover effects for mouse-primary devices */
+body:not(.touch-primary) button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+/* Touch-specific active states */
+.touch-primary .touch-active {
+  background-color: rgba(59, 130, 246, 0.05);
+  transform: scale(0.98);
+  transition: all 0.1s ease;
+}
+
+/* ==========================================================================
+   KEYBOARD ACCESSIBILITY STYLES
+   ========================================================================== */
+
+.keyboard-focusable {
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.keyboard-focusable:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* Enhanced focus states for interactive cards */
+.route-card:focus,
+.staff-item:focus,
+.asset-item:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   COMPONENT-SPECIFIC FEEDBACK
+   ========================================================================== */
+
+/* Search results count animation */
+#search-results-count {
+  transition: all 0.3s ease;
+}
+
+#search-results-count.updating {
+  opacity: 0.6;
+  transform: scale(0.95);
+}
+
+/* Filter button interactions */
+.filter-btn {
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.filter-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Ripple effect for touch feedback */
+.filter-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.filter-btn:active::after {
+  width: 100px;
+  height: 100px;
+}
+
+/* ==========================================================================
+   MODAL AND OVERLAY ANIMATIONS
+   ========================================================================== */
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+}
+
+@keyframes searchOverlaySlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ==========================================================================
+   LONG PRESS AND GESTURE FEEDBACK
+   ========================================================================== */
+
+.long-press-active {
+  animation: pulse-blue 1s infinite;
+}
+
+@keyframes pulse-blue {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
+
+/* Swipe gesture indicators */
+.swipe-indicator {
+  animation: swipe-fade 0.5s ease;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(59, 130, 246, 0.8);
+  color: white;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: 4px;
+  font-size: var(--text-sm);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+@keyframes swipe-fade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ==========================================================================
+   LOADING AND STATE FEEDBACK
+   ========================================================================== */
+
+.loading-feedback {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-feedback::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(59, 130, 246, 0.2),
+    transparent
+  );
+  animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Success feedback */
+.success-feedback {
+  animation: success-pulse 0.6s ease;
+}
+
+@keyframes success-pulse {
+  0% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgba(34, 197, 94, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* Error feedback */
+.error-feedback {
+  animation: error-shake 0.5s ease;
+}
+
+@keyframes error-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* ==========================================================================
+   RESPONSIVE FEEDBACK ADJUSTMENTS
+   ========================================================================== */
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .transition-shadow,
+  .transition-transform,
+  .transition-colors,
+  .transition-all,
+  .keyboard-focusable,
+  .filter-btn {
+    transition: none;
+  }
+  
+  .long-press-active,
+  .swipe-indicator,
+  .loading-feedback::after,
+  .success-feedback,
+  .error-feedback {
+    animation: none;
+  }
+}
+
+/* High contrast adjustments */
+@media (prefers-contrast: high) {
+  .keyboard-focusable:focus {
+    outline-width: 3px;
+    outline-color: #000;
+  }
+  
+  .route-card:focus,
+  .staff-item:focus,
+  .asset-item:focus {
+    outline-width: 3px;
+    outline-color: #000;
+  }
+}
+
+/* Touch device optimizations */
+@media (pointer: coarse) {
+  /* Larger touch targets get enhanced feedback */
+  button:active,
+  .touch-target:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+  
+  /* Disable hover effects that don't work well on touch */
+  .filter-btn:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* Fine pointer enhancements */
+@media (pointer: fine) {
+  /* Enhanced hover states for precise pointers */
+  .interactive-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+  
+  /* Subtle cursor feedback */
+  .clickable:hover {
+    cursor: pointer;
+  }
+  
+  .draggable:hover {
+    cursor: grab;
+  }
+  
+  .draggable:active {
+    cursor: grabbing;
+  }
+}

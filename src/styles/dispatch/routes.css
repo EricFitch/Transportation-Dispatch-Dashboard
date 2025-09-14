@@ -1,0 +1,362 @@
+/* DISPATCH - ROUTES STYLES
+   Transportation Dispatch Dashboard
+   Route-specific styling and layout optimizations
+   Contains: Route cards, responsive layouts, state management
+   Dependencies: core/base.css (uses CSS variables)
+   Updated: 2025-09-12
+*/
+
+/* ==========================================================================
+   ROUTE CARD BASE STYLES
+   ========================================================================== */
+
+.route-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.route-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   RESPONSIVE ROUTE CARD SIZING
+   ========================================================================== */
+
+/* Large screen optimizations */
+.large-screen .route-card {
+  min-height: clamp(200px, 15vh, 300px);
+  padding: var(--spacing-6);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .route-card {
+    min-height: clamp(150px, 12vh, 250px);
+    padding: var(--spacing-4);
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  .route-card {
+    min-height: clamp(120px, 10vh, 200px);
+    padding: var(--spacing-3);
+    margin-bottom: var(--spacing-3);
+    border-radius: 8px;
+  }
+}
+
+/* ==========================================================================
+   ROUTE CARD STATES
+   ========================================================================== */
+
+/* Collapsed state */
+.route-card-collapsed {
+  height: auto;
+  min-height: 120px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.route-card-collapsed .route-details {
+  max-height: 60px;
+  overflow: hidden;
+}
+
+.route-card-collapsed .route-footer {
+  display: none;
+}
+
+/* Expanded state */
+.route-card-expanded {
+  height: auto;
+  min-height: 0;
+}
+
+.route-card-expanded .route-details {
+  max-height: none;
+  overflow: visible;
+}
+
+/* Active/selected route */
+.route-card.active {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+/* Assigned route */
+.route-card.assigned {
+  border-color: #10b981;
+  background-color: #f0fdf4;
+}
+
+.route-card.assigned::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background-color: #10b981;
+  border-radius: 2px 0 0 2px;
+}
+
+/* Overdue route */
+.route-card.overdue {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.route-card.overdue::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background-color: #ef4444;
+  border-radius: 2px 0 0 2px;
+}
+
+/* In-progress route */
+.route-card.in-progress {
+  border-color: #f59e0b;
+  background-color: #fffbeb;
+}
+
+.route-card.in-progress::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background-color: #f59e0b;
+  border-radius: 2px 0 0 2px;
+}
+
+/* ==========================================================================
+   ROUTE CARD COMPONENTS
+   ========================================================================== */
+
+.route-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-3);
+}
+
+.route-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.route-number {
+  font-size: var(--text-sm);
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.route-status {
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: 4px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.route-details {
+  margin-bottom: var(--spacing-4);
+  color: #4b5563;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.route-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--spacing-3);
+  border-top: 1px solid #e5e7eb;
+}
+
+.route-actions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.route-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  font-size: var(--text-xs);
+  color: #6b7280;
+}
+
+/* ==========================================================================
+   ROUTE LIST LAYOUTS
+   ========================================================================== */
+
+.route-list {
+  display: grid;
+  gap: var(--spacing-4);
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width), 1fr));
+}
+
+.route-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.route-list-compact .route-card {
+  min-height: 80px;
+  padding: var(--spacing-3);
+}
+
+/* ==========================================================================
+   ROUTE DRAG AND DROP
+   ========================================================================== */
+
+.route-card.draggable {
+  cursor: grab;
+}
+
+.route-card.draggable:active {
+  cursor: grabbing;
+}
+
+.route-card.dragging {
+  opacity: 0.8;
+  transform: rotate(2deg) scale(1.02);
+  z-index: 1000;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.route-drop-zone {
+  min-height: 120px;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.route-drop-zone.drag-over {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.05);
+  color: #3b82f6;
+}
+
+/* ==========================================================================
+   ROUTE SEARCH AND FILTERING
+   ========================================================================== */
+
+.route-card.filtered-out {
+  opacity: 0.3;
+  transform: scale(0.95);
+  pointer-events: none;
+}
+
+.route-card.search-match {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.route-search-highlight {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 1px 2px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   ROUTE PERFORMANCE INDICATORS
+   ========================================================================== */
+
+.route-performance {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--text-xs);
+}
+
+.performance-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.performance-indicator.excellent {
+  background-color: #10b981;
+}
+
+.performance-indicator.good {
+  background-color: #f59e0b;
+}
+
+.performance-indicator.poor {
+  background-color: #ef4444;
+}
+
+/* ==========================================================================
+   ACCESSIBILITY AND INTERACTION
+   ========================================================================== */
+
+.route-card:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-color: #3b82f6;
+}
+
+.route-card[tabindex]:hover {
+  cursor: pointer;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .route-card {
+    border-width: 3px;
+  }
+  
+  .route-card.active,
+  .route-card.assigned,
+  .route-card.overdue,
+  .route-card.in-progress {
+    border-width: 4px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .route-card,
+  .route-card-collapsed,
+  .route-card-expanded,
+  .route-drop-zone {
+    transition: none;
+  }
+  
+  .route-card.dragging {
+    transform: none;
+  }
+}

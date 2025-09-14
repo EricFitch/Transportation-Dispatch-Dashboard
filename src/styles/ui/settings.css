@@ -1,0 +1,626 @@
+/**
+ * SETTINGS SYSTEM STYLES
+ * Transportation Dispatch Dashboard
+ * 
+ * Comprehensive styling for the settings interface including:
+ * - Tabbed interface with smooth transitions
+ * - Form controls optimized for touch
+ * - Color pickers and preview components
+ * - Responsive layout for all screen sizes
+ * - Accessibility features
+ * 
+ * Compatible with: Chrome, Firefox, Safari, Edge
+ * Optimized for: 75" touch displays
+ */
+
+/* ==========================================================================
+   SETTINGS MODAL AND CONTAINER
+   ========================================================================== */
+
+#settings-modal {
+  --settings-bg: #ffffff;
+  --settings-surface: #f9fafb;
+  --settings-border: #e5e7eb;
+  --settings-text: #1f2937;
+  --settings-text-muted: #6b7280;
+  --settings-accent: #3b82f6;
+  --settings-success: #10b981;
+  --settings-warning: #f59e0b;
+  --settings-danger: #ef4444;
+  --settings-shadow: rgba(0, 0, 0, 0.1);
+}
+
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  height: 80vh;
+  min-height: 600px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   SETTINGS TABS
+   ========================================================================== */
+
+.settings-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--settings-border);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.settings-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.settings-tabs .tab-btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 1rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: var(--settings-text-muted);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 56px;
+}
+
+.settings-tabs .tab-btn:hover {
+  background: var(--settings-surface);
+  color: var(--settings-text);
+}
+
+.settings-tabs .tab-btn.active {
+  color: var(--settings-accent);
+  border-bottom-color: var(--settings-accent);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* ==========================================================================
+   SETTINGS CONTENT
+   ========================================================================== */
+
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.tab-content {
+  display: none;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.settings-section {
+  background: var(--settings-surface);
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.settings-section h3 {
+  margin: 0 0 1.5rem 0;
+  color: var(--settings-text);
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--settings-border);
+  padding-bottom: 0.75rem;
+}
+
+/* ==========================================================================
+   FORM CONTROLS
+   ========================================================================== */
+
+.setting-group {
+  margin-bottom: 1.5rem;
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--settings-text);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  min-height: 48px;
+  font-size: 1rem;
+}
+
+.setting-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--settings-accent);
+  cursor: pointer;
+}
+
+.setting-description {
+  display: block;
+  color: var(--settings-text-muted);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+  margin-left: 2.75rem;
+  font-weight: 400;
+}
+
+.setting-input,
+.setting-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--settings-border);
+  border-radius: 6px;
+  background: var(--settings-bg);
+  color: var(--settings-text);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.setting-input:focus,
+.setting-select:focus {
+  outline: none;
+  border-color: var(--settings-accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.setting-range {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--settings-border);
+  outline: none;
+  cursor: pointer;
+  accent-color: var(--settings-accent);
+}
+
+.range-value {
+  display: inline-block;
+  margin-left: 1rem;
+  font-weight: 600;
+  color: var(--settings-accent);
+  min-width: 60px;
+}
+
+/* ==========================================================================
+   COLOR CONTROLS
+   ========================================================================== */
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.color-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.color-input {
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--settings-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.color-input:hover {
+  border-color: var(--settings-accent);
+}
+
+.color-input:focus {
+  outline: none;
+  border-color: var(--settings-accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ==========================================================================
+   THEME PREVIEW
+   ========================================================================== */
+
+.theme-preview {
+  margin: 1.5rem 0;
+}
+
+.preview-card {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px var(--settings-shadow);
+  transition: all 0.3s ease;
+}
+
+.preview-header {
+  padding: 1rem 1.5rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.preview-content {
+  padding: 1.5rem;
+}
+
+.preview-content p {
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.preview-badges {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.preview-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   ACTION BUTTONS
+   ========================================================================== */
+
+.advanced-actions,
+.backup-actions,
+.debug-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.advanced-actions .btn,
+.backup-actions .btn,
+.debug-actions .btn {
+  min-height: 48px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+}
+
+/* ==========================================================================
+   SHORTCUTS MANAGEMENT
+   ========================================================================== */
+
+.shortcuts-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--settings-border);
+  border-radius: 6px;
+  background: var(--settings-bg);
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--settings-border);
+  min-height: 64px;
+}
+
+.shortcut-item:last-child {
+  border-bottom: none;
+}
+
+.shortcut-key {
+  font-family: 'Courier New', monospace;
+  background: var(--settings-surface);
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-weight: 600;
+  color: var(--settings-accent);
+  border: 1px solid var(--settings-border);
+}
+
+.shortcut-action {
+  flex: 1;
+  margin: 0 1rem;
+  color: var(--settings-text);
+}
+
+.no-shortcuts {
+  padding: 2rem;
+  text-align: center;
+  color: var(--settings-text-muted);
+  font-style: italic;
+}
+
+/* ==========================================================================
+   SYSTEM INFO
+   ========================================================================== */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--settings-bg);
+  border: 1px solid var(--settings-border);
+  border-radius: 6px;
+  min-height: 56px;
+}
+
+.info-label {
+  font-weight: 600;
+  color: var(--settings-text);
+}
+
+.info-value {
+  color: var(--settings-text-muted);
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   SETTINGS FOOTER
+   ========================================================================== */
+
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--settings-border);
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.settings-footer .btn {
+  min-height: 48px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .settings-container {
+    height: 85vh;
+    min-height: 500px;
+  }
+  
+  .color-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .settings-tabs .tab-btn {
+    flex: 1 1 50%;
+    min-width: 100px;
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .settings-section {
+    padding: 1rem;
+  }
+  
+  .color-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .advanced-actions,
+  .backup-actions,
+  .debug-actions {
+    flex-direction: column;
+  }
+  
+  .shortcut-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    text-align: left;
+  }
+  
+  .settings-footer {
+    flex-direction: column;
+  }
+  
+  .settings-footer .btn {
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
+   TOUCH OPTIMIZATIONS
+   ========================================================================== */
+
+@media (pointer: coarse) {
+  .settings-tabs .tab-btn {
+    min-height: 64px;
+    font-size: 1.1rem;
+  }
+  
+  .setting-input,
+  .setting-select {
+    min-height: 56px;
+    font-size: 1.1rem;
+  }
+  
+  .setting-label {
+    min-height: 56px;
+    font-size: 1.1rem;
+  }
+  
+  .setting-label input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .color-input {
+    height: 56px;
+  }
+  
+  .btn {
+    min-height: 56px;
+    font-size: 1.1rem;
+    padding: 1rem 1.5rem;
+  }
+  
+  .shortcut-item {
+    min-height: 72px;
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+/* ==========================================================================
+   DARK THEME SUPPORT
+   ========================================================================== */
+
+.theme-dark {
+  --settings-bg: #1f2937;
+  --settings-surface: #374151;
+  --settings-border: #4b5563;
+  --settings-text: #f9fafb;
+  --settings-text-muted: #d1d5db;
+  --settings-shadow: rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   HIGH CONTRAST MODE
+   ========================================================================== */
+
+.high-contrast {
+  --settings-bg: #ffffff;
+  --settings-surface: #f0f0f0;
+  --settings-border: #000000;
+  --settings-text: #000000;
+  --settings-text-muted: #333333;
+  --settings-accent: #0000ff;
+  --settings-success: #008000;
+  --settings-warning: #ff8c00;
+  --settings-danger: #ff0000;
+}
+
+.high-contrast .setting-input:focus,
+.high-contrast .setting-select:focus,
+.high-contrast .color-input:focus {
+  box-shadow: 0 0 0 3px #000000;
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-content,
+  .preview-card,
+  .setting-input,
+  .setting-select,
+  .color-input {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+/* Focus styles for keyboard navigation */
+.tab-btn:focus,
+.setting-input:focus,
+.setting-select:focus,
+.color-input:focus,
+.setting-range:focus {
+  outline: 2px solid var(--settings-accent);
+  outline-offset: 2px;
+}
+
+/* Large text mode */
+.large-text {
+  font-size: 1.25em;
+}
+
+.large-text .setting-label,
+.large-text .setting-input,
+.large-text .setting-select {
+  font-size: 1.1em;
+}
+
+.large-text .settings-tabs .tab-btn {
+  font-size: 1.2em;
+  padding: 1.25rem 1.75rem;
+}
+
+/* Screen reader support */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Color blind friendly adjustments */
+.color-blind-friendly .preview-badge {
+  border: 2px solid currentColor;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   UTILITIES
+   ========================================================================== */
+
+.hidden {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

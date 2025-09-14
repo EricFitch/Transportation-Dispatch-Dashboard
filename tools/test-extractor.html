@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test JS Extractor</title>
+</head>
+<body>
+    <h1>Testing JS Extractor Tool</h1>
+    <p id="status">Loading extractor tool...</p>
+    
+    <script>
+        try {
+            // Load the extractor tool in an iframe to test if it works
+            const iframe = document.createElement('iframe');
+            iframe.src = './js-extractor.html';
+            iframe.style.width = '100%';
+            iframe.style.height = '600px';
+            iframe.onload = function() {
+                document.getElementById('status').textContent = '✅ JS Extractor loaded successfully!';
+                document.getElementById('status').style.color = 'green';
+            };
+            iframe.onerror = function() {
+                document.getElementById('status').textContent = '❌ Error loading JS Extractor';
+                document.getElementById('status').style.color = 'red';
+            };
+            document.body.appendChild(iframe);
+        } catch (error) {
+            document.getElementById('status').textContent = '❌ Error: ' + error.message;
+            document.getElementById('status').style.color = 'red';
+        }
+    </script>
+</body>
+</html>

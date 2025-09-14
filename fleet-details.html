@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleet Management - Dispatch Command Center</title>
+    <script src="https://cdn.tailwindcss.com?v=3.4.0"></script>
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <style>
+        .fleet-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #cbd5e1;
+        }
+        .fleet-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .fleet-card.available { border-left-color: #22c55e; }
+        .fleet-card.in-service { border-left-color: #3b82f6; }
+        .fleet-card.down { border-left-color: #ef4444; }
+        .fleet-card.maintenance { border-left-color: #f59e0b; }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-available { background-color: #dcfce7; color: #166534; }
+        .status-in-service { background-color: #dbeafe; color: #1e40af; }
+        .status-down { background-color: #fee2e2; color: #991b1b; }
+        .status-maintenance { background-color: #fef3c7; color: #92400e; }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .fleet-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <button onclick="history.back()" 
+                            class="text-gray-600 hover:text-gray-900 flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        <span>Back to Dashboard</span>
+                    </button>
+                    <h1 class="text-2xl font-bold text-gray-900">Fleet Management</h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="exportFleetData()" 
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        Export Data
+                    </button>
+                    <button onclick="addNewAsset()" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Add Asset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fleet Statistics -->
+    <div class="fleet-stats text-white py-6 mb-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="fleet-stats">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+        <div class="bg-white rounded-lg shadow-sm p-4">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <input type="text" 
+                           id="fleet-search" 
+                           placeholder="Search by asset number, type, or status..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex gap-2">
+                    <select id="type-filter" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Types</option>
+                        <option value="Bus">Bus</option>
+                        <option value="Van">Van</option>
+                        <option value="Truck">Truck</option>
+                        <option value="Trailer">Trailer</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <select id="status-filter" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Status</option>
+                        <option value="available">Available</option>
+                        <option value="in-service">In Service</option>
+                        <option value="down">Down</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                    <button onclick="resetFilters()" 
+                            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fleet Cards Grid -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="fleet-cards-container">
+            <!-- Fleet cards will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Asset Details Modal -->
+    <div id="asset-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900" id="modal-title">Asset Details</h2>
+                    <button onclick="closeAssetModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="modal-content">
+                    <!-- Modal content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/modules/core/state.js"></script>
+    <script type="module" src="src/modules/core/events.js"></script>
+    <script type="module" src="src/modules/core/utils.js"></script>
+    <script type="module" src="src/modules/fleet/fleet-management.js"></script>
+</body>
+</html>

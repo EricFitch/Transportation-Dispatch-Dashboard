@@ -1,0 +1,330 @@
+/* LAYOUT - FLEXBOX STYLES
+   Transportation Dispatch Dashboard
+   Comprehensive flexbox utility system
+   Contains: Flex containers, alignment utilities, gap system
+   Dependencies: core/base.css (uses spacing variables)
+   Updated: 2025-09-12
+*/
+
+/* ==========================================================================
+   EXISTING COMPONENT FLEXBOX STYLES
+   ========================================================================== */
+
+/* Keyboard shortcut combinations */
+.shortcut-combo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+/* Status entry layout */
+.status-entry {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-2) var(--spacing-3);
+  margin: var(--spacing-1) 0;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   FLEXBOX UTILITY CLASSES
+   ========================================================================== */
+
+/* Basic flex containers */
+.flex {
+  display: flex;
+}
+
+.inline-flex {
+  display: inline-flex;
+}
+
+/* Flex direction */
+.flex-row {
+  flex-direction: row;
+}
+
+.flex-row-reverse {
+  flex-direction: row-reverse;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-col-reverse {
+  flex-direction: column-reverse;
+}
+
+/* Flex wrap */
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-wrap-reverse {
+  flex-wrap: wrap-reverse;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap;
+}
+
+/* ==========================================================================
+   JUSTIFY CONTENT (MAIN AXIS)
+   ========================================================================== */
+
+.justify-start {
+  justify-content: flex-start;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-around {
+  justify-content: space-around;
+}
+
+.justify-evenly {
+  justify-content: space-evenly;
+}
+
+/* ==========================================================================
+   ALIGN ITEMS (CROSS AXIS)
+   ========================================================================== */
+
+.items-start {
+  align-items: flex-start;
+}
+
+.items-end {
+  align-items: flex-end;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.items-baseline {
+  align-items: baseline;
+}
+
+.items-stretch {
+  align-items: stretch;
+}
+
+/* ==========================================================================
+   ALIGN CONTENT (WRAPPED LINES)
+   ========================================================================== */
+
+.content-start {
+  align-content: flex-start;
+}
+
+.content-end {
+  align-content: flex-end;
+}
+
+.content-center {
+  align-content: center;
+}
+
+.content-between {
+  align-content: space-between;
+}
+
+.content-around {
+  align-content: space-around;
+}
+
+.content-evenly {
+  align-content: space-evenly;
+}
+
+/* ==========================================================================
+   ALIGN SELF (INDIVIDUAL ITEMS)
+   ========================================================================== */
+
+.self-auto {
+  align-self: auto;
+}
+
+.self-start {
+  align-self: flex-start;
+}
+
+.self-end {
+  align-self: flex-end;
+}
+
+.self-center {
+  align-self: center;
+}
+
+.self-stretch {
+  align-self: stretch;
+}
+
+.self-baseline {
+  align-self: baseline;
+}
+
+/* ==========================================================================
+   FLEX GROW, SHRINK, AND BASIS
+   ========================================================================== */
+
+/* Flex grow */
+.flex-1 {
+  flex: 1 1 0%;
+}
+
+.flex-auto {
+  flex: 1 1 auto;
+}
+
+.flex-initial {
+  flex: 0 1 auto;
+}
+
+.flex-none {
+  flex: none;
+}
+
+/* Flex grow specific */
+.grow {
+  flex-grow: 1;
+}
+
+.grow-0 {
+  flex-grow: 0;
+}
+
+/* Flex shrink specific */
+.shrink {
+  flex-shrink: 1;
+}
+
+.shrink-0 {
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   GAP UTILITIES (USING CSS VARIABLES)
+   ========================================================================== */
+
+.gap-0 {
+  gap: 0;
+}
+
+.gap-1 {
+  gap: var(--spacing-1);
+}
+
+.gap-2 {
+  gap: var(--spacing-2);
+}
+
+.gap-3 {
+  gap: var(--spacing-3);
+}
+
+.gap-4 {
+  gap: var(--spacing-4);
+}
+
+.gap-6 {
+  gap: var(--spacing-6);
+}
+
+.gap-8 {
+  gap: var(--spacing-8);
+}
+
+/* Row gap (cross axis) */
+.gap-y-0 {
+  row-gap: 0;
+}
+
+.gap-y-1 {
+  row-gap: var(--spacing-1);
+}
+
+.gap-y-2 {
+  row-gap: var(--spacing-2);
+}
+
+.gap-y-3 {
+  row-gap: var(--spacing-3);
+}
+
+.gap-y-4 {
+  row-gap: var(--spacing-4);
+}
+
+/* Column gap (main axis) */
+.gap-x-0 {
+  column-gap: 0;
+}
+
+.gap-x-1 {
+  column-gap: var(--spacing-1);
+}
+
+.gap-x-2 {
+  column-gap: var(--spacing-2);
+}
+
+.gap-x-3 {
+  column-gap: var(--spacing-3);
+}
+
+.gap-x-4 {
+  column-gap: var(--spacing-4);
+}
+
+/* ==========================================================================
+   COMMON FLEX PATTERNS
+   ========================================================================== */
+
+/* Center everything */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Space between with center alignment */
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Flex column with gap */
+.flex-col-gap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+/* Responsive flex - mobile column, desktop row */
+.flex-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+@media (min-width: 768px) {
+  .flex-responsive {
+    flex-direction: row;
+    align-items: center;
+  }
+}

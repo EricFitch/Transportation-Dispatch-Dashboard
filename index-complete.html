@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transportation Dispatch Dashboard</title>
+    <meta name="description" content="Advanced transportation dispatch dashboard optimized for 75-inch touch displays">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="./assets/css/dashboard.css" as="style">
+    <link rel="preload" href="./src/main.js" as="script">
+    
+    <!-- Stylesheets -->
+    <link href="./assets/css/dashboard.css" rel="stylesheet">
+    
+    <!-- Performance optimization -->
+    <meta name="theme-color" content="#1e40af">
+    <meta name="color-scheme" content="light">
+</head>
+<body class="font-sans bg-gray-50 text-gray-900">
+    <!-- Main Dashboard Header -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <div class="logo-section">
+                <span class="logo-icon">🚌</span>
+                <h1 class="dashboard-title">Transportation Dispatch</h1>
+            </div>
+            
+            <div class="header-controls">
+                <!-- View Toggle -->
+                <div class="view-toggle-container">
+                    <label class="toggle-label">Shift:</label>
+                    <div class="toggle-switch" id="view-toggle">
+                        <input type="checkbox" id="view-checkbox" class="toggle-input">
+                        <div class="toggle-track">
+                            <div class="toggle-thumb"></div>
+                            <div class="toggle-labels">
+                                <span class="toggle-label-left">AM</span>
+                                <span class="toggle-label-right">PM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button class="action-btn primary" onclick="openStaffOutDialog()" title="Mark Staff Out of Service (Ctrl+O)">
+                        <span class="btn-icon">👤</span>
+                        <span class="btn-text">Staff Out</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="openAssetToggleDialog()" title="Toggle Asset Status (Ctrl+B)">
+                        <span class="btn-icon">🚛</span>
+                        <span class="btn-text">Assets</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="openQuickSearchDialog()" title="Quick Search (Ctrl+F)">
+                        <span class="btn-icon">🔍</span>
+                        <span class="btn-text">Search</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="header-right">
+            <!-- Status Display -->
+            <div class="status-display">
+                <div class="sync-status">
+                    <span class="status-indicator"></span>
+                    <span id="sync-status">Loading...</span>
+                </div>
+                <div class="clock-display">
+                    <span id="current-time"></span>
+                </div>
+            </div>
+            
+            <!-- Settings Button -->
+            <button id="settings-btn" class="settings-btn" onclick="openSettings()" title="Settings (Ctrl+,)">>
+                <span class="btn-icon">⚙️</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Content -->
+    <main class="dashboard-main">
+        <!-- Summary Cards -->
+        <section class="summary-section">
+            <div class="summary-grid">
+                <div class="summary-card routes">
+                    <div class="summary-icon">🚌</div>
+                    <div class="summary-content">
+                        <div class="summary-title">Routes</div>
+                        <div class="summary-stats">
+                            <span id="routes-assigned" class="stat-number">0</span>
+                            <span class="stat-label">Assigned</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-card staff">
+                    <div class="summary-icon">👥</div>
+                    <div class="summary-content">
+                        <div class="summary-title">Staff</div>
+                        <div class="summary-stats">
+                            <span id="staff-available" class="stat-number">0</span>
+                            <span class="stat-label">Available</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-card assets">
+                    <div class="summary-icon">🚛</div>
+                    <div class="summary-content">
+                        <div class="summary-title">Assets</div>
+                        <div class="summary-stats">
+                            <span id="assets-available" class="stat-number">0</span>
+                            <span class="stat-label">In Service</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-card trips">
+                    <div class="summary-icon">✈️</div>
+                    <div class="summary-content">
+                        <div class="summary-title">Field Trips</div>
+                        <div class="summary-stats">
+                            <span id="trips-active" class="stat-number">0</span>
+                            <span class="stat-label">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Dashboard Panels -->
+        <div class="dashboard-grid">
+            <!-- Routes Panel -->
+            <section class="dashboard-panel routes-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span class="panel-icon">🚌</span>
+                        Routes
+                    </h2>
+                    <div class="panel-actions">
+                        <button class="panel-action-btn" onclick="toggleRouteView()" title="Toggle Route View">
+                            <span class="btn-icon">⚡</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="route-cards-container" class="route-cards">
+                        <!-- Route cards will be dynamically generated -->
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Staff Panel -->
+            <section class="dashboard-panel staff-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span class="panel-icon">👥</span>
+                        Staff
+                    </h2>
+                    <div class="panel-actions">
+                        <button class="panel-action-btn" onclick="openStaffInDialog()" title="Mark Staff Available (Ctrl+I)">
+                            <span class="btn-icon">✅</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="staff-list" class="staff-list">
+                        <!-- Staff items will be dynamically generated -->
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Assets Panel -->
+            <section class="dashboard-panel asset-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span class="panel-icon">🚛</span>
+                        Assets
+                    </h2>
+                    <div class="panel-actions">
+                        <button class="panel-action-btn" onclick="refreshAssets()" title="Refresh Asset Status">
+                            <span class="btn-icon">🔄</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="asset-list" class="asset-list">
+                        <!-- Asset items will be dynamically generated -->
+                    </div>
+                </div>
+            </section>
+        </div>
+        
+        <!-- Resource Monitor -->
+        <section class="resource-panel">
+            <div class="panel-header collapsible-header" onclick="togglePanel('resource-monitor')">
+                <h3 class="panel-title">
+                    <span class="panel-icon">📊</span>
+                    Resource Monitor
+                    <span class="collapse-indicator">▼</span>
+                </h3>
+            </div>
+            <div id="resource-monitor" class="panel-content collapsible-content">
+                <div class="resource-grid">
+                    <!-- Fleet Service Status -->
+                    <div class="resource-item fleet-service">
+                        <div class="resource-header">
+                            <span class="resource-icon">🔧</span>
+                            <span class="resource-title">Fleet Service</span>
+                        </div>
+                        <div class="resource-status">
+                            <span id="fleet-service-status" class="status-badge">In Yard</span>
+                            <button class="status-btn" onclick="toggleFleetService()" title="Toggle Fleet Service Status">
+                                Toggle
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Stats -->
+                    <div class="resource-item quick-stats">
+                        <div class="resource-header">
+                            <span class="resource-icon">📈</span>
+                            <span class="resource-title">Quick Stats</span>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-value" id="total-routes">0</span>
+                                <span class="stat-label">Total Routes</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="unassigned-routes">0</span>
+                                <span class="stat-label">Unassigned</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Assignment Modal -->
+    <div id="assignment-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closeModal('assignment-modal')"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="assignment-modal-title" class="modal-title">Assign Route</h3>
+                <button class="modal-close" onclick="closeModal('assignment-modal')" title="Close (Esc)">
+                    <span>✕</span>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div id="assignment-form" class="assignment-form">
+                    <!-- Form content will be dynamically generated -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary" onclick="closeModal('assignment-modal')">Cancel</button>
+                <button class="btn primary" onclick="saveAssignment()">Save Assignment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closeModal('settings-modal')"></div>
+        <div class="modal-container large">
+            <div class="modal-header">
+                <h3 class="modal-title">Dashboard Settings</h3>
+                <button id="settings-close" class="modal-close" onclick="closeModal('settings-modal')" title="Close (Esc)">
+                    <span>✕</span>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="settings-tabs">
+                    <button class="tab-btn active" onclick="showSettingsTab('general')">General</button>
+                    <button class="tab-btn" onclick="showSettingsTab('data')">Data</button>
+                    <button class="tab-btn" onclick="showSettingsTab('controls')">Controls</button>
+                </div>
+                <div class="settings-content">
+                    <!-- General Settings Tab -->
+                    <div id="general-tab" class="tab-content active">
+                        <h4>Color Settings</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="color-available">Available:</label>
+                                <input type="color" id="color-available" value="#90EE90">
+                            </div>
+                            <div>
+                                <label for="color-assigned">Assigned:</label>
+                                <input type="color" id="color-assigned" value="#FFB6C1">
+                            </div>
+                            <div>
+                                <label for="color-out">Out:</label>
+                                <input type="color" id="color-out" value="#FF6B6B">
+                            </div>
+                            <div>
+                                <label for="color-unassigned">Unassigned:</label>
+                                <input type="color" id="color-unassigned" value="#D3D3D3">
+                            </div>
+                        </div>
+                        <div id="role-colors-container" class="mt-4">
+                            <h5>Role Colors</h5>
+                            <!-- Role colors will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Data Management Tab -->
+                    <div id="data-tab" class="tab-content hidden">
+                        <h4>Staff Management</h4>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="new-staff-name" placeholder="Staff name">
+                            <select id="new-staff-role">
+                                <option value="Driver">Driver</option>
+                                <option value="Aide">Aide</option>
+                                <option value="Monitor">Monitor</option>
+                            </select>
+                            <button id="add-staff" class="btn-primary">Add Staff</button>
+                        </div>
+                        <div id="staff-list" class="space-y-2">
+                            <!-- Staff list will be populated here -->
+                        </div>
+                        
+                        <h4 class="mt-6">Asset Management</h4>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="new-asset-name" placeholder="Asset name">
+                            <select id="new-asset-type">
+                                <option value="Bus">Bus</option>
+                                <option value="Van">Van</option>
+                                <option value="Car">Car</option>
+                            </select>
+                            <button id="add-asset" class="btn-primary">Add Asset</button>
+                        </div>
+                        <div id="asset-list-settings" class="space-y-2">
+                            <!-- Asset list will be populated here -->
+                        </div>
+                        
+                        <h4 class="mt-6">Route Management</h4>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="new-route-name" placeholder="Route name">
+                            <button id="add-route" class="btn-primary">Add Route</button>
+                        </div>
+                        <div id="route-list-settings" class="space-y-2">
+                            <!-- Route list will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Controls Tab -->
+                    <div id="controls-tab" class="tab-content hidden">
+                        <h4>System Controls</h4>
+                        <div class="space-y-4">
+                            <button id="reset-colors" class="btn-secondary">Reset Colors to Default</button>
+                            <button id="export-data" class="btn-secondary">Export Data</button>
+                            <button id="import-data" class="btn-secondary">Import Data</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="settings-cancel" class="btn-secondary">Cancel</button>
+                    <button id="settings-save" class="btn-primary">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Overlay -->
+    <div id="search-overlay" class="search-overlay hidden">
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <input type="text" id="overlay-search-input" class="search-input" placeholder="Search routes, staff, or assets..." autocomplete="off">
+                <button class="search-close" onclick="closeSearchOverlay()">
+                    <span>✕</span>
+                </button>
+            </div>
+            <div id="search-results" class="search-results">
+                <!-- Search results will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading-indicator" class="loading-indicator hidden">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container">
+        <!-- Toast notifications will be dynamically added here -->
+    </div>
+
+    <!-- Search Overlay -->
+    <div id="search-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 mx-4 max-w-2xl w-full">
+            <div class="flex items-center mb-4">
+                <span class="text-xl mr-3">🔍</span>
+                <input 
+                    type="text" 
+                    id="overlay-search-input" 
+                    placeholder="Search routes, staff, or assets..." 
+                    class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    aria-label="Search input"
+                >
+                <button onclick="document.getElementById('search-overlay').classList.add('hidden')" 
+                        class="ml-3 px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                        aria-label="Close search overlay">
+                    Close
+                </button>
+            </div>
+            
+            <div class="flex space-x-2 mb-4">
+                <select id="search-type-filter" class="px-3 py-1 border rounded" aria-label="Filter by type">
+                    <option value="all">All Types</option>
+                    <option value="route">Routes</option>
+                    <option value="staff">Staff</option>
+                    <option value="asset">Assets</option>
+                </select>
+                <select id="search-status-filter" class="px-3 py-1 border rounded" aria-label="Filter by status">
+                    <option value="all">All Status</option>
+                    <option value="available">Available</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="out-of-service">Out of Service</option>
+                </select>
+                <select id="search-assigned-filter" class="px-3 py-1 border rounded" aria-label="Filter by assignment">
+                    <option value="all">All</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="unassigned">Unassigned</option>
+                </select>
+            </div>
+            
+            <div id="search-results-overlay" class="max-h-64 overflow-y-auto border rounded" role="listbox" aria-label="Search results">
+                <!-- Search results will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- CSS for new modules -->
+    <style>
+        .keyboard-focusable:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+        
+        .keyboard-nav-active {
+            background-color: rgba(59, 130, 246, 0.1);
+            transform: scale(1.02);
+            transition: all 0.15s ease;
+        }
+        
+        .highlight-flash {
+            animation: highlight 2s ease-in-out;
+        }
+        
+        @keyframes highlight {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(59, 130, 246, 0.3); }
+        }
+        
+        .context-menu {
+            animation: contextMenuFadeIn 0.2s ease-out;
+        }
+        
+        @keyframes contextMenuFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .virtual-list-viewport {
+            overflow: auto;
+        }
+        
+        .virtual-list-content {
+            will-change: transform;
+        }
+        
+        .gesture-tutorial {
+            animation: tutorialFadeIn 0.3s ease-out;
+        }
+        
+        @keyframes tutorialFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Touch optimizations */
+        .touch-primary .route-card,
+        .touch-primary .staff-item,
+        .touch-primary .asset-item {
+            min-height: 48px;
+            padding: 12px;
+        }
+        
+        .touch-primary button {
+            min-height: 48px;
+            padding: 12px 16px;
+        }
+        
+        /* Screen reader announcer */
+        #screen-reader-announcer {
+            position: absolute;
+            left: -10000px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+    </style>
+
+    <!-- JavaScript -->
+    <script type="module" src="./src/main.js"></script>
+
+    <!-- Additional elements required by modules -->
+    <div id="import-data-type"><!-- import-data-type content --></div>
+    <div id="import-file"><!-- import-file content --></div>
+    <div id="merge-strategy"><!-- merge-strategy content --></div>
+    <div id="export-data-type"><!-- export-data-type content --></div>
+    <form id="export-format"><!-- export-format fields --></form>
+    <div id="include-ids"><!-- include-ids content --></div>
+    <div id="filter-status"><!-- filter-status content --></div>
+    <div id="asset-down-list" class="space-y-1"><!-- asset-down-list items --></div>
+    <div id="asset-spares-list" class="space-y-1"><!-- asset-spares-list items --></div>
+    <div id="asset-summary"><!-- asset-summary content --></div>
+    <div id="staff-out-list" class="space-y-1"><!-- staff-out-list items --></div>
+    <div id="staff-available-list" class="space-y-1"><!-- staff-available-list items --></div>
+    <div id="staff-summary"><!-- staff-summary content --></div>
+    <div id="fleet-service-modal" class="modal hidden"><!-- fleet-service-modal content --></div>
+    <div id="auto-refresh-checkbox"><!-- auto-refresh-checkbox content --></div>
+    <div id="refresh-interval"><!-- refresh-interval content --></div>
+    <div id="notifications-checkbox"><!-- notifications-checkbox content --></div>
+    <div class="fleet-report-btn"><!-- fleet-report-btn content --></div>
+    <div class="fleet-service-settings-btn"><!-- fleet-service-settings-btn content --></div>
+    <div id="service-status"><!-- service-status content --></div>
+    <div id="service-location"><!-- service-location content --></div>
+    <div id="service-notes"><!-- service-notes content --></div>
+    <select id="assignment-select" class="form-select"><!-- assignment-select options --></select>
+    <div id="staff-role"><!-- staff-role content --></div>
+    <div id="asset-type"><!-- asset-type content --></div>
+    <div id="field-trips-container" class="space-y-2"><!-- field-trips-container content --></div>
+    <div id="field-trip-id"><!-- field-trip-id content --></div>
+    <div id="field-trip-shift"><!-- field-trip-shift content --></div>
+    <div id="field-trip-destination"><!-- field-trip-destination content --></div>
+    <div id="field-trip-departure"><!-- field-trip-departure content --></div>
+    <div id="field-trip-return"><!-- field-trip-return content --></div>
+    <div id="field-trip-notes"><!-- field-trip-notes content --></div>
+    <div id="actual-departure"><!-- actual-departure content --></div>
+    <div id="actual-return"><!-- actual-return content --></div>
+    <div id="mileage-start"><!-- mileage-start content --></div>
+    <div id="mileage-end"><!-- mileage-end content --></div>
+    <div id="field-trip-status"><!-- field-trip-status content --></div>
+    <div id="feedback-styles"><!-- feedback-styles content --></div>
+    <div id="dashboard"><!-- dashboard content --></div>
+    <div id="touch-gesture-styles"><!-- touch-gesture-styles content --></div>
+    <div id="touch-swipe-indicator"><!-- touch-swipe-indicator content --></div>
+    <div id="close-tutorial"><!-- close-tutorial content --></div>
+    <div id="routes-panel"><!-- routes-panel content --></div>
+    <div id="staff-panel"><!-- staff-panel content --></div>
+    <div id="asset-panel"><!-- asset-panel content --></div>
+    <div id="field-trips-grid"><!-- field-trips-grid content --></div>
+    <input id="search-summary" type="text" class="form-input">
+    <div class="staff-name"><!-- staff-name content --></div>
+    <div class="staff-role"><!-- staff-role content --></div>
+    <div class="asset-name"><!-- asset-name content --></div>
+    <div class="asset-type"><!-- asset-type content --></div>
+    <div class="asset-status"><!-- asset-status content --></div>
+    <div id="notification-container" class="space-y-2"><!-- notification-container content --></div>
+    <input id="save-search-name" type="text" class="form-input">
+    <div id="saved-tab"><!-- saved-tab content --></div>
+    <select id="theme-select" class="form-select"><!-- theme-select options --></select>
+    <select id="density-select" class="form-select"><!-- density-select options --></select>
+    <div id="panel-layout"><!-- panel-layout content --></div>
+    <div id="auto-refresh"><!-- auto-refresh content --></div>
+    <div id="sound-notifications"><!-- sound-notifications content --></div>
+    <div id="confirm-actions"><!-- confirm-actions content --></div>
+    <div id="default-view"><!-- default-view content --></div>
+    <input id="staff-search" type="text" class="form-input">
+    <input id="routes-search" type="text" class="form-input">
+    <input id="assets-search" type="text" class="form-input">
+    <div id="time-from"><!-- time-from content --></div>
+    <div id="time-to"><!-- time-to content --></div>
+    <input id="fuzzy-search" type="text" class="form-input">
+    <div id="case-sensitive"><!-- case-sensitive content --></div>
+    <div id="whole-words"><!-- whole-words content --></div>
+    <select id="staff-select" class="form-select"><!-- staff-select options --></select>
+    <div id="out-reason"><!-- out-reason content --></div>
+    <div id="out-notes"><!-- out-notes content --></div>
+    <div id="estimated-return"><!-- estimated-return content --></div>
+    <select id="staff-in-select" class="form-select"><!-- staff-in-select options --></select>
+    <div id="return-notes"><!-- return-notes content --></div>
+    <select id="asset-select" class="form-select"><!-- asset-select options --></select>
+    <div id="new-status"><!-- new-status content --></div>
+    <div id="status-reason"><!-- status-reason content --></div>
+
+    </body>
+</html>

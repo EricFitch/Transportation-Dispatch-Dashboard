@@ -1,0 +1,150 @@
+/* LAYOUT - GRID STYLES
+   Transportation Dispatch Dashboard
+   Responsive grid system with breakpoint-aware columns
+   Contains: Grid layouts, responsive columns, collapsible content
+   Dependencies: core/base.css (uses grid and spacing variables)
+   Updated: 2025-09-12
+*/
+
+/* ==========================================================================
+   RESPONSIVE GRID SYSTEM
+   ========================================================================== */
+
+/* Base responsive grid using CSS variables */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols-desktop), minmax(var(--card-min-width), 1fr));
+  gap: var(--spacing-6);
+  width: 100%;
+}
+
+/* Tablet breakpoint - more columns on larger screens */
+@media (min-width: 1025px) {
+  .responsive-grid {
+    grid-template-columns: repeat(var(--grid-cols-large), minmax(var(--card-min-width), 1fr));
+  }
+}
+
+/* Large desktop breakpoint */
+@media (min-width: 1440px) {
+  .responsive-grid {
+    grid-template-columns: repeat(var(--grid-cols-xl), minmax(var(--card-min-width), 1fr));
+  }
+}
+
+/* Extra large desktop breakpoint */
+@media (min-width: 1920px) {
+  .responsive-grid {
+    grid-template-columns: repeat(var(--grid-cols-xxl), minmax(var(--card-min-width), 1fr));
+  }
+}
+
+/* ==========================================================================
+   GRID ENHANCEMENTS FOR LARGE DISPLAYS
+   ========================================================================== */
+
+/* Enhanced grid spacing for touch displays */
+.grid {
+  display: grid;
+  gap: var(--spacing-8);
+}
+
+/* Specific assignment grid layout */
+.assignment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-2);
+}
+
+/* Mobile assignment grid - single column */
+@media (max-width: 768px) {
+  .assignment-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-2);
+  }
+}
+
+/* ==========================================================================
+   COLLAPSIBLE CONTENT SYSTEM
+   ========================================================================== */
+
+/* Collapsible content container */
+.collapsible-content {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.collapsible-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.collapsible-content.expanded {
+  max-height: 1000px; /* Adjust based on content needs */
+  opacity: 1;
+}
+
+/* Collapse button styling */
+.collapse-btn {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.collapse-btn:hover {
+  transform: scale(1.05);
+  color: #3b82f6;
+}
+
+.collapse-btn:active {
+  transform: scale(0.98);
+}
+
+/* Collapse icon rotation */
+.collapse-btn .icon {
+  transition: transform 0.2s ease;
+}
+
+.collapse-btn.collapsed .icon {
+  transform: rotate(180deg);
+}
+
+/* ==========================================================================
+   GRID UTILITIES
+   ========================================================================== */
+
+/* Auto-fit grid for dynamic content */
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--card-min-width), 1fr));
+  gap: var(--spacing-4);
+}
+
+/* Auto-fill grid for consistent sizing */
+.grid-auto-fill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width), 1fr));
+  gap: var(--spacing-4);
+}
+
+/* Dense grid for compact layouts */
+.grid-dense {
+  grid-auto-flow: dense;
+}
+
+/* Full width grid items */
+.grid-span-full {
+  grid-column: 1 / -1;
+}
+
+/* Half width grid items */
+.grid-span-half {
+  grid-column: span calc(var(--grid-cols-desktop) / 2);
+}

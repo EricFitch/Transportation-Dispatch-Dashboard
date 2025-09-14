@@ -1,0 +1,35 @@
+{
+  "name": "modular-dispatch-dashboard",
+  "version": "1.0.0",
+  "description": "Transportation Dispatch Dashboard - Modular Architecture",
+  "type": "module",
+  "main": "src/app.js",
+  "scripts": {
+    "dev": "npx http-server -p 3000 -o modular.html",
+    "start": "npx http-server -p 8080 -o modular.html",
+    "build": "echo 'Build process - copy files to dist/'",
+    "test": "echo 'Tests will be added in future versions'",
+    "lint": "echo 'Linting with future ESLint setup'",
+    "serve": "npx http-server -p 3000 -c-1"
+  },
+  "keywords": [
+    "dispatch",
+    "transportation",
+    "dashboard",
+    "modular",
+    "javascript",
+    "touch-interface",
+    "fleet-management"
+  ],
+  "author": "Modular Architecture Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "browserslist": [
+    "defaults",
+    "not IE 11"
+  ]
+}

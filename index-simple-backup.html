@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modular Dispatch Dashboard</title>
+    
+    <!-- Modular CSS System -->
+    <link rel="stylesheet" href="./src/styles/main.css">
+    
+    <!-- Favicon and PWA Meta -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="description" content="Transportation Dispatch Dashboard - Modular Architecture">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="./src/app.js" as="script" crossorigin>
+    <link rel="preload" href="./src/styles/main.css" as="style">
+    
+    <!-- Performance and accessibility -->
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="spinner mb-4"></div>
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">Loading Dispatch Dashboard</h2>
+            <p class="text-gray-500" id="loading-status">Initializing modules...</p>
+        </div>
+    </div>
+
+    <!-- Main Application Container -->
+    <div id="app" class="min-h-screen bg-gray-50 app-container">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="container mx-auto px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-2xl font-bold text-gray-900">Dispatch Dashboard</h1>
+                    
+                    <!-- Global Search -->
+                    <div class="flex-1 max-w-lg mx-8">
+                        <input 
+                            type="search" 
+                            id="global-search" 
+                            placeholder="Search routes, staff, vehicles..."
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex items-center gap-3">
+                        <button id="settings-btn" class="btn-ghost btn-icon-only" title="Settings">
+                            ⚙️
+                        </button>
+                        <button id="notifications-btn" class="btn-ghost btn-icon-only" title="Notifications">
+                            🔔
+                        </button>
+                        <button id="help-btn" class="btn-ghost btn-icon-only" title="Help">
+                            ❓
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="container mx-auto px-4 py-6">
+            <!-- Dashboard Grid -->
+            <div class="responsive-grid mb-8">
+                <!-- Quick Stats -->
+                <div class="route-card">
+                    <div class="route-header">
+                        <h3 class="route-title">Active Routes</h3>
+                        <span class="status-badge bg-success">Live</span>
+                    </div>
+                    <div class="route-details">
+                        <div class="text-3xl font-bold text-blue-600" id="active-routes-count">--</div>
+                        <p class="text-gray-500 mt-1">Currently running</p>
+                    </div>
+                </div>
+
+                <div class="route-card">
+                    <div class="route-header">
+                        <h3 class="route-title">Available Staff</h3>
+                        <span class="status-badge bg-info">Ready</span>
+                    </div>
+                    <div class="route-details">
+                        <div class="text-3xl font-bold text-green-600" id="available-staff-count">--</div>
+                        <p class="text-gray-500 mt-1">On duty</p>
+                    </div>
+                </div>
+
+                <div class="route-card">
+                    <div class="route-header">
+                        <h3 class="route-title">Fleet Status</h3>
+                        <span class="status-badge bg-warning">Monitoring</span>
+                    </div>
+                    <div class="route-details">
+                        <div class="text-3xl font-bold text-orange-600" id="fleet-operational-count">--</div>
+                        <p class="text-gray-500 mt-1">Operational vehicles</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Sections -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Route Management -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-semibold">Route Management</h2>
+                            <button class="btn-primary btn-sm" id="add-route-btn">Add Route</button>
+                        </div>
+                        <div id="routes-container" class="space-y-3">
+                            <!-- Routes will be loaded here by modules -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="responsive-sidebar">
+                    <!-- Staff Panel -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                        <h3 class="font-semibold mb-3">Staff Assignments</h3>
+                        <div id="staff-container" class="space-y-2">
+                            <!-- Staff will be loaded here by modules -->
+                        </div>
+                    </div>
+
+                    <!-- Assets Panel -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                        <h3 class="font-semibold mb-3">Vehicle Fleet</h3>
+                        <div id="assets-container" class="space-y-2">
+                            <!-- Assets will be loaded here by modules -->
+                        </div>
+                    </div>
+
+                    <!-- Fleet Service Panel -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                        <h3 class="font-semibold mb-3">Fleet Service</h3>
+                        <div id="fleet-service" class="space-y-2">
+                            <!-- Fleet service status will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Down List Panel -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                        <h3 class="font-semibold mb-3">Down List</h3>
+                        <div id="down-list" class="space-y-2">
+                            <!-- Down vehicles will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Spares List Panel -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-4">
+                        <h3 class="font-semibold mb-3">Spare Assets</h3>
+                        <div id="spares-list" class="space-y-2">
+                            <!-- Spare vehicles will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <!-- Touch Context Menu -->
+    <div id="touch-context-menu" class="touch-context-menu hidden fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-2"></div>
+
+    <!-- Keyboard Shortcuts Help -->
+    <div id="shortcuts-help" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 class="text-lg font-semibold mb-4">Keyboard Shortcuts</h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span>Search</span>
+                    <kbd>Ctrl + F</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span>Save</span>
+                    <kbd>Ctrl + S</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span>Close Modals</span>
+                    <kbd>Escape</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span>Show Help</span>
+                    <kbd>Ctrl + /</kbd>
+                </div>
+            </div>
+            <button class="btn-primary w-full mt-4" onclick="document.getElementById('shortcuts-help').classList.add('hidden')">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        // Simple loading screen management
+        document.addEventListener('DOMContentLoaded', () => {
+            // Listen for app initialization events
+            window.addEventListener('app:ready', (event) => {
+                document.getElementById('loading-screen').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                
+                console.log('🎉 Dashboard ready!', event.detail);
+            });
+
+            window.addEventListener('app:error', (event) => {
+                document.getElementById('loading-status').textContent = 'Error loading application';
+                console.error('App error:', event.detail);
+            });
+
+            // Update loading status
+            const statuses = [
+                'Loading core modules...',
+                'Initializing UI system...',
+                'Setting up dispatch modules...',
+                'Configuring touch interface...',
+                'Loading fleet management...',
+                'Preparing operations center...',
+                'Finalizing setup...'
+            ];
+
+            let statusIndex = 0;
+            const statusInterval = setInterval(() => {
+                if (statusIndex < statuses.length) {
+                    document.getElementById('loading-status').textContent = statuses[statusIndex];
+                    statusIndex++;
+                } else {
+                    clearInterval(statusInterval);
+                }
+            }, 300);
+        });
+    </script>
+
+    <!-- Main Application Module -->
+    <script type="module" src="./src/app.js"></script>
+</body>
+</html>

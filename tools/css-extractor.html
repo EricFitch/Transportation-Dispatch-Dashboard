@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 CSS Extractor Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .upload-zone {
+            border: 3px dashed #ddd;
+            border-radius: 8px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .upload-subtext {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .progress {
+            width: 100%;
+            height: 8px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            margin: 20px 0;
+        }
+        
+        .results {
+            margin-top: 30px;
+        }
+        
+        .summary {
+            background: #f8f9ff;
+            border: 1px solid #e1e8ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .summary h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e1e8ff;
+        }
+        
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .summary-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .module-card {
+            background: white;
+            border: 1px solid #e1e8ff;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .module-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .module-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        
+        .module-title {
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+        
+        .module-size {
+            font-size: 0.85rem;
+            color: #666;
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .module-preview {
+            background: #f8f9fa;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+        }
+        
+        .download-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .error {
+            color: #e74c3c;
+        }
+        
+        .success {
+            color: #27ae60;
+        }
+        
+        .warning {
+            color: #f39c12;
+        }
+        
+        .info {
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 CSS Extractor Tool</h1>
+            <p>Extract and modularize CSS from HTML files</p>
+        </div>
+        
+        <div class="content">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drop your HTML file here or click to browse</div>
+                <div class="upload-subtext">Supports HTML files with embedded CSS</div>
+                <input type="file" id="fileInput" class="file-input" accept=".html,.htm">
+            </div>
+            
+            <div class="progress" id="progressContainer" style="display: none;">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="log" id="log" style="display: none;"></div>
+            
+            <div class="results" id="results">
+                <div class="summary">
+                    <h3>📊 Extraction Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <div class="summary-value" id="totalRules">0</div>
+                            <div class="summary-label">CSS Rules</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="totalSelectors">0</div>
+                            <div class="summary-label">Selectors</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="totalModules">0</div>
+                            <div class="summary-label">CSS Modules</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="fileSize">0</div>
+                            <div class="summary-label">File Size (KB)</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="module-grid" id="moduleGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class CSSExtractor {
+            constructor() {
+                this.modules = new Map();
+                this.stats = {
+                    totalRules: 0,
+                    totalSelectors: 0,
+                    fileSize: 0
+                };
+                
+                this.setupEventListeners();
+                this.log('🎨 CSS Extractor initialized');
+            }
+            
+            setupEventListeners() {
+                const uploadZone = document.getElementById('uploadZone');
+                const fileInput = document.getElementById('fileInput');
+                
+                // Click to upload
+                uploadZone.addEventListener('click', () => fileInput.click());
+                
+                // Drag and drop
+                uploadZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.add('dragover');
+                });
+                
+                uploadZone.addEventListener('dragleave', () => {
+                    uploadZone.classList.remove('dragover');
+                });
+                
+                uploadZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.remove('dragover');
+                    
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.processFile(files[0]);
+                    }
+                });
+                
+                // File input change
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.processFile(e.target.files[0]);
+                    }
+                });
+            }
+            
+            async processFile(file) {
+                this.log('📂 Starting CSS extraction...');
+                this.showProgress(0);
+                
+                try {
+                    const content = await this.readFile(file);
+                    this.stats.fileSize = Math.round(file.size / 1024);
+                    this.log(`📄 File loaded: ${file.name} (${this.stats.fileSize}KB)`);
+                    this.showProgress(25);
+                    
+                    await this.extractCSS(content);
+                    this.showProgress(75);
+                    
+                    this.generateModules();
+                    this.showProgress(100);
+                    
+                    this.displayResults();
+                    this.log('✅ CSS extraction completed successfully!');
+                    
+                } catch (error) {
+                    this.log(`❌ Error: ${error.message}`);
+                }
+            }
+            
+            readFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file);
+                });
+            }
+            
+            async extractCSS(content) {
+                this.log('🔍 Extracting CSS sections...');
+                
+                // Extract all style blocks
+                const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+                let match;
+                let allCSS = '';
+                
+                while ((match = styleRegex.exec(content)) !== null) {
+                    allCSS += match[1] + '\n';
+                }
+                
+                this.log(`🎨 Found ${allCSS.split('\n').length} lines of CSS`);
+                this.stats.totalLines = allCSS.split('\n').length;
+                
+                // Parse and categorize CSS
+                this.categorizeCSS(allCSS);
+            }
+            
+            categorizeCSS(cssCode) {
+                this.log('🏗️ Categorizing CSS rules into modules...');
+                
+                // Define CSS module categories and their patterns
+                const modulePatterns = {
+                    // Core styling
+                    'core/base': /^\s*\*\s*{|html\s*{|body\s*{|:root\s*{|@media.*print/im,
+                    'core/variables': /:root\s*{|--[\w-]+\s*:/im,
+                    'core/typography': /font-|text-|line-height|letter-spacing|word-spacing/im,
+                    
+                    // Layout
+                    'layout/grid': /\.grid|\.container|\.row|\.col|display:\s*grid|grid-template/im,
+                    'layout/flexbox': /display:\s*flex|flex-|justify-content|align-items|align-self/im,
+                    'layout/positioning': /position:\s*(absolute|relative|fixed|sticky)|top:|left:|right:|bottom:|z-index/im,
+                    
+                    // Components
+                    'components/buttons': /\.btn|\.button|button\s*{/im,
+                    'components/forms': /\.form|input\s*{|textarea\s*{|select\s*{|\.field/im,
+                    'components/modals': /\.modal|\.overlay|\.popup|\.dialog/im,
+                    'components/cards': /\.card|\.panel|\.box/im,
+                    'components/navigation': /\.nav|\.menu|\.breadcrumb|\.pagination/im,
+                    'components/tables': /\.table|table\s*{|th\s*{|td\s*{/im,
+                    
+                    // Utilities
+                    'utilities/spacing': /\.m-|\.p-|margin|padding/im,
+                    'utilities/colors': /\.bg-|\.text-|background-color|color:/im,
+                    'utilities/display': /\.d-|\.show|\.hide|display:\s*(none|block|inline)/im,
+                    'utilities/responsive': /@media|\.mobile|\.tablet|\.desktop/im,
+                    
+                    // Touch and interaction
+                    'touch/gestures': /touch-action|user-select|cursor:|pointer-events/im,
+                    'touch/feedback': /transition|transform|animation|@keyframes/im,
+                    
+                    // Dispatch specific
+                    'dispatch/routes': /\.route|\.assignment|\.dispatch/im,
+                    'dispatch/staff': /\.staff|\.driver|\.aide/im,
+                    'dispatch/assets': /\.asset|\.vehicle|\.bus|\.van/im,
+                    'dispatch/fieldtrips': /\.field-trip|\.trip/im
+                };
+                
+                // Initialize modules
+                Object.keys(modulePatterns).forEach(moduleName => {
+                    this.modules.set(moduleName, {
+                        name: moduleName,
+                        selectors: [],
+                        rules: [],
+                        css: '',
+                        size: 0
+                    });
+                });
+                
+                // Parse CSS rules
+                this.parseCSS(cssCode, modulePatterns);
+                
+                this.log(`📦 Created ${this.modules.size} CSS modules`);
+            }
+            
+            parseCSS(css, patterns) {
+                // Simple CSS rule parsing
+                const rules = css.match(/([^{}]+)\s*{\s*([^{}]*)\s*}/g) || [];
+                
+                this.stats.totalRules = rules.length;
+                this.stats.totalSelectors = 0;
+                
+                rules.forEach(rule => {
+                    const [, selector, declarations] = rule.match(/([^{}]+)\s*{\s*([^{}]*)\s*}/) || [];
+                    
+                    if (selector && declarations) {
+                        const cleanSelector = selector.trim();
+                        this.stats.totalSelectors++;
+                        
+                        // Find matching module
+                        let assignedModule = 'utilities/misc'; // Default fallback
+                        
+                        for (const [moduleName, pattern] of Object.entries(patterns)) {
+                            if (pattern.test(rule)) {
+                                assignedModule = moduleName;
+                                break;
+                            }
+                        }
+                        
+                        // Add to module
+                        if (!this.modules.has(assignedModule)) {
+                            this.modules.set(assignedModule, {
+                                name: assignedModule,
+                                selectors: [],
+                                rules: [],
+                                css: '',
+                                size: 0
+                            });
+                        }
+                        
+                        const module = this.modules.get(assignedModule);
+                        module.selectors.push(cleanSelector);
+                        module.rules.push(rule.trim());
+                        module.css += rule.trim() + '\n\n';
+                        module.size += rule.length;
+                    }
+                });
+                
+                // Remove empty modules
+                for (const [moduleName, moduleData] of this.modules.entries()) {
+                    if (moduleData.rules.length === 0) {
+                        this.modules.delete(moduleName);
+                    }
+                }
+            }
+            
+            generateModules() {
+                this.log('📦 Generating CSS module files...');
+                
+                for (const [moduleName, moduleData] of this.modules.entries()) {
+                    // Add module header
+                    const header = `/* ${moduleName.replace('/', ' - ').toUpperCase()} STYLES
+   Transportation Dispatch Dashboard
+   Auto-extracted from legacy monolithic file
+   Selectors included: ${moduleData.selectors.slice(0, 5).join(', ')}${moduleData.selectors.length > 5 ? '...' : ''}
+   Total rules: ${moduleData.rules.length}
+   Generated: ${new Date().toISOString().split('T')[0]}
+*/
+
+`;
+                    
+                    moduleData.fullCSS = header + moduleData.css;
+                }
+            }
+            
+            displayResults() {
+                // Update summary
+                document.getElementById('totalRules').textContent = this.stats.totalRules;
+                document.getElementById('totalSelectors').textContent = this.stats.totalSelectors;
+                document.getElementById('totalModules').textContent = this.modules.size;
+                document.getElementById('fileSize').textContent = this.stats.fileSize;
+                
+                // Display modules
+                const moduleGrid = document.getElementById('moduleGrid');
+                moduleGrid.innerHTML = '';
+                
+                for (const [moduleName, moduleData] of this.modules.entries()) {
+                    const moduleCard = this.createModuleCard(moduleName, moduleData);
+                    moduleGrid.appendChild(moduleCard);
+                }
+            }
+            
+            createModuleCard(moduleName, moduleData) {
+                const card = document.createElement('div');
+                card.className = 'module-card';
+                
+                const icon = this.getModuleIcon(moduleName);
+                const sizeKB = Math.round(moduleData.size / 1024 * 100) / 100;
+                
+                card.innerHTML = `
+                    <div class="module-header">
+                        <span class="module-icon">${icon}</span>
+                        <span class="module-title">${moduleName}</span>
+                        <span class="module-size">${sizeKB}KB</span>
+                    </div>
+                    <div class="module-preview">${this.getPreview(moduleData.css)}</div>
+                    <button class="download-btn" onclick="cssExtractor.downloadModule('${moduleName}')">
+                        📥 Download ${moduleName.split('/')[1]}.css
+                    </button>
+                `;
+                
+                return card;
+            }
+            
+            getModuleIcon(moduleName) {
+                const icons = {
+                    'core': '🔧',
+                    'layout': '📐',
+                    'components': '🧩',
+                    'utilities': '🛠️',
+                    'touch': '👆',
+                    'dispatch': '🚌'
+                };
+                
+                const category = moduleName.split('/')[0];
+                return icons[category] || '📄';
+            }
+            
+            getPreview(css) {
+                const lines = css.split('\n');
+                const preview = lines.slice(0, 10).join('\n');
+                
+                if (lines.length > 10) {
+                    return preview + '\n\n/* ... and more ... */';
+                }
+                
+                return preview;
+            }
+            
+            downloadModule(moduleName) {
+                const moduleData = this.modules.get(moduleName);
+                if (!moduleData) return;
+                
+                const filename = `${moduleName.replace('/', '-')}.css`;
+                const content = moduleData.fullCSS;
+                
+                this.downloadFile(content, filename, 'text/css');
+                this.log(`📥 Downloaded: ${filename}`);
+            }
+            
+            downloadFile(content, filename, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                URL.revokeObjectURL(url);
+            }
+            
+            showProgress(percent) {
+                const progressContainer = document.getElementById('progressContainer');
+                const progressBar = document.getElementById('progressBar');
+                
+                progressContainer.style.display = 'block';
+                progressBar.style.width = `${percent}%`;
+                
+                if (percent >= 100) {
+                    setTimeout(() => {
+                        progressContainer.style.display = 'none';
+                    }, 1000);
+                }
+            }
+            
+            log(message) {
+                const logContainer = document.getElementById('log');
+                logContainer.style.display = 'block';
+                
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                
+                // Style based on message type
+                if (message.includes('❌')) {
+                    logEntry.className = 'error';
+                } else if (message.includes('✅')) {
+                    logEntry.className = 'success';
+                } else if (message.includes('⚠️')) {
+                    logEntry.className = 'warning';
+                } else {
+                    logEntry.className = 'info';
+                }
+                
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }
+        
+        // Initialize the CSS extractor
+        const cssExtractor = new CSSExtractor();
+    </script>
+</body>
+</html>

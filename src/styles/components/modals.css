@@ -1,0 +1,252 @@
+/* COMPONENTS - MODALS STYLES
+   Transportation Dispatch Dashboard
+   Modal system with touch optimization and animations
+   Contains: Modal layouts, overlays, animations, responsive behavior
+   Dependencies: core/base.css (uses CSS variables)
+   Updated: 2025-09-12
+*/
+
+/* ==========================================================================
+   APP CONTAINER STATES
+   ========================================================================== */
+
+.app-container {
+    display: none;
+}
+
+.app-container.loaded {
+    display: block;
+}
+
+/* ==========================================================================
+   MODAL BASE STYLES
+   ========================================================================== */
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-4);
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Modal container */
+.modal-content {
+  background: white;
+  padding: var(--spacing-8);
+  border-radius: 20px;
+  max-width: var(--modal-width);
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+/* ==========================================================================
+   MODAL ANIMATIONS
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes searchOverlaySlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   MODAL VARIANTS
+   ========================================================================== */
+
+/* Search modal specific styles */
+#advanced-search-modal .modal-content {
+  animation: modalSlideIn 0.3s ease-out;
+  max-width: 600px;
+}
+
+#search-overlay .modal-content {
+  animation: searchOverlaySlideIn 0.3s ease-out;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Compact modal for mobile */
+.modal-compact .modal-content {
+  padding: var(--spacing-6);
+  border-radius: 16px;
+}
+
+/* Full-screen modal for mobile */
+.modal-fullscreen .modal-content {
+  max-width: none;
+  max-height: none;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  padding: var(--spacing-4);
+}
+
+/* ==========================================================================
+   MODAL HEADER, BODY, FOOTER
+   ========================================================================== */
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.modal-body {
+  margin-bottom: var(--spacing-6);
+}
+
+.modal-footer {
+  display: flex;
+  gap: var(--spacing-3);
+  justify-content: flex-end;
+  padding-top: var(--spacing-4);
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ==========================================================================
+   MODAL CLOSE BUTTON
+   ========================================================================== */
+
+.modal-close {
+  position: absolute;
+  top: var(--spacing-4);
+  right: var(--spacing-4);
+  background: none;
+  border: none;
+  font-size: var(--text-xl);
+  cursor: pointer;
+  color: #6b7280;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+/* ==========================================================================
+   RESPONSIVE MODAL BEHAVIOR
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: var(--spacing-2);
+    align-items: flex-end;
+  }
+  
+  .modal-content {
+    border-radius: 20px 20px 0 0;
+    max-height: 85vh;
+    width: 100%;
+    margin-bottom: 0;
+    animation: modalSlideUp 0.3s ease-out;
+  }
+  
+  .modal-header {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+  }
+}
+
+@keyframes modalSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   MODAL BACKDROP EFFECTS
+   ========================================================================== */
+
+.modal-backdrop-blur {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.modal-backdrop-dark {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+.modal-content:focus {
+  outline: none;
+}
+
+/* Hide scrollbar but keep functionality */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

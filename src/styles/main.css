@@ -1,0 +1,140 @@
+/* MODULAR DISPATCH DASHBOARD - MASTER STYLES
+   Transportation Dispatch Dashboard
+   Master CSS import file for modular architecture
+   
+   Import Order:
+   1. Core Foundation (variables, typography)
+   2. Layout System (grid, flexbox, positioning)
+   3. Components (buttons, modals)
+   4. Utilities (spacing, colors, display, misc)
+   5. Touch System (gestures, feedback)
+   6. Domain-Specific (dispatch)
+   
+   Total Modules: 14
+   Generated: 2025-09-12
+*/
+
+/* ==========================================================================
+   CORE FOUNDATION
+   ========================================================================== */
+
+/* CSS Variables, resets, base styles */
+@import url('./core/base.css');
+
+/* Typography system with touch optimization */
+@import url('./core/typography.css');
+
+/* ==========================================================================
+   LAYOUT SYSTEM
+   ========================================================================== */
+
+/* Responsive grid system */
+@import url('./layout/grid.css');
+
+/* Flexbox utilities */
+@import url('./layout/flexbox.css');
+
+/* Positioning and spacing system */
+@import url('./layout/positioning.css');
+
+/* ==========================================================================
+   COMPONENT LIBRARY
+   ========================================================================== */
+
+/* Comprehensive button system */
+@import url('./components/buttons.css');
+
+/* Modal and overlay system */
+@import url('./components/modals.css');
+
+/* ==========================================================================
+   UTILITY SYSTEM
+   ========================================================================== */
+
+/* Margin and padding utilities */
+@import url('./utilities/spacing.css');
+
+/* Color system and status indicators */
+@import url('./utilities/colors.css');
+
+/* Display and visibility utilities */
+@import url('./utilities/display.css');
+
+/* Search, layout, and misc utilities */
+@import url('./utilities/misc.css');
+
+/* Advanced search system styles */
+@import url('./ui/advancedSearch.css');
+
+/* Settings system styles */
+@import url('./ui/settings.css');
+
+/* ==========================================================================
+   TOUCH INTERFACE SYSTEM
+   ========================================================================== */
+
+/* Touch gestures and interactions */
+@import url('./touch/gestures.css');
+
+/* Touch feedback and animations */
+@import url('./touch/feedback.css');
+
+/* ==========================================================================
+   DOMAIN-SPECIFIC STYLES
+   ========================================================================== */
+
+/* Route management and dispatch styles */
+@import url('./dispatch/routes.css');
+
+/* ==========================================================================
+   GLOBAL OVERRIDES AND FINAL ADJUSTMENTS
+   ========================================================================== */
+
+/* Ensure consistent box-sizing */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Enhanced focus ring for accessibility */
+*:focus {
+  outline-color: #3b82f6;
+}
+
+/* Smooth scrolling for supported browsers */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Print optimizations */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-break {
+    page-break-after: always;
+  }
+  
+  .print-avoid-break {
+    page-break-inside: avoid;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --text-base: 1rem;
+    --spacing-1: 0.5rem;
+    --spacing-2: 0.75rem;
+    --spacing-3: 1rem;
+    --spacing-4: 1.5rem;
+  }
+}

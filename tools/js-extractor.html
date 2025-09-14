@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Extractor Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .content {
+            padding: 30px;
+        }
+        .upload-zone {
+            border: 3px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 60px;
+            text-align: center;
+            background: #f9fafb;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+        .upload-zone:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .upload-zone.dragover {
+            border-color: #667eea;
+            background: #e0e7ff;
+            transform: scale(1.02);
+        }
+        .upload-icon {
+            font-size: 4em;
+            color: #9ca3af;
+            margin-bottom: 20px;
+        }
+        .upload-text {
+            font-size: 1.2em;
+            color: #6b7280;
+            margin-bottom: 15px;
+        }
+        .upload-subtext {
+            color: #9ca3af;
+            font-size: 0.9em;
+        }
+        .file-input {
+            display: none;
+        }
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+        .hidden {
+            display: none;
+        }
+        .progress {
+            background: #e5e7eb;
+            border-radius: 6px;
+            height: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .module-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .module-header {
+            background: #f8fafc;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .module-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+        }
+        .module-stats {
+            font-size: 0.85em;
+            color: #6b7280;
+        }
+        .module-content {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .code-preview {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .actions {
+            padding: 15px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        .summary {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .summary h3 {
+            margin: 0 0 15px 0;
+            color: #0c4a6e;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .summary-item {
+            text-align: center;
+        }
+        .summary-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #0369a1;
+        }
+        .summary-label {
+            color: #075985;
+            font-size: 0.9em;
+        }
+        .log {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85em;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 JavaScript Extractor Tool</h1>
+            <p>Extract and modularize JavaScript from HTML files</p>
+        </div>
+        
+        <div class="content">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drop your HTML file here or click to browse</div>
+                <div class="upload-subtext">Supports HTML files with embedded JavaScript</div>
+                <input type="file" id="fileInput" class="file-input" accept=".html,.htm">
+            </div>
+            
+            <div class="progress hidden" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="log hidden" id="log"></div>
+            
+            <div class="results" id="results">
+                <div class="summary">
+                    <h3>📊 Extraction Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <div class="summary-number" id="totalFunctions">0</div>
+                            <div class="summary-label">Functions Found</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-number" id="totalModules">0</div>
+                            <div class="summary-label">Modules Created</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-number" id="totalLines">0</div>
+                            <div class="summary-label">Lines of Code</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-number" id="fileSize">0</div>
+                            <div class="summary-label">KB Processed</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="module-grid" id="moduleGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class JavaScriptExtractor {
+            constructor() {
+                this.modules = new Map();
+                this.stats = {
+                    totalFunctions: 0,
+                    totalLines: 0,
+                    fileSize: 0
+                };
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                const uploadZone = document.getElementById('uploadZone');
+                const fileInput = document.getElementById('fileInput');
+
+                uploadZone.addEventListener('click', () => fileInput.click());
+                uploadZone.addEventListener('dragover', this.handleDragOver.bind(this));
+                uploadZone.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                uploadZone.addEventListener('drop', this.handleDrop.bind(this));
+                fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                e.currentTarget.classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.currentTarget.classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.processFile(files[0]);
+                }
+            }
+
+            handleFileSelect(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    this.processFile(file);
+                }
+            }
+
+            async processFile(file) {
+                this.log('📂 Starting file processing...');
+                this.showProgress(0);
+                
+                try {
+                    const content = await this.readFile(file);
+                    this.stats.fileSize = Math.round(file.size / 1024);
+                    this.log(`📄 File loaded: ${file.name} (${this.stats.fileSize}KB)`);
+                    
+                    this.showProgress(25);
+                    await this.extractJavaScript(content);
+                    
+                    this.showProgress(75);
+                    this.generateModules();
+                    
+                    this.showProgress(100);
+                    this.displayResults();
+                    this.log('✅ Extraction completed successfully!');
+                    
+                } catch (error) {
+                    this.log(`❌ Error: ${error.message}`);
+                }
+            }
+
+            readFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file);
+                });
+            }
+
+            async extractJavaScript(content) {
+                this.log('🔍 Extracting JavaScript sections...');
+                
+                // Extract all script blocks
+                const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+                let match;
+                let allJs = '';
+                
+                while ((match = scriptRegex.exec(content)) !== null) {
+                    allJs += match[1] + '\n';
+                }
+                
+                this.log(`📜 Found ${allJs.split('\n').length} lines of JavaScript`);
+                this.stats.totalLines = allJs.split('\n').length;
+                
+                // Extract functions and group them
+                this.categorizeCode(allJs);
+            }
+
+            categorizeCode(jsCode) {
+                this.log('🏗️ Categorizing functions into modules...');
+                
+                // Define module categories and their patterns - TAILORED FOR DISPATCH DASHBOARD
+                const modulePatterns = {
+                    // Core Infrastructure
+                    'core/state': /state|STATE|localStorage|storage|data(?!Parser)|config|Config/i,
+                    'core/utils': /debounce|throttle|performance|PERFORMANCE|batch|virtual|utils|formatTime|formatDate/i,
+                    'core/events': /event|Event|keyboard|KEYBOARD|input|INPUT|global.*key|arrow.*nav/i,
+                    
+                    // Touch Optimization (75" Display Specific)
+                    'touch/gestures': /touch|Touch|gesture|Gesture|longPress|swipe|pinch|zoom/i,
+                    'touch/feedback': /feedback|Feedback|haptic|vibrat|visual.*feedback/i,
+                    'touch/responsive': /responsive|Responsive|screen|Screen|display|Display|resize/i,
+                    
+                    // Transportation Dispatch Core
+                    'dispatch/routes': /renderRoute|route.*render|Route.*Card|route.*status|updateRoute/i,
+                    'dispatch/staff': /renderStaff|staff.*render|markStaff|Staff.*Panel|driver|Driver/i,
+                    'dispatch/assets': /renderAsset|asset.*render|Asset.*Panel|bus|Bus|vehicle|Vehicle/i,
+                    'dispatch/radio': /radio|Radio|status|Status|10-[0-9]|getStatus|updateStatus|glow/i,
+                    
+                    // Fleet Management
+                    'fleet/service': /fleet|Fleet|service|Service|down.*list|spare|maintenance|Maintenance/i,
+                    'fleet/assignments': /assignment|Assignment|assign|clear.*assignment|confirm.*assignment/i,
+                    
+                    // Field Operations
+                    'operations/fieldtrips': /fieldtrip|fieldTrip|trip|Trip|destination|time.*field/i,
+                    'operations/routes': /route.*management|route.*control|route.*assign/i,
+                    
+                    // UI Components
+                    'ui/modals': /modal|Modal|dialog|Dialog|popup|Popup|overlay/i,
+                    'ui/settings': /settings|Settings|theme|Theme|preferences|Preferences/i,
+                    'ui/search': /search|Search|filter|Filter|quick.*search/i,
+                    'ui/notifications': /notification|Notification|alert|Alert|toast|message/i,
+                    'ui/summaries': /summary|Summary|badge|Badge|stats|Stats|count/i,
+                    
+                    // Data Management
+                    'data/validation': /validate|Validate|check|Check|verify|Verify/i,
+                    'data/export': /export|Export|import|Import|download|Download|backup|Backup/i,
+                    'data/sync': /sync|Sync|refresh|Refresh|update.*data|load.*data/i,
+                    
+                    // Large Display Optimizations
+                    'display/optimization': /optimize|Optimize|large.*screen|touch.*target|font.*scale/i,
+                    'display/layout': /layout|Layout|grid|Grid|panel|Panel|container/i
+                };
+
+                // Extract functions using comprehensive regex for dispatch dashboard
+                const functionRegex = /(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:function|\()|(\w+)\s*:\s*function|\s*(\w+)\s*\([^)]*\)\s*{)[\s\S]*?(?=\n(?:function|\s*const|\s*let|\s*var|\s*\w+\s*:|\s*\w+\s*\()|$)/g;
+                
+                // Also extract object literals and constants that might contain dispatch logic
+                const objectRegex = /(?:const|let|var)\s+([A-Z_][A-Z0-9_]*)\s*=\s*{[\s\S]*?};/g;
+                
+                let match;
+                let functionCount = 0;
+                
+                // Extract regular functions
+                while ((match = functionRegex.exec(jsCode)) !== null) {
+                    const fullMatch = match[0];
+                    const functionName = match[1] || match[2] || match[3] || match[4];
+                    
+                    if (functionName && functionName.length > 1 && !functionName.startsWith('_')) {
+                        functionCount++;
+                        this.categorizeFunction(functionName, fullMatch, modulePatterns);
+                    }
+                }
+                
+                // Extract object constants (like PERFORMANCE, KEYBOARD_NAV, etc.)
+                jsCode.replace(objectRegex, (match, objectName) => {
+                    if (objectName && objectName.length > 1) {
+                        functionCount++;
+                        this.categorizeFunction(objectName, match, modulePatterns);
+                    }
+                    return match;
+                });
+                
+                this.stats.totalFunctions = functionCount;
+                this.log(`🎯 Categorized ${functionCount} functions into ${this.modules.size} modules`);
+            }
+
+            categorizeFunction(functionName, fullMatch, modulePatterns) {
+                // Determine which module this function belongs to
+                let assignedModule = 'misc/uncategorized';
+                
+                // Check function name and content against patterns
+                for (const [moduleName, pattern] of Object.entries(modulePatterns)) {
+                    if (pattern.test(functionName) || pattern.test(fullMatch)) {
+                        assignedModule = moduleName;
+                        break;
+                    }
+                }
+                
+                // Special dispatch-specific overrides for better categorization
+                if (functionName.includes('touch') || functionName.includes('Touch')) {
+                    if (fullMatch.includes('gesture') || fullMatch.includes('swipe') || fullMatch.includes('pinch')) {
+                        assignedModule = 'touch/gestures';
+                    } else if (fullMatch.includes('feedback') || fullMatch.includes('vibrat')) {
+                        assignedModule = 'touch/feedback';
+                    }
+                } else if (functionName.includes('10-') || fullMatch.includes('10-') || fullMatch.includes('radio')) {
+                    assignedModule = 'dispatch/radio';
+                } else if (functionName.includes('fleet') || functionName.includes('Fleet') || fullMatch.includes('service')) {
+                    assignedModule = 'fleet/service';
+                }
+                
+                // Add to module
+                if (!this.modules.has(assignedModule)) {
+                    this.modules.set(assignedModule, {
+                        functions: [],
+                        code: '',
+                        lineCount: 0
+                    });
+                }
+                
+                const module = this.modules.get(assignedModule);
+                module.functions.push(functionName);
+                module.code += fullMatch + '\n\n';
+                module.lineCount += fullMatch.split('\n').length;
+            }
+
+            generateModules() {
+                this.log('📦 Generating module files...');
+                
+                for (const [moduleName, moduleData] of this.modules.entries()) {
+                    // Add module header
+                    const header = `/* ${moduleName.replace('/', ' - ').toUpperCase()} MODULE
+   Transportation Dispatch Dashboard
+   Auto-extracted from legacy monolithic file
+   
+   Functions included: ${moduleData.functions.join(', ')}
+   Total lines: ${moduleData.lineCount}
+*/
+
+`;
+                    
+                    // Add imports (basic template)
+                    const imports = this.generateImports(moduleName);
+                    
+                    // Add exports
+                    const exports = this.generateExports(moduleData.functions);
+                    
+                    moduleData.fullCode = header + imports + moduleData.code + exports;
+                }
+            }
+
+            generateImports(moduleName) {
+                // Generate appropriate imports based on dispatch module type
+                const baseImports = `// Transportation Dispatch Dashboard Module Dependencies\n`;
+                
+                if (moduleName.includes('touch/')) {
+                    return baseImports + `import { eventBus } from '../core/events.js';\nimport { PERFORMANCE } from '../core/utils.js';\n\n`;
+                } else if (moduleName.includes('dispatch/')) {
+                    return baseImports + `import { eventBus } from '../core/events.js';\nimport { STATE } from '../core/state.js';\nimport { debounceRender } from '../core/utils.js';\n\n`;
+                } else if (moduleName.includes('fleet/')) {
+                    return baseImports + `import { STATE } from '../core/state.js';\nimport { eventBus } from '../core/events.js';\n\n`;
+                } else if (moduleName.includes('ui/')) {
+                    return baseImports + `import { eventBus } from '../core/events.js';\nimport { STATE } from '../core/state.js';\n\n`;
+                } else if (moduleName.includes('core/')) {
+                    return baseImports + `// Core module - minimal dependencies\n\n`;
+                } else {
+                    return baseImports + `import { eventBus } from '../core/events.js';\nimport { STATE } from '../core/state.js';\n\n`;
+                }
+            }
+
+            generateExports(functions) {
+                if (functions.length === 0) return '';
+                
+                const exportList = functions.map(fn => `  ${fn}`).join(',\n');
+                return `\n// Export all functions\nexport {\n${exportList}\n};\n`;
+            }
+
+            displayResults() {
+                // Update stats
+                document.getElementById('totalFunctions').textContent = this.stats.totalFunctions;
+                document.getElementById('totalModules').textContent = this.modules.size;
+                document.getElementById('totalLines').textContent = this.stats.totalLines;
+                document.getElementById('fileSize').textContent = this.stats.fileSize;
+                
+                // Generate module cards
+                const moduleGrid = document.getElementById('moduleGrid');
+                moduleGrid.innerHTML = '';
+                
+                for (const [moduleName, moduleData] of this.modules.entries()) {
+                    const card = this.createModuleCard(moduleName, moduleData);
+                    moduleGrid.appendChild(card);
+                }
+                
+                document.getElementById('results').style.display = 'block';
+            }
+
+            createModuleCard(moduleName, moduleData) {
+                const card = document.createElement('div');
+                card.className = 'module-card';
+                
+                const preview = moduleData.fullCode.substring(0, 500) + (moduleData.fullCode.length > 500 ? '\n...' : '');
+                
+                card.innerHTML = `
+                    <div class="module-header">
+                        <h4 class="module-title">${moduleName}.js</h4>
+                        <div class="module-stats">${moduleData.functions.length} functions, ${moduleData.lineCount} lines</div>
+                    </div>
+                    <div class="module-content">
+                        <div class="code-preview">${this.escapeHtml(preview)}</div>
+                        <div style="margin-top: 15px;">
+                            <strong>Functions:</strong> ${moduleData.functions.join(', ')}
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="extractor.copyToClipboard('${moduleName}')">📋 Copy Code</button>
+                        <button class="btn btn-secondary" onclick="extractor.downloadModule('${moduleName}')">💾 Download</button>
+                    </div>
+                `;
+                
+                return card;
+            }
+
+            copyToClipboard(moduleName) {
+                const moduleData = this.modules.get(moduleName);
+                navigator.clipboard.writeText(moduleData.fullCode).then(() => {
+                    this.log(`📋 Copied ${moduleName}.js to clipboard`);
+                });
+            }
+
+            downloadModule(moduleName) {
+                const moduleData = this.modules.get(moduleName);
+                const blob = new Blob([moduleData.fullCode], { type: 'text/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${moduleName.replace('/', '-')}.js`;
+                a.click();
+                URL.revokeObjectURL(url);
+                this.log(`💾 Downloaded ${moduleName}.js`);
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            showProgress(percent) {
+                const progressContainer = document.getElementById('progressContainer');
+                const progressBar = document.getElementById('progressBar');
+                progressContainer.style.display = 'block';
+                progressBar.style.width = percent + '%';
+            }
+
+            log(message) {
+                const logElement = document.getElementById('log');
+                logElement.style.display = 'block';
+                const timestamp = new Date().toLocaleTimeString();
+                logElement.innerHTML += `[${timestamp}] ${message}\n`;
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+        }
+
+        // Initialize the extractor
+        const extractor = new JavaScriptExtractor();
+    </script>
+</body>
+</html>

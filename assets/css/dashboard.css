@@ -1,0 +1,667 @@
+/* Transportation Dispatch Dashboard - CSS Styles
+   Optimized for 75" Touch Displays
+   Version: 1.0
+   Date: September 2025
+*/
+
+/* Responsive Design System */
+:root {
+  /* Base font sizes for different screen types */
+  --text-xs: clamp(0.65rem, 0.8vw, 0.875rem);
+  --text-sm: clamp(0.75rem, 1vw, 1rem);
+  --text-base: clamp(0.875rem, 1.2vw, 1.125rem);
+  --text-lg: clamp(1rem, 1.4vw, 1.25rem);
+  --text-xl: clamp(1.125rem, 1.6vw, 1.5rem);
+  --text-2xl: clamp(1.25rem, 2vw, 1.875rem);
+  
+  /* Spacing scale that adapts to screen size */
+  --spacing-1: clamp(0.25rem, 0.3vw, 0.5rem);
+  --spacing-2: clamp(0.5rem, 0.6vw, 0.75rem);
+  --spacing-3: clamp(0.75rem, 0.9vw, 1rem);
+  --spacing-4: clamp(1rem, 1.2vw, 1.5rem);
+  --spacing-6: clamp(1.5rem, 1.8vw, 2.25rem);
+  --spacing-8: clamp(2rem, 2.4vw, 3rem);
+  
+  /* Touch targets that scale appropriately */
+  --touch-target: clamp(44px, 3vw, 60px);
+  --touch-padding: clamp(8px, 1vw, 16px);
+  
+  /* Panel and container dimensions */
+  --sidebar-width: clamp(280px, 20vw, 400px);
+  --card-min-width: clamp(200px, 15vw, 280px);
+  --modal-width: clamp(300px, 25vw, 500px);
+  
+  /* Grid system for different screen sizes */
+  --grid-cols-desktop: 3;
+  --grid-cols-large: 4;
+  --grid-cols-xl: 5;
+  --grid-cols-xxl: 6;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1024px) {
+  :root {
+    --grid-cols-desktop: 2;
+    --grid-cols-large: 3;
+    --grid-cols-xl: 4;
+    --sidebar-width: clamp(250px, 25vw, 320px);
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --grid-cols-desktop: 1;
+    --grid-cols-large: 2;
+    --grid-cols-xl: 3;
+    --sidebar-width: 100%;
+  }
+}
+
+/* Large display optimizations (75" screens and up) */
+@media (min-width: 1920px) {
+  :root {
+    --touch-target: clamp(48px, 2.5vw, 72px);
+    --touch-padding: clamp(12px, 0.8vw, 20px);
+  }
+}
+
+.transition-shadow { transition: box-shadow 0.15s ease-in-out; }
+
+/* 75-inch Touch Display Optimizations */
+
+/* Enhanced touch targets for large display */
+button, .assign-btn, input[type="radio"], input[type="checkbox"], select {
+  min-height: var(--touch-target) !important;
+  min-width: var(--touch-target) !important;
+  font-size: var(--text-base) !important;
+  font-weight: 500 !important;
+}
+
+/* Larger buttons with better spacing */
+button {
+  padding: var(--touch-padding) var(--spacing-4) !important;
+  border-radius: 8px !important;
+  margin: var(--spacing-1) !important;
+}
+
+/* Responsive text sizing */
+.route-card h3 {
+  font-size: var(--text-xl) !important;
+  font-weight: bold !important;
+  margin-bottom: var(--spacing-4) !important;
+}
+
+/* Responsive layout components */
+.responsive-sidebar {
+  width: var(--sidebar-width) !important;
+}
+
+.responsive-grid {
+  grid-template-columns: repeat(var(--grid-cols-desktop), minmax(var(--card-min-width), 1fr));
+}
+
+@media (min-width: 1280px) {
+  .responsive-grid {
+    grid-template-columns: repeat(var(--grid-cols-large), minmax(var(--card-min-width), 1fr));
+  }
+}
+
+@media (min-width: 1536px) {
+  .responsive-grid {
+    grid-template-columns: repeat(var(--grid-cols-xl), minmax(var(--card-min-width), 1fr));
+  }
+}
+
+@media (min-width: 1920px) {
+  .responsive-grid {
+    grid-template-columns: repeat(var(--grid-cols-xxl), minmax(var(--card-min-width), 1fr));
+  }
+}
+
+/* Input method specific styles */
+.touch-primary button:hover {
+  /* Disable hover effects on touch-primary devices */
+  background-color: inherit !important;
+}
+
+.touch-primary .hover\\:scale-105:hover {
+  transform: none !important;
+}
+
+/* Enhanced hover effects for mouse-primary devices */
+body:not(.touch-primary) button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+/* Screen size specific adjustments */
+.screen-mobile .responsive-sidebar {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  height: 100vh;
+  z-index: 1000;
+  transition: right 0.3s ease;
+}
+
+.screen-mobile .responsive-sidebar.open {
+  right: 0;
+}
+
+.large-screen .route-card {
+  min-height: clamp(200px, 15vh, 300px);
+}
+
+.route-card {
+  padding: 28px !important;
+  margin-bottom: 24px !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 16px !important;
+  border-width: 4px !important;
+}
+
+/* Enhanced spacing for touch interface */
+.space-x-2 > * + * {
+  margin-left: 20px !important;
+}
+
+.space-y-2 > * + * {
+  margin-top: 20px !important;
+}
+
+.space-y-3 > * + * {
+  margin-top: 24px !important;
+}
+
+.gap-2 {
+  gap: 20px !important;
+}
+
+.gap-3 {
+  gap: 24px !important;
+}
+
+/* Enhanced radio button size for touch */
+input[type="radio"] {
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 12px !important;
+}
+
+/* Larger text sizes */
+.text-xs {
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+
+.text-sm {
+  font-size: 18px !important;
+  font-weight: 500 !important;
+}
+
+.text-lg {
+  font-size: 22px !important;
+  font-weight: 600 !important;
+}
+
+.text-xl {
+  font-size: 26px !important;
+  font-weight: 700 !important;
+}
+
+/* Better contrast for large display */
+.bg-gray-50 {
+  background-color: #f8fafc !important;
+  border: 2px solid #e2e8f0 !important;
+}
+
+/* Enhanced modal for touch */
+.modal-content {
+  padding: 40px !important;
+  border-radius: 20px !important;
+}
+
+/* Better textarea sizing */
+textarea {
+  min-height: 100px !important;
+  font-size: 18px !important;
+  padding: 20px !important;
+  border-radius: 8px !important;
+  border-width: 2px !important;
+}
+
+/* Enhanced sidebar for touch */
+.sidebar-item {
+  padding: 20px !important;
+  margin-bottom: 16px !important;
+  font-size: 18px !important;
+  border-radius: 12px !important;
+}
+
+/* Larger toggle buttons */
+#am-toggle, #pm-toggle {
+  padding: 20px 32px !important;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  border-radius: 12px !important;
+  margin: 0 8px !important;
+}
+
+/* Enhanced input fields */
+input[type="text"], input[type="color"], select {
+  padding: 16px !important;
+  font-size: 18px !important;
+  border-radius: 8px !important;
+  border-width: 2px !important;
+  margin: 4px 0 !important;
+}
+
+/* Status indicators with better visibility */
+.status-badge {
+  padding: 8px 16px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+}
+
+/* Grid improvements for large display */
+.grid {
+  gap: 32px !important;
+}
+
+/* Enhanced close buttons */
+.close-btn {
+  font-size: 32px !important;
+  padding: 12px !important;
+  border-radius: 8px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+}
+
+/* Better visibility for assignments */
+.assign-btn {
+  padding: 16px !important;
+  margin: 8px 0 !important;
+  border-width: 2px !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+}
+
+/* Improved settings interface */
+.settings-section {
+  padding: 24px !important;
+  margin: 16px 0 !important;
+  border-radius: 12px !important;
+}
+
+/* Keyboard accessibility styles */
+.keyboard-focusable {
+  transition: all 0.2s ease;
+}
+
+.keyboard-focusable:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  z-index: 1;
+  position: relative;
+}
+
+.keyboard-nav-active {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.route-card:focus,
+.staff-item:focus,
+.asset-item:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+/* Search highlight styles */
+.search-highlight {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.2) !important;
+  animation: highlight-pulse 0.5s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+  0% { background-color: #fbbf24; }
+  50% { background-color: #fef3c7; }
+  100% { background-color: #fef3c7; }
+}
+
+/* Search result count styles */
+#search-results-count {
+  transition: all 0.3s ease;
+}
+
+/* Search input focus styles */
+#global-search:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Quick filter button hover effects */
+.filter-btn {
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Search modal animations */
+#advanced-search-modal .bg-white {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+/* Search overlay styles */
+#search-overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+#search-overlay .bg-white {
+  animation: searchOverlaySlideIn 0.3s ease-out;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+@keyframes searchOverlaySlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Quick filter buttons */
+.filter-quick-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background-color: #f9fafb;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.filter-quick-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.filter-quick-btn.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* Search input focus enhancement */
+#overlay-search-input:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Keyboard shortcut display */
+kbd {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Cascadia, "Segoe UI Mono", Roboto Mono, Menlo, "Liberation Mono", Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #374151;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 0.25rem 0.5rem;
+  display: inline-block;
+}
+
+.shortcut-combo {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.shortcut-combo kbd {
+  margin: 0;
+}
+
+.shortcut-divider {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* Touch gesture styles */
+.touch-gestures-enabled {
+  touch-action: manipulation;
+}
+
+.touch-active {
+  background-color: rgba(59, 130, 246, 0.05) !important;
+  border-color: #3b82f6 !important;
+}
+
+.long-press-active {
+  animation: pulse-blue 1s infinite;
+}
+
+@keyframes pulse-blue {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+}
+
+.swipe-indicator {
+  animation: swipe-fade 0.5s ease;
+}
+
+@keyframes swipe-fade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.touch-context-menu {
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.touch-context-menu button:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+/* Enhanced touch targets for gesture-enabled elements */
+.touch-gestures-enabled .route-card,
+.touch-gestures-enabled .staff-item,
+.touch-gestures-enabled .asset-item {
+  touch-action: none; /* Allow custom gestures */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Pinch-to-zoom feedback */
+.pinch-zoom-active {
+  transition: transform 0.1s ease;
+  z-index: 10;
+  position: relative;
+}
+
+/* Swipe feedback for panels */
+.swipe-feedback {
+  border: 2px dashed #3b82f6;
+  background-color: rgba(59, 130, 246, 0.05);
+  transition: all 0.3s ease;
+}
+
+/* Card collapse functionality */
+.minimal-view {
+  display: none;
+}
+
+.collapsible-content {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.route-card-collapsed {
+  height: auto;
+  min-height: 120px; /* Consistent minimum height for collapsed cards */
+}
+
+.route-card-expanded {
+  height: auto;
+}
+
+.collapse-btn {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.collapse-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Trailer button styling */
+.trailer-btn {
+  min-height: 36px !important;
+  min-width: 64px !important;
+  font-size: 12px !important;
+  padding: 6px 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Settings Modal and Tabs */
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #64748b;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: #334155;
+  background-color: #f8fafc;
+}
+
+.tab-btn.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  background-color: #f8fafc;
+}
+
+.tab-content {
+  padding: 1rem 0;
+}
+
+.tab-content.hidden {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.settings-content {
+  min-height: 400px;
+}
+
+.settings-content h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+.settings-content h5 {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #475569;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1rem;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
+}
+
+.btn-secondary {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-secondary:hover {
+  background-color: #e2e8f0;
+}
+
+.trailer-btn:hover {
+  background-color: rgba(251, 146, 60, 0.1) !important;
+  border-color: rgb(251, 146, 60) !important;
+}

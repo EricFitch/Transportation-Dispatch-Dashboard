@@ -1,0 +1,260 @@
+/* UTILITIES - COLORS STYLES
+   Transportation Dispatch Dashboard
+   Color system with touch states and status indicators
+   Contains: Background colors, text colors, status colors, interactive states
+   Dependencies: None (standalone color system)
+   Updated: 2025-09-12
+*/
+
+/* ==========================================================================
+   INPUT METHOD SPECIFIC STYLES
+   ========================================================================== */
+
+/* Disable hover effects on touch-primary devices */
+.touch-primary button:hover {
+  background-color: inherit;
+}
+
+/* ==========================================================================
+   BACKGROUND COLORS
+   ========================================================================== */
+
+/* Gray backgrounds */
+.bg-white { background-color: #ffffff; }
+.bg-gray-50 { 
+  background-color: #f8fafc;
+  border: 2px solid #e2e8f0;
+}
+.bg-gray-100 { background-color: #f1f5f9; }
+.bg-gray-200 { background-color: #e2e8f0; }
+.bg-gray-300 { background-color: #cbd5e1; }
+.bg-gray-400 { background-color: #94a3b8; }
+.bg-gray-500 { background-color: #64748b; }
+.bg-gray-600 { background-color: #475569; }
+.bg-gray-700 { background-color: #334155; }
+.bg-gray-800 { background-color: #1e293b; }
+.bg-gray-900 { background-color: #0f172a; }
+
+/* Blue backgrounds */
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-blue-500 { background-color: #3b82f6; }
+.bg-blue-600 { background-color: #2563eb; }
+.bg-blue-700 { background-color: #1d4ed8; }
+
+/* Green backgrounds */
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-green-500 { background-color: #22c55e; }
+.bg-green-600 { background-color: #16a34a; }
+
+/* Red backgrounds */
+.bg-red-50 { background-color: #fef2f2; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-red-500 { background-color: #ef4444; }
+.bg-red-600 { background-color: #dc2626; }
+
+/* Yellow backgrounds */
+.bg-yellow-50 { background-color: #fefce8; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-yellow-500 { background-color: #eab308; }
+
+/* Orange backgrounds */
+.bg-orange-50 { background-color: #fff7ed; }
+.bg-orange-100 { background-color: #fed7aa; }
+.bg-orange-500 { background-color: #f97316; }
+
+/* ==========================================================================
+   TEXT COLORS
+   ========================================================================== */
+
+/* Gray text */
+.text-white { color: #ffffff; }
+.text-gray-50 { color: #f8fafc; }
+.text-gray-100 { color: #f1f5f9; }
+.text-gray-200 { color: #e2e8f0; }
+.text-gray-300 { color: #cbd5e1; }
+.text-gray-400 { color: #94a3b8; }
+.text-gray-500 { color: #64748b; }
+.text-gray-600 { color: #475569; }
+.text-gray-700 { color: #334155; }
+.text-gray-800 { color: #1e293b; }
+.text-gray-900 { color: #0f172a; }
+
+/* Blue text */
+.text-blue-500 { color: #3b82f6; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-700 { color: #1d4ed8; }
+
+/* Green text */
+.text-green-500 { color: #22c55e; }
+.text-green-600 { color: #16a34a; }
+
+/* Red text */
+.text-red-500 { color: #ef4444; }
+.text-red-600 { color: #dc2626; }
+
+/* Yellow text */
+.text-yellow-500 { color: #eab308; }
+.text-yellow-600 { color: #ca8a04; }
+
+/* ==========================================================================
+   BORDER COLORS
+   ========================================================================== */
+
+.border-transparent { border-color: transparent; }
+.border-gray-200 { border-color: #e2e8f0; }
+.border-gray-300 { border-color: #cbd5e1; }
+.border-blue-500 { border-color: #3b82f6; }
+.border-green-500 { border-color: #22c55e; }
+.border-red-500 { border-color: #ef4444; }
+.border-yellow-500 { border-color: #eab308; }
+
+/* ==========================================================================
+   INTERACTIVE STATES
+   ========================================================================== */
+
+/* Keyboard navigation active state */
+.keyboard-nav-active {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+/* Touch active state */
+.touch-active {
+  background-color: rgba(59, 130, 246, 0.05);
+  border-color: #3b82f6;
+}
+
+/* Swipe feedback for panels */
+.swipe-feedback {
+  border: 2px dashed #3b82f6;
+  background-color: rgba(59, 130, 246, 0.05);
+  transition: all 0.3s ease;
+}
+
+/* ==========================================================================
+   FILTER BUTTON STATES
+   ========================================================================== */
+
+.filter-quick-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.filter-quick-btn.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* ==========================================================================
+   TRAILER BUTTON STATES
+   ========================================================================== */
+
+.trailer-btn:hover {
+  background-color: rgba(251, 146, 60, 0.1);
+  border-color: rgb(251, 146, 60);
+}
+
+/* ==========================================================================
+   STATUS COLORS (LEGACY DISPATCH CODES)
+   ========================================================================== */
+
+.status-10-7 { 
+  background-color: #fee;
+  color: #c00;
+  border: 1px solid #fcc;
+}
+
+.status-10-8 { 
+  background-color: #efe;
+  color: #060;
+  border: 1px solid #cfc;
+}
+
+.status-10-11 { 
+  background-color: #ffc;
+  color: #990;
+  border: 1px solid #ff9;
+}
+
+/* Additional status codes */
+.status-available {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.status-busy {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.status-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.status-info {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+/* ==========================================================================
+   ANIMATIONS WITH COLOR CHANGES
+   ========================================================================== */
+
+/* Highlight pulse animation */
+@keyframes highlightPulse {
+  0% { background-color: #fbbf24; }
+  50% { background-color: #fef3c7; }
+  100% { background-color: #fef3c7; }
+}
+
+.highlight-pulse {
+  animation: highlightPulse 1s ease-in-out;
+}
+
+/* Modal slide-in animations */
+#advanced-search-modal .bg-white {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+#search-overlay .bg-white {
+  animation: searchOverlaySlideIn 0.3s ease-out;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* ==========================================================================
+   SEMANTIC COLOR UTILITIES
+   ========================================================================== */
+
+.bg-success { background-color: #22c55e; color: white; }
+.bg-warning { background-color: #eab308; color: white; }
+.bg-error { background-color: #ef4444; color: white; }
+.bg-info { background-color: #3b82f6; color: white; }
+
+.text-success { color: #22c55e; }
+.text-warning { color: #eab308; }
+.text-error { color: #ef4444; }
+.text-info { color: #3b82f6; }
+
+.border-success { border-color: #22c55e; }
+.border-warning { border-color: #eab308; }
+.border-error { border-color: #ef4444; }
+.border-info { border-color: #3b82f6; }
+
+/* ==========================================================================
+   OPACITY UTILITIES
+   ========================================================================== */
+
+.opacity-0 { opacity: 0; }
+.opacity-25 { opacity: 0.25; }
+.opacity-50 { opacity: 0.5; }
+.opacity-75 { opacity: 0.75; }
+.opacity-100 { opacity: 1; }
