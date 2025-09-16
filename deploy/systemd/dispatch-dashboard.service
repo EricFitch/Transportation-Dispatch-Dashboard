@@ -1,0 +1,14 @@
+[Unit]
+Description=Dispatch Dashboard static server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/dispatch-dashboard/dist
+ExecStart=/usr/bin/npx serve -s . -l 8080
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

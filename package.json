@@ -7,10 +7,12 @@
   "scripts": {
     "dev": "npx http-server -p 3000 -o modular.html",
     "start": "npx http-server -p 8080 -o modular.html",
-    "build": "echo 'Build process - copy files to dist/'",
+    "build": "node scripts/build.js",
+    "build:css": "tailwindcss -c tailwind.config.js -i src/styles/tailwind-build.css -o dist/css/main.css --minify",
     "test": "echo 'Tests will be added in future versions'",
     "lint": "echo 'Linting with future ESLint setup'",
-    "serve": "npx http-server -p 3000 -c-1"
+    "serve": "npx http-server -p 3000 -c-1",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\""
   },
   "keywords": [
     "dispatch",
@@ -24,7 +26,12 @@
   "author": "Modular Architecture Team",
   "license": "MIT",
   "dependencies": {},
-  "devDependencies": {},
+  "devDependencies": {
+    "autoprefixer": "^10.4.14",
+    "esbuild": "^0.18.20",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.4.6"
+  },
   "engines": {
     "node": ">=16.0.0"
   },
