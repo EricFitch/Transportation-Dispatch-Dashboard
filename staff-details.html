@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Management - Dispatch Command Center</title>
+    <script src="https://cdn.tailwindcss.com?v=3.4.0"></script>
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <style>
+        .staff-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #cbd5e1;
+        }
+        .staff-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-active { background-color: #dcfce7; color: #166534; }
+        .status-on-leave { background-color: #fef3c7; color: #92400e; }
+        .status-training { background-color: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <button onclick="history.back()" 
+                            class="text-gray-600 hover:text-gray-900 flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        <span>Back to Dashboard</span>
+                    </button>
+                    <h1 class="text-2xl font-bold text-gray-900">Staff Management</h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button id="export-staff-data" 
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        Export Data
+                    </button>
+                    <button id="add-staff-btn" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Add Staff
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats placeholder -->
+    <div class="text-white py-6 mb-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="staff-stats">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+        <div class="bg-white rounded-lg shadow-sm p-4">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <input type="text" 
+                           id="staff-search" 
+                           placeholder="Search by name, role, or ID..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex gap-2">
+                    <select id="role-filter" title="Filter by role" aria-label="Filter by role" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Roles</option>
+                        <option value="Driver">Driver</option>
+                        <option value="Supervisor">Supervisor</option>
+                        <option value="Mechanic">Mechanic</option>
+                        <option value="Monitor">Monitor</option>
+                        <option value="Trainer">Trainer</option>
+                    </select>
+                    <select id="status-filter" title="Filter by status" aria-label="Filter by status" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="On Leave">On Leave</option>
+                        <option value="Training">Training</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                    <button id="reset-filters" 
+                            class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Cards Grid -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="staff-cards-container">
+            <!-- Staff cards will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Staff Details Modal placeholder (app provides modal system) -->
+    <div id="staff-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900" id="modal-title">Staff Details</h2>
+                    <button onclick="closeStaffModal()" aria-label="Close staff details modal" title="Close" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="modal-content">
+                    <!-- Modal content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts: load core modules and the staff module, then initialize page interactions -->
+    <script type="module" src="src/modules/core/state.js"></script>
+    <script type="module" src="src/modules/core/events.js"></script>
+    <script type="module" src="src/modules/core/utils.js"></script>
+    <script type="module" src="src/modules/dispatch/staff.js"></script>
+
+    <script type="module">
+        (function () {
+            const containerId = 'staff-cards-container';
+            const searchEl = document.getElementById('staff-search');
+            const roleFilterEl = document.getElementById('role-filter');
+            const statusFilterEl = document.getElementById('status-filter');
+            const resetBtn = document.getElementById('reset-filters');
+
+            function applyFilters() {
+                const opts = {
+                    search: searchEl.value.trim(),
+                    role: roleFilterEl.value,
+                    status: statusFilterEl.value
+                };
+                if (window.renderStaffDetailsPage) {
+                    window.renderStaffDetailsPage(containerId, opts);
+                } else {
+                    console.warn('renderStaffDetailsPage not available yet');
+                }
+            }
+
+            searchEl.addEventListener('input', () => requestAnimationFrame(applyFilters));
+            roleFilterEl.addEventListener('change', applyFilters);
+            statusFilterEl.addEventListener('change', applyFilters);
+            resetBtn.addEventListener('click', () => {
+                searchEl.value = '';
+                roleFilterEl.value = '';
+                statusFilterEl.value = '';
+                applyFilters();
+            });
+
+            document.getElementById('export-staff-data').addEventListener('click', () => {
+                if (typeof window.exportStaffListAsCSV === 'function') {
+                    window.exportStaffListAsCSV();
+                } else if (typeof window.exportStaffData === 'function') {
+                    const data = window.exportStaffData();
+                    // fallback CSV creation
+                    const headers = ['Name','Role','Employee ID','Status','Department','Phone','Email'];
+                    const rows = [headers.join(',')];
+                    (data.available || []).forEach(s => {
+                        rows.push([s.name || '', s.role || '', s.employeeId || '', s.status || '', s.department || '', s.phone || '', s.email || ''].map(f => `"${(f||'').toString().replace(/"/g,'""')}"`).join(','));
+                    });
+                    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `staff_list_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('Export function not available');
+                }
+            });
+
+            document.getElementById('add-staff-btn').addEventListener('click', () => {
+                const addForm = document.getElementById('add-staff-form');
+                if (addForm) {
+                    addForm.scrollIntoView({ behavior: 'smooth' });
+                } else if (window.eventBus) {
+                    window.eventBus.emit('staff:showAddForm');
+                } else {
+                    alert('Add staff form not available');
+                }
+            });
+
+            // Delegated click handler: details/assign
+            document.addEventListener('click', (e) => {
+                const target = e.target;
+                if (target.classList && target.classList.contains('staff-details-btn')) {
+                    const name = target.dataset.staffName;
+                    if (typeof window.showStaffDetails === 'function') window.showStaffDetails(name);
+                }
+                if (target.classList && target.classList.contains('staff-assign-btn')) {
+                    const name = target.dataset.staffName;
+                    if (typeof window.assignDriver === 'function') {
+                        window.assignDriver(name);
+                    } else if (typeof window.showStaffDetails === 'function') {
+                        window.showStaffDetails(name);
+                    }
+                }
+            });
+
+            function tryInitialRender() {
+                // If the renderer is available, call it immediately. Don't rely on window.STATE being exposed.
+                if (typeof window.renderStaffDetailsPage === 'function') {
+                    try {
+                        window.renderStaffDetailsPage(containerId, {});
+                        return;
+                    } catch (err) {
+                        console.warn('renderStaffDetailsPage threw during initial render, will retry:', err);
+                    }
+                }
+
+                // If event bus exists, render once state:dataUpdated fires (covers delayed data loads)
+                if (window.eventBus && typeof window.eventBus.on === 'function') {
+                    window.eventBus.on('state:dataUpdated', () => {
+                        if (typeof window.renderStaffDetailsPage === 'function') {
+                            try { window.renderStaffDetailsPage(containerId, {}); } catch (e) { /* ignore */ }
+                        }
+                    });
+                }
+
+                // Otherwise retry until the staff module registers the renderer
+                setTimeout(tryInitialRender, 200);
+            }
+
+            tryInitialRender();
+        })();
+    </script>
+    <script>
+        // Optional demo data trigger: append ?demo=true to the URL to populate sample staff
+        (function () {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('demo') === 'true' && typeof window.addSampleStaffForTesting === 'function') {
+                    // Small delay to ensure module initialization
+                    setTimeout(() => window.addSampleStaffForTesting(), 300);
+                }
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
+</body>
+</html>

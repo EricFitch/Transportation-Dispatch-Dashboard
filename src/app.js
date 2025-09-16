@@ -28,6 +28,13 @@ import {
 } from './modules/core/utils.js';
 
 import { 
+  validateDispatchConfig, 
+  cleanUnrelatedData, 
+  repairLocalStorageData,
+  getStorageStats
+} from './modules/core/dataValidator.js';
+
+import { 
     STATE, 
     getState, 
     setState, 
@@ -249,10 +256,32 @@ class ModularDispatchApp {
   async init() {
     try {
       console.log('🚀 Initializing Modular Dispatch Dashboard...');
+      
+      // Pre-flight data validation and cleanup
+      await this.validateAndCleanData();
+      
       // Phase 1: Initialize core foundation
       await this.initializeCoreModules();
       // Phase 2: Initialize UI system
       await this.initializeUIModules();
+      // Ensure hamburger menu button works even if setup handlers missed attaching
+      try {
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest && e.target.closest('#hamburger-menu-btn');
+          if (btn) {
+            if (window.settingsSystem && typeof window.settingsSystem.toggleHamburgerMenu === 'function') {
+              window.settingsSystem.toggleHamburgerMenu();
+            } else if (window.settingsSystem && typeof window.settingsSystem.openHamburgerMenu === 'function') {
+              window.settingsSystem.openHamburgerMenu();
+            } else if (window.settingsSystem === undefined && typeof settingsSystem !== 'undefined') {
+              // fallback to imported singleton
+              try { settingsSystem.toggleHamburgerMenu(); } catch (e) { try { settingsSystem.openHamburgerMenu(); } catch (err) {} }
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Failed to attach hamburger fallback handler', e);
+      }
       // Phase 3: Initialize domain modules
       await this.initializeDomainModules();
       // Phase 4: Initialize data layer
@@ -274,6 +303,37 @@ class ModularDispatchApp {
     } catch (error) {
       console.error('❌ Application initialization failed:', error);
       this.handleInitializationError(error);
+    }
+  }
+
+  /**
+   * Validate and clean localStorage data before app initialization
+   */
+  async validateAndCleanData() {
+    console.log('🔍 Validating and cleaning data...');
+    
+    try {
+      // Get storage statistics
+      const stats = getStorageStats();
+      console.log(`📊 Storage stats: ${stats.totalItems} items, ${stats.totalSizeKB.toFixed(2)}KB total`);
+      
+      if (stats.unrelated.items > 0) {
+        console.warn(`⚠️ Found ${stats.unrelated.items} unrelated items:`, stats.unrelated.keys);
+        const removedCount = cleanUnrelatedData();
+        console.log(`✅ Cleaned ${removedCount} unrelated items`);
+      }
+      
+      // Repair localStorage data
+      const repairSuccess = repairLocalStorageData();
+      if (repairSuccess) {
+        console.log('✅ Data validation and cleanup completed');
+      } else {
+        console.warn('⚠️ Some data repair issues occurred');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error during data validation:', error);
+      // Continue initialization even if data validation fails
     }
   }
 
@@ -542,19 +602,37 @@ class ModularDispatchApp {
     // Register service worker if available
     await this.registerServiceWorker();
     
+    // Make critical functions globally available BEFORE initial renders
+    this.exposeGlobalFunctions();
+    
     // Initial render of Resource Monitor panels after everything is loaded
+    // Use requestAnimationFrame for better performance
     if (window.renderAssetPanel) {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         console.log('🚛 Initializing Resource Monitor asset panel...');
-        window.renderAssetPanel();
-      }, 100);
+        try {
+          window.renderAssetPanel();
+        } catch (error) {
+          console.error('❌ Error rendering asset panel:', error);
+        }
+      });
+    } else {
+      console.warn('⚠️ renderAssetPanel function not available');
     }
     
     if (window.renderStaffPanel) {
-      setTimeout(() => {
-        console.log('👥 Initializing Resource Monitor staff panel...');
-        window.renderStaffPanel();
-      }, 120);
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          console.log('👥 Initializing Resource Monitor staff panel...');
+          try {
+            window.renderStaffPanel();
+          } catch (error) {
+            console.error('❌ Error rendering staff panel:', error);
+          }
+        }, 50); // Small delay to ensure asset panel renders first
+      });
+    } else {
+      console.warn('⚠️ renderStaffPanel function not available');
     }
     
     // Initialize route cards system
@@ -578,6 +656,35 @@ class ModularDispatchApp {
     this.setupHeaderButtons();
     
     console.log('✅ Application setup finalized');
+  }
+
+  /**
+   * Expose critical functions globally for modules and debugging
+   */
+  exposeGlobalFunctions() {
+    // Make render functions globally available
+    window.renderAssetPanel = renderAssetPanel;
+    window.renderStaffPanel = renderStaffPanel;
+    window.renderRouteCards = renderRouteCards;
+    window.resetRouteBoard = resetRouteBoard;
+    
+    // Make uiSystem globally accessible for bulk entry functions
+    window.uiSystem = this.getModule('UISystem');
+    
+    // Make state management functions available
+    window.getState = getState;
+    window.setState = setState;
+    window.saveToLocalStorage = saveToLocalStorage;
+    
+    // Make route management functions available
+    window.createRoute = createRoute;
+    window.assignDriver = assignDriver;
+    window.assignAsset = assignAsset;
+    window.addSafetyEscort = addSafetyEscort;
+    window.removeSafetyEscort = removeSafetyEscort;
+    window.updateRouteNotes = updateRouteNotes;
+    
+    console.log('✅ Global functions exposed');
   }
 
   /**
@@ -1390,6 +1497,14 @@ async function bootstrap() {
         }
       });
     }
+    // Add click handler for Staff Details button to navigate to staff-details.html
+    if (staffDetailsBtn) {
+      staffDetailsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('👥 Staff Details button clicked - navigating to staff management');
+        window.location.href = 'staff-details.html';
+      });
+    }
 
     if (openAssetBtn) {
       openAssetBtn.addEventListener('click', (e) => {
@@ -1431,16 +1546,11 @@ async function bootstrap() {
       staffDetailsBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        
-        // Open Staff Management modal (same as hamburger menu)
-        const modal = document.getElementById('staff-management-modal');
-        if (modal) {
-          modal.classList.remove('hidden');
-          // Refresh the staff list when modal opens
-          if (window.refreshStaffListModal) {
-            window.refreshStaffListModal();
-          }
-        }
+        // Close slideout for a clean transition
+        if (typeof closeSlideout === 'function') closeSlideout();
+        console.log('👥 Staff Details button clicked - navigating to staff details page');
+        // Navigate to the dedicated staff details page
+        window.location.href = 'staff-details.html';
       });
     }
 

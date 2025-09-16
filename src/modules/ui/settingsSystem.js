@@ -484,6 +484,29 @@ class SettingsSystem {
     }
 
     console.log('⚙️ Hamburger menu connected to settings system');
+      // Ensure a fallback delegated listener exists in case other handlers fail to attach
+      // This is idempotent and will only add one global listener.
+      if (!window.__settingsHamburgerFallbackAttached) {
+        window.__settingsHamburgerFallbackAttached = true;
+        document.addEventListener('click', (e) => {
+          try {
+            const btn = e.target && e.target.closest && e.target.closest('#hamburger-menu-btn');
+            if (btn) {
+              // Prefer instance methods if available
+              if (window.settingsSystem && typeof window.settingsSystem.toggleHamburgerMenu === 'function') {
+                window.settingsSystem.toggleHamburgerMenu();
+              } else if (window.settingsSystem && typeof window.settingsSystem.openHamburgerMenu === 'function') {
+                window.settingsSystem.openHamburgerMenu();
+              } else if (typeof settingsSystem !== 'undefined') {
+                try { settingsSystem.toggleHamburgerMenu(); } catch (err) { try { settingsSystem.openHamburgerMenu(); } catch (err2) {} }
+              }
+            }
+          } catch (err) {
+            // swallow errors from fallback listener to avoid breaking page
+            console.debug('Hamburger fallback handler error', err);
+          }
+        }, { capture: false });
+      }
   }
 
   /**
@@ -809,6 +832,18 @@ class SettingsSystem {
               <input type="color" id="status-${status}" value="${color}" class="color-input">
             </div>
           `).join('')}
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Role Colors</h3>
+        <p class="text-sm text-gray-500 mb-2">Assign colors to staff roles. These colors will be used across the UI for role accents.</p>
+        <div class="color-grid" id="role-colors-grid">
+          <!-- Role color pickers inserted by JS if available -->
+          ${this.createRoleColorsHtml()}
+        </div>
+        <div class="mt-3">
+          <button class="btn btn-secondary" id="reset-role-colors">Reset Role Colors</button>
         </div>
       </div>
 
@@ -1188,6 +1223,28 @@ class SettingsSystem {
   }
 
   /**
+   * Create HTML for role color inputs
+   */
+  createRoleColorsHtml() {
+    // canonical role list (fallback if not provided elsewhere)
+    const roleList = [
+      'Driver', 'Escort', 'Aide', 'Sub', 'Supervisor', 'Dispatcher', 'Manager'
+    ];
+
+    const roleColors = (STATE && STATE.data && STATE.data.colors && STATE.data.colors.roles) || {};
+
+    return roleList.map(role => {
+      const val = roleColors[role] || '';
+      return `
+        <div class="color-input-group">
+          <label class="setting-label">${role}</label>
+          <input type="color" class="role-color-input" data-role-name="${role}" value="${val}" />
+        </div>
+      `;
+    }).join('');
+  }
+
+  /**
    * Create shortcuts list
    */
   createShortcutsList() {
@@ -1237,8 +1294,36 @@ class SettingsSystem {
       });
     }
 
+    // Reset role colors button
+    const resetRoleBtn = document.getElementById('reset-role-colors');
+    if (resetRoleBtn) {
+      resetRoleBtn.addEventListener('click', () => {
+        if (!confirm('Reset all role colors to defaults?')) return;
+        // Clear custom role colors
+        if (!STATE.data) STATE.data = {};
+        if (!STATE.data.colors) STATE.data.colors = {};
+        STATE.data.colors.roles = {};
+        try { saveToLocalStorage(); } catch (e) { console.warn(e); }
+        eventBus.emit('colors:changed', { reset: true });
+        uiSystem.showNotification('Role colors reset to defaults', 'info');
+        // Re-open settings to refresh inputs
+        uiSystem.closeCurrentModal();
+        this.openSettingsDialog();
+      });
+    }
+
     // Real-time preview updates
     this.setupRealtimePreview();
+
+    // Re-wire role color inputs if present (they are injected via createColorSettingsContent)
+    document.querySelectorAll('.role-color-input').forEach(input => {
+      // ensure change listener (setupRealtimePreview also does this), but attach as a safety
+      input.addEventListener('change', (e) => {
+        const role = e.target.dataset.roleName;
+        const color = e.target.value;
+        if (typeof window.setRoleColor === 'function') window.setRoleColor(role, color);
+      });
+    });
     
     console.log('✅ Settings handlers setup complete');
   }
@@ -1289,6 +1374,31 @@ class SettingsSystem {
         this.updateFromForm();
         this.applySettings();
         this.updateThemePreview();
+      });
+    });
+
+    // Role color inputs (call setRoleColor if available)
+    document.querySelectorAll('.role-color-input').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const role = e.target.dataset.roleName;
+        const color = e.target.value;
+        try {
+          if (typeof window.setRoleColor === 'function') {
+            window.setRoleColor(role, color);
+          } else if (window.staffModule && typeof window.staffModule.setRoleColor === 'function') {
+            window.staffModule.setRoleColor(role, color);
+          } else {
+            // Fallback: write directly to STATE
+            if (!STATE.data) STATE.data = {};
+            if (!STATE.data.colors) STATE.data.colors = {};
+            if (!STATE.data.colors.roles) STATE.data.colors.roles = {};
+            STATE.data.colors.roles[role] = color;
+            saveToLocalStorage();
+            eventBus.emit('colors:changed', { role, color });
+          }
+        } catch (err) {
+          console.warn('Role color change handler failed', err);
+        }
       });
     });
 
@@ -1920,34 +2030,6 @@ class SettingsSystem {
         cookieEnabled: navigator.cookieEnabled,
         onLine: navigator.onLine,
         platform: navigator.platform
-      },
-      screen: {
-        width: screen.width,
-        height: screen.height,
-        colorDepth: screen.colorDepth,
-        pixelDepth: screen.pixelDepth
-      },
-      window: {
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        devicePixelRatio: window.devicePixelRatio
-      },
-      performance: {
-        memory: performance.memory,
-        timing: performance.timing,
-        navigation: performance.navigation
-      },
-      storage: {
-        localStorage: {
-          available: !!window.localStorage,
-          quota: this.getStorageQuota('localStorage'),
-          used: this.getStorageUsed('localStorage')
-        },
-        sessionStorage: {
-          available: !!window.sessionStorage,
-          quota: this.getStorageQuota('sessionStorage'),
-          used: this.getStorageUsed('sessionStorage')
-        }
       },
       modules: {
         loadedModules: window.DispatchDev?.modules || [],

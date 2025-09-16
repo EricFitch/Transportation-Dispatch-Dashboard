@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transportation Dispatch - LocalStorage Cleanup Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 {
+            color: #2563eb;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button.danger {
+            background: #dc2626;
+        }
+        button.danger:hover {
+            background: #b91c1c;
+        }
+        button.success {
+            background: #16a34a;
+        }
+        button.success:hover {
+            background: #15803d;
+        }
+        .log {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #2563eb;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        .stat-label {
+            color: #64748b;
+            font-size: 14px;
+        }
+        .data-preview {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚌 Transportation Dispatch - LocalStorage Cleanup Tool</h1>
+        
+        <div class="section">
+            <h3>📊 Current Storage Analysis</h3>
+            <div class="stats" id="storage-stats">
+                <!-- Stats will be populated here -->
+            </div>
+            <button onclick="analyzeStorage()">🔍 Analyze Storage</button>
+            <button onclick="showRawData()">📋 Show Raw Data</button>
+        </div>
+
+        <div class="section">
+            <h3>🧹 Cleanup Operations</h3>
+            <button onclick="removeUnrelatedData()" class="danger">🗑️ Remove Game Data</button>
+            <button onclick="cleanBusSeaterData()" class="success">🚌 Fix Bus Seater Data</button>
+            <button onclick="validateDispatchConfig()" class="success">✅ Validate Dispatch Config</button>
+            <button onclick="optimizeStorage()" class="success">⚡ Optimize Storage</button>
+            <button onclick="exportCleanData()" class="success">💾 Export Clean Data</button>
+        </div>
+
+        <div class="section">
+            <h3>⚠️ Emergency Operations</h3>
+            <button onclick="backupStorage()" class="success">💾 Backup Current Data</button>
+            <button onclick="resetToDefaults()" class="danger">🔄 Reset to Defaults</button>
+            <button onclick="clearAllStorage()" class="danger">🗑️ Clear All Storage</button>
+        </div>
+
+        <div class="section">
+            <h3>📝 Operation Log</h3>
+            <div id="log" class="log"></div>
+        </div>
+
+        <div class="section">
+            <h3>📊 Data Preview</h3>
+            <div id="data-preview" class="data-preview"></div>
+        </div>
+    </div>
+
+    <script>
+        let logElement = document.getElementById('log');
+        let dataPreviewElement = document.getElementById('data-preview');
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function analyzeStorage() {
+            log('🔍 Starting storage analysis...');
+            
+            const stats = {
+                totalItems: 0,
+                dispatchRelated: 0,
+                gameRelated: 0,
+                busSeaterRelated: 0,
+                totalSizeKB: 0,
+                dispatchSizeKB: 0
+            };
+
+            const dispatchKeys = [];
+            const gameKeys = [];
+            const busSeaterKeys = [];
+            const otherKeys = [];
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                const sizeKB = (key.length + value.length) / 1024;
+                
+                stats.totalItems++;
+                stats.totalSizeKB += sizeKB;
+
+                if (key.includes('dispatch') || key.includes('route') || key.includes('staff') || key.includes('asset')) {
+                    stats.dispatchRelated++;
+                    stats.dispatchSizeKB += sizeKB;
+                    dispatchKeys.push(key);
+                } else if (key.includes('armageddon') || key.includes('character')) {
+                    stats.gameRelated++;
+                    gameKeys.push(key);
+                } else if (key.includes('busSeater')) {
+                    stats.busSeaterRelated++;
+                    busSeaterKeys.push(key);
+                } else {
+                    otherKeys.push(key);
+                }
+            }
+
+            // Update stats display
+            const statsContainer = document.getElementById('storage-stats');
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalItems}</div>
+                    <div class="stat-label">Total Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.dispatchRelated}</div>
+                    <div class="stat-label">Dispatch Related</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.gameRelated}</div>
+                    <div class="stat-label">Game Data (Remove)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.busSeaterRelated}</div>
+                    <div class="stat-label">Bus Seater Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalSizeKB.toFixed(2)}</div>
+                    <div class="stat-label">Total Size (KB)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.dispatchSizeKB.toFixed(2)}</div>
+                    <div class="stat-label">Dispatch Size (KB)</div>
+                </div>
+            `;
+
+            log(`✅ Analysis complete: ${stats.totalItems} items, ${stats.totalSizeKB.toFixed(2)}KB total`);
+            log(`🚌 Dispatch related: ${stats.dispatchRelated} items`);
+            log(`🎮 Game data (to remove): ${stats.gameRelated} items`);
+            log(`🚌 Bus seater items: ${stats.busSeaterRelated} items`);
+            
+            if (gameKeys.length > 0) {
+                log(`⚠️ Found unrelated game data: ${gameKeys.join(', ')}`);
+            }
+
+            return { stats, dispatchKeys, gameKeys, busSeaterKeys, otherKeys };
+        }
+
+        function removeUnrelatedData() {
+            log('🗑️ Removing unrelated game data...');
+            
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('armageddon') || key.includes('character_'))) {
+                    keysToRemove.push(key);
+                }
+            }
+
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                log(`🗑️ Removed: ${key}`);
+            });
+
+            log(`✅ Removed ${keysToRemove.length} unrelated items`);
+            analyzeStorage();
+        }
+
+        function cleanBusSeaterData() {
+            log('🚌 Cleaning bus seater data...');
+            
+            try {
+                // Check and fix bus seater students
+                const studentsRaw = localStorage.getItem('busSeaterStudents');
+                if (studentsRaw) {
+                    const students = JSON.parse(studentsRaw);
+                    log(`📊 Found ${Object.keys(students).length} bus seater students`);
+                    
+                    // Validate structure
+                    let validStudents = {};
+                    let fixed = 0;
+                    
+                    for (const [id, student] of Object.entries(students)) {
+                        if (student && typeof student === 'object' && student.firstName && student.lastName) {
+                            validStudents[id] = {
+                                id: student.id || '',
+                                firstName: student.firstName,
+                                lastName: student.lastName,
+                                grade: student.grade || 'N/A'
+                            };
+                        } else {
+                            fixed++;
+                            log(`⚠️ Removed invalid student entry: ${id}`);
+                        }
+                    }
+                    
+                    localStorage.setItem('busSeaterStudents', JSON.stringify(validStudents));
+                    log(`✅ Fixed bus seater students: ${fixed} invalid entries removed`);
+                }
+
+                // Check and fix assignments
+                const assignmentsRaw = localStorage.getItem('busSeaterAssignments');
+                if (assignmentsRaw) {
+                    const assignments = JSON.parse(assignmentsRaw);
+                    log(`📊 Found ${Object.keys(assignments).length} bus seater assignments`);
+                    
+                    // Validate assignments match students
+                    const students = JSON.parse(localStorage.getItem('busSeaterStudents') || '{}');
+                    let validAssignments = {};
+                    let fixed = 0;
+                    
+                    for (const [studentId, seat] of Object.entries(assignments)) {
+                        if (students[studentId] && typeof seat === 'string') {
+                            validAssignments[studentId] = seat;
+                        } else {
+                            fixed++;
+                            log(`⚠️ Removed invalid assignment: ${studentId} -> ${seat}`);
+                        }
+                    }
+                    
+                    localStorage.setItem('busSeaterAssignments', JSON.stringify(validAssignments));
+                    log(`✅ Fixed bus seater assignments: ${fixed} invalid entries removed`);
+                }
+
+                log('✅ Bus seater data cleanup completed');
+            } catch (error) {
+                log(`❌ Error cleaning bus seater data: ${error.message}`);
+            }
+        }
+
+        function validateDispatchConfig() {
+            log('✅ Validating dispatch configuration...');
+            
+            try {
+                const configRaw = localStorage.getItem('dispatchConfig');
+                if (!configRaw) {
+                    log('⚠️ No dispatch configuration found');
+                    return;
+                }
+
+                const config = JSON.parse(configRaw);
+                const data = config.data || config;
+
+                // Validate routes
+                if (data.routes && Array.isArray(data.routes)) {
+                    log(`📊 Found ${data.routes.length} routes`);
+                    
+                    let validRoutes = [];
+                    let fixedRoutes = 0;
+                    
+                    data.routes.forEach((route, index) => {
+                        if (route && route.name && route.id) {
+                            // Ensure required fields
+                            const validRoute = {
+                                id: route.id,
+                                routeNumber: route.routeNumber || (index + 1),
+                                name: route.name,
+                                type: route.type || 'general-education',
+                                schedule: route.schedule || 'both',
+                                status: route.status || 'unassigned',
+                                driver: route.driver || null,
+                                asset: route.asset || null,
+                                trailer: route.trailer || null,
+                                safetyEscorts: Array.isArray(route.safetyEscorts) ? route.safetyEscorts : [],
+                                notes: route.notes || '',
+                                destination: route.destination || null,
+                                createdAt: route.createdAt || new Date().toISOString(),
+                                updatedAt: route.updatedAt || new Date().toISOString()
+                            };
+                            validRoutes.push(validRoute);
+                        } else {
+                            fixedRoutes++;
+                            log(`⚠️ Removed invalid route at index ${index}`);
+                        }
+                    });
+                    
+                    data.routes = validRoutes;
+                    log(`✅ Routes validated: ${fixedRoutes} invalid entries fixed`);
+                }
+
+                // Validate staff
+                if (data.staff && Array.isArray(data.staff)) {
+                    log(`📊 Found ${data.staff.length} staff members`);
+                    
+                    let validStaff = [];
+                    let fixedStaff = 0;
+                    
+                    data.staff.forEach((staff, index) => {
+                        if (staff && staff.name && staff.id) {
+                            const validStaffMember = {
+                                id: staff.id,
+                                name: staff.name,
+                                firstName: staff.firstName || staff.name.split(' ')[0] || '',
+                                lastName: staff.lastName || staff.name.split(' ').slice(1).join(' ') || '',
+                                employeeId: staff.employeeId || '',
+                                position: staff.position || '',
+                                role: staff.role || 'Driver',
+                                department: staff.department || 'Transportation',
+                                status: staff.status || 'Active',
+                                phone: staff.phone || '',
+                                email: staff.email || '',
+                                notes: staff.notes || '',
+                                dateAdded: staff.dateAdded || new Date().toISOString()
+                            };
+                            validStaff.push(validStaffMember);
+                        } else {
+                            fixedStaff++;
+                            log(`⚠️ Removed invalid staff at index ${index}`);
+                        }
+                    });
+                    
+                    data.staff = validStaff;
+                    log(`✅ Staff validated: ${fixedStaff} invalid entries fixed`);
+                }
+
+                // Validate assets
+                if (data.assets && Array.isArray(data.assets)) {
+                    log(`📊 Found ${data.assets.length} assets`);
+                    
+                    let validAssets = [];
+                    let fixedAssets = 0;
+                    
+                    data.assets.forEach((asset, index) => {
+                        if (asset && asset.name) {
+                            const validAsset = {
+                                name: asset.name,
+                                capacity: asset.capacity || 0,
+                                type: asset.type || 'Bus',
+                                status: asset.status || 'active',
+                                repairedDate: asset.repairedDate || null,
+                                details: asset.details || {
+                                    make: 'Unknown',
+                                    model: 'Unknown',
+                                    year: 'Unknown',
+                                    capacity: 'Unknown',
+                                    vin: '',
+                                    licensePlate: '',
+                                    fuelType: 'Unknown',
+                                    mileage: 'Unknown',
+                                    lastService: null,
+                                    nextService: null,
+                                    notes: ''
+                                }
+                            };
+                            validAssets.push(validAsset);
+                        } else {
+                            fixedAssets++;
+                            log(`⚠️ Removed invalid asset at index ${index}`);
+                        }
+                    });
+                    
+                    data.assets = validAssets;
+                    log(`✅ Assets validated: ${fixedAssets} invalid entries fixed`);
+                }
+
+                // Save the cleaned configuration
+                const cleanConfig = {
+                    data: data,
+                    assignments: config.assignments || {},
+                    routeStatus: config.routeStatus || {},
+                    assetStatus: config.assetStatus || {},
+                    staffOut: Array.isArray(config.staffOut) ? config.staffOut : [],
+                    routeNotes: config.routeNotes || {},
+                    fieldTripNotes: config.fieldTripNotes || {},
+                    statusTimestamps: config.statusTimestamps || {},
+                    currentView: config.currentView || 'AM',
+                    lastSaved: new Date().toISOString()
+                };
+
+                localStorage.setItem('dispatchConfig', JSON.stringify(cleanConfig));
+                log('✅ Dispatch configuration validated and cleaned');
+
+            } catch (error) {
+                log(`❌ Error validating dispatch config: ${error.message}`);
+            }
+        }
+
+        function optimizeStorage() {
+            log('⚡ Optimizing storage...');
+            
+            cleanBusSeaterData();
+            validateDispatchConfig();
+            removeUnrelatedData();
+            
+            log('✅ Storage optimization completed');
+            analyzeStorage();
+        }
+
+        function showRawData() {
+            log('📋 Displaying raw localStorage data...');
+            
+            let output = '';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                
+                output += `${key}:\n`;
+                try {
+                    const parsed = JSON.parse(value);
+                    output += JSON.stringify(parsed, null, 2).substring(0, 500);
+                    if (value.length > 500) output += '... (truncated)';
+                } catch {
+                    output += value.substring(0, 200);
+                    if (value.length > 200) output += '... (truncated)';
+                }
+                output += '\n\n';
+            }
+            
+            dataPreviewElement.textContent = output;
+            log('✅ Raw data displayed in preview section');
+        }
+
+        function backupStorage() {
+            log('💾 Creating backup of current storage...');
+            
+            const backup = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                backup[key] = localStorage.getItem(key);
+            }
+            
+            const backupData = JSON.stringify(backup, null, 2);
+            const blob = new Blob([backupData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dispatch-backup-${new Date().toISOString().replace(/:/g, '-')}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            log('✅ Backup downloaded');
+        }
+
+        function exportCleanData() {
+            log('💾 Exporting cleaned dispatch data...');
+            
+            try {
+                const dispatchConfig = localStorage.getItem('dispatchConfig');
+                if (dispatchConfig) {
+                    const config = JSON.parse(dispatchConfig);
+                    
+                    const cleanData = {
+                        exportDate: new Date().toISOString(),
+                        version: '1.0',
+                        data: config
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(cleanData, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `dispatch-clean-data-${new Date().toISOString().replace(/:/g, '-')}.json`;
+                    a.click();
+                    
+                    URL.revokeObjectURL(url);
+                    log('✅ Clean data exported');
+                } else {
+                    log('⚠️ No dispatch configuration found to export');
+                }
+            } catch (error) {
+                log(`❌ Error exporting data: ${error.message}`);
+            }
+        }
+
+        function resetToDefaults() {
+            if (!confirm('⚠️ This will reset all dispatch data to defaults. Are you sure?')) {
+                return;
+            }
+            
+            log('🔄 Resetting to default configuration...');
+            
+            // Create default configuration
+            const defaultConfig = {
+                data: {
+                    routes: [],
+                    staff: [],
+                    assets: [],
+                    fieldTrips: [
+                        { id: 'ft1', destination: 'New Field Trip', driver: null, escort: null, asset: null, trailer: null },
+                        { id: 'ft2', destination: 'New Field Trip', driver: null, escort: null, asset: null, trailer: null },
+                        { id: 'ft3', destination: 'New Field Trip', driver: null, escort: null, asset: null, trailer: null }
+                    ],
+                    colors: {
+                        "Gen Ed Bus": "#3b82f6",
+                        "SE Bus": "#f59e0b",
+                        "Van": "#10b981",
+                        "Suburban": "#8b5cf6",
+                        "Car": "#ef4444",
+                        "out": "#ef4444",
+                        "roles": {}
+                    }
+                },
+                assignments: {},
+                routeStatus: {},
+                assetStatus: {},
+                staffOut: [],
+                routeNotes: {},
+                fieldTripNotes: {},
+                statusTimestamps: {},
+                currentView: 'AM',
+                lastSaved: new Date().toISOString()
+            };
+
+            localStorage.setItem('dispatchConfig', JSON.stringify(defaultConfig));
+            
+            // Clear other related items
+            localStorage.removeItem('busSeaterStudents');
+            localStorage.removeItem('busSeaterAssignments');
+            localStorage.removeItem('busSeaterTheme');
+            localStorage.removeItem('busSeaterDarkMode');
+            localStorage.removeItem('busSeaterRows');
+            
+            log('✅ Reset to defaults completed');
+            analyzeStorage();
+        }
+
+        function clearAllStorage() {
+            if (!confirm('⚠️ This will delete ALL localStorage data. Are you sure?')) {
+                return;
+            }
+            
+            log('🗑️ Clearing all localStorage...');
+            localStorage.clear();
+            log('✅ All localStorage cleared');
+            analyzeStorage();
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            log('🚌 Transportation Dispatch Storage Cleanup Tool loaded');
+            analyzeStorage();
+        });
+    </script>
+</body>
+</html>

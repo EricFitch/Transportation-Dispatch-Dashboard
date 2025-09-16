@@ -335,6 +335,34 @@ function getRoleColor(role) {
     return defaultColors[role] || defaultColors['Driver'];
 }
 
+/**
+ * Set a color for a role and persist it to STATE. Emits 'colors:changed'.
+ * @param {string} role
+ * @param {string} color
+ */
+function setRoleColor(role, color) {
+    if (!role) return;
+    if (!STATE.data) STATE.data = {};
+    if (!STATE.data.colors) STATE.data.colors = {};
+    if (!STATE.data.colors.roles) STATE.data.colors.roles = {};
+
+    STATE.data.colors.roles[role] = color;
+    try {
+        saveToLocalStorage();
+    } catch (e) {
+        console.warn('Could not save role color to localStorage', e);
+    }
+
+    // Notify other parts of the UI
+    try {
+        eventBus.emit('colors:changed', { role, color });
+    } catch (e) {
+        console.warn('Could not emit colors:changed', e);
+    }
+
+    return color;
+}
+
 function isStaffAssigned(staffName) {
     // Check route assignments
     for (const assignment of Object.values(STATE.assignments)) {
@@ -384,6 +412,44 @@ function getStaffAssignmentInfo(staffName) {
     }
     
     return assignments.join(', ') || 'Available';
+}
+
+// Returns a human-friendly status label for staff badges (used in staff cards)
+function getStaffStatusBadgeLabel(status) {
+    const s = (status || '').toLowerCase();
+    switch (s) {
+        case 'active':
+        case 'available':
+            return 'Available';
+        case 'on leave':
+        case 'on_leave':
+            return 'On Leave';
+        case 'inactive':
+            return 'Inactive';
+        case 'training':
+            return 'Training';
+        default:
+            return status || 'Status';
+    }
+}
+
+// Build the current-assignment block HTML for a staff card (mirrors fleet behavior)
+function getStaffCurrentAssignmentBlock(staffName) {
+    const assignmentText = getStaffAssignmentInfo(staffName);
+    if (!assignmentText || assignmentText === 'Available') {
+        return `
+            <div class="mt-3 p-2 bg-green-50 rounded border-l-4 border-green-400">
+                <div class="text-xs font-medium text-green-800">Available for Assignment</div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="mt-3 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+            <div class="text-xs font-medium text-blue-800">Currently Assigned</div>
+            <div class="text-sm text-blue-700">${assignmentText}</div>
+        </div>
+    `;
 }
 
 function updateStaffSummary(availableStaff) {
@@ -589,6 +655,91 @@ if (typeof window !== 'undefined') {
     window.exportStaffListAsCSV = exportStaffListAsCSV;
     window.handleStaffCSVImport = handleStaffCSVImport;
     window.addSampleStaffForTesting = addSampleStaffForTesting;
+    // Render function for separate staff details page
+    if (typeof renderStaffDetailsPage === 'function') {
+        window.renderStaffDetailsPage = renderStaffDetailsPage;
+    }
+
+    // Expose role color setter for settings UI
+    window.setRoleColor = setRoleColor;
+    window.getRoleColor = getRoleColor;
+
+    // Modal edit helpers for staff-details page (only if UI doesn't provide add form)
+    window.showStaffEditModal = function(staffId) {
+        const staff = STATE.data.staff.find(s => s.id === staffId || s.name === staffId);
+        if (!staff) return;
+        const modal = document.getElementById('staff-modal');
+        if (!modal) return;
+        const title = modal.querySelector('#modal-title');
+        const content = modal.querySelector('#modal-content');
+        title.textContent = `Edit Staff - ${staff.name}`;
+        content.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-sm">First Name</label>
+                    <input id="edit-staff-first-name" class="w-full p-2 border rounded" value="${staff.firstName || ''}" />
+                </div>
+                <div>
+                    <label class="text-sm">Last Name</label>
+                    <input id="edit-staff-last-name" class="w-full p-2 border rounded" value="${staff.lastName || ''}" />
+                </div>
+                <div>
+                    <label class="text-sm">Role</label>
+                    <input id="edit-staff-role" class="w-full p-2 border rounded" value="${staff.position || staff.role || ''}" />
+                </div>
+                <div>
+                    <label class="text-sm">Employee ID</label>
+                    <input id="edit-staff-employee-id" class="w-full p-2 border rounded" value="${staff.employeeId || ''}" />
+                </div>
+                <div>
+                    <label class="text-sm">Phone</label>
+                    <input id="edit-staff-phone" class="w-full p-2 border rounded" value="${staff.phone || ''}" />
+                </div>
+                <div>
+                    <label class="text-sm">Email</label>
+                    <input id="edit-staff-email" class="w-full p-2 border rounded" value="${staff.email || ''}" />
+                </div>
+                <div class="md:col-span-2">
+                    <label class="text-sm">Notes</label>
+                    <textarea id="edit-staff-notes" class="w-full p-2 border rounded">${staff.notes || ''}</textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button id="edit-staff-cancel" class="px-3 py-2 border rounded">Cancel</button>
+                <button id="edit-staff-save" class="px-3 py-2 bg-blue-600 text-white rounded">Save</button>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+
+        // Wire up buttons
+        modal.querySelector('#edit-staff-cancel').addEventListener('click', closeStaffEditModal);
+        modal.querySelector('#edit-staff-save').addEventListener('click', () => saveStaffEdit(staff.id || staff.name));
+    };
+
+    window.closeStaffEditModal = function() {
+        const modal = document.getElementById('staff-modal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+    };
+
+    window.saveStaffEdit = function(staffId) {
+        const staff = STATE.data.staff.find(s => s.id === staffId || s.name === staffId);
+        if (!staff) return;
+        staff.firstName = document.getElementById('edit-staff-first-name').value.trim();
+        staff.lastName = document.getElementById('edit-staff-last-name').value.trim();
+        staff.position = document.getElementById('edit-staff-role').value.trim();
+        staff.employeeId = document.getElementById('edit-staff-employee-id').value.trim();
+        staff.phone = document.getElementById('edit-staff-phone').value.trim();
+        staff.email = document.getElementById('edit-staff-email').value.trim();
+        staff.notes = document.getElementById('edit-staff-notes').value.trim();
+
+        saveToLocalStorage();
+        // Refresh UI
+        debounceRender('renderStaffPanel');
+        if (typeof window.renderStaffDetailsPage === 'function') window.renderStaffDetailsPage('staff-cards-container', {});
+        closeStaffEditModal();
+    };
 }
 
 // =============================================================================
@@ -708,6 +859,129 @@ function addNewStaffMember(staffData) {
     return newStaff;
 }
 
+// =============================================================================
+// STAFF DETAILS PAGE RENDERER
+// =============================================================================
+/**
+ * Render a grid of staff cards into a container element. This is used by
+ * staff-details.html so the details page can reuse the core staff module
+ * logic and data.
+ *
+ * @param {string|HTMLElement} container - element id or DOM node to render into
+ * @param {object} opts - { search, role, status }
+ */
+function renderStaffDetailsPage(container, opts = {}) {
+    try {
+        const el = typeof container === 'string' ? document.getElementById(container) : container;
+        if (!el) return;
+
+        if (!STATE || !STATE.data || !Array.isArray(STATE.data.staff) || STATE.data.staff.length === 0) {
+            el.innerHTML = '<div class="text-gray-500 text-center py-8">No staff found</div>';
+            return;
+        }
+
+        const search = (opts.search || '').toString().trim().toLowerCase();
+        const roleFilter = (opts.role || '').toString().trim().toLowerCase();
+        const statusFilter = (opts.status || '').toString().trim().toLowerCase();
+
+        const staffList = STATE.data.staff.slice();
+
+        const filtered = staffList.filter(s => {
+            const name = `${s.firstName || ''} ${s.lastName || s.name || ''}`.toLowerCase();
+            const role = (s.position || s.role || '').toLowerCase();
+            const status = (s.status || '').toLowerCase();
+
+            if (search) {
+                const idMatch = (s.employeeId || '').toLowerCase().includes(search);
+                if (!name.includes(search) && !idMatch) return false;
+            }
+            if (roleFilter && role !== roleFilter) return false;
+            if (statusFilter && status !== statusFilter) return false;
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            el.innerHTML = '<div class="text-gray-500 text-center py-8">No staff match the filters</div>';
+            return;
+        }
+
+        const frag = document.createDocumentFragment();
+        filtered.forEach(staff => {
+            const displayName = formatStaffDisplayName(staff);
+            const assignmentInfo = getStaffAssignmentInfo(staff.name || staff.id);
+            const status = (staff.status || 'Active').toLowerCase().replace(/\s+/g, '-');
+
+            // Build a fleet-like card for staff for visual parity
+            const cardHtml = `
+                <div class="fleet-card staff ${status} bg-white rounded-lg shadow-sm p-6" onclick="if(event) event.stopPropagation(); if(typeof window.showStaffDetails === 'function'){ window.showStaffDetails('${staff.name || staff.id}'); }">
+                    <!-- Header -->
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900">${displayName}</h3>
+                            <p class="text-sm text-gray-500">${staff.position || staff.role || 'Staff'}</p>
+                        </div>
+                        <span class="status-indicator status-${status}">${getStaffStatusBadgeLabel(staff.status || 'Active')}</span>
+                    </div>
+
+                    <!-- Key Info -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-600">Employee ID:</span>
+                            <span class="text-sm text-gray-900">${staff.employeeId || 'N/A'}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-600">Role:</span>
+                            <span class="text-sm text-gray-900">${staff.position || staff.role || 'Staff'}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-600">Contact:</span>
+                            <span class="text-sm text-gray-900">${staff.phone || '—'}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-600">Status:</span>
+                            <span class="text-sm text-gray-900">${staff.status || 'Active'}</span>
+                        </div>
+
+                        ${assignmentInfo ? `
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-600">Assignment:</span>
+                            <span class="text-sm text-gray-900">${assignmentInfo}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Current Assignment -->
+                    ${getStaffCurrentAssignmentBlock(staff.name || staff.id)}
+
+                    <!-- Actions -->
+                    <div class="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                        <button onclick="event.stopPropagation(); if(typeof window.editStaffMember === 'function') editStaffMember('${staff.id || staff.name}');" class="flex-1 text-sm bg-blue-50 text-blue-600 py-2 px-3 rounded hover:bg-blue-100">Edit Details</button>
+                    </div>
+                </div>
+            `;
+
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = cardHtml;
+            frag.appendChild(wrapper.firstElementChild);
+        });
+
+        // Clear and append
+        el.innerHTML = '';
+        el.appendChild(frag);
+    } catch (error) {
+        console.error('❌ Error rendering staff details page:', error);
+    }
+}
+
+// Ensure renderer is available globally (some environments run window-registering block earlier)
+if (typeof window !== 'undefined') {
+    window.renderStaffDetailsPage = renderStaffDetailsPage;
+}
+
+
 function removeStaffMember(staffId) {
     console.log('👥 Removing staff member:', staffId);
     
@@ -759,6 +1033,7 @@ function editStaffMember(staffId) {
     // Populate the form with existing data
     const form = document.getElementById('add-staff-form');
     if (form) {
+        // If the global add/edit form exists on the page, populate it (existing behavior)
         document.getElementById('staff-first-name').value = staff.firstName || '';
         document.getElementById('staff-last-name').value = staff.lastName || '';
         document.getElementById('staff-employee-id').value = staff.employeeId || '';
@@ -768,17 +1043,26 @@ function editStaffMember(staffId) {
         document.getElementById('staff-phone').value = staff.phone || '';
         document.getElementById('staff-email').value = staff.email || '';
         document.getElementById('staff-notes').value = staff.notes || '';
-        
+
         // Store the ID for updating
         form.dataset.editingId = staff.id || staff.name;
-        
+
         // Change button text
         const submitBtn = form.querySelector('button[type="submit"]');
         if (submitBtn) {
             submitBtn.textContent = 'Update Staff Member';
             submitBtn.className = 'px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700';
         }
+        return;
     }
+
+    // Fallback: if no global form, use the in-page modal editor we expose (for staff-details page)
+    if (typeof window.showStaffEditModal === 'function') {
+        window.showStaffEditModal(staff.id || staff.name);
+        return;
+    }
+
+    console.warn('No edit UI available for staff; please open the staff add/edit form or implement a modal.');
 }
 
 function exportStaffListAsCSV() {
@@ -949,4 +1233,5 @@ export {
     editStaffMember,
     exportStaffListAsCSV,
     handleStaffCSVImport
+    , renderStaffDetailsPage
 };

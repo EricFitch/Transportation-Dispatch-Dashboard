@@ -102,6 +102,71 @@ function createRouteTemplate(routeNumber, routeType, schedule = 'none') {
     };
 }
 
+/**
+ * Get the role color for the driver assigned to a route (if any).
+ * Falls back to the route type color if no driver or role color available.
+ */
+function getDriverRoleColorForRoute(route) {
+    try {
+        const assignmentKey = `${route.name}_${STATE.currentView}`;
+        const assignment = STATE.assignments?.[assignmentKey] || {};
+        const driverName = assignment.driver || (route.driver && route.driver.name) || null;
+        if (!driverName) return ROUTE_TYPES[Object.keys(ROUTE_TYPES).find(k => ROUTE_TYPES[k].id === route.type)]?.color || '#6b7280';
+
+        // Find staff entry
+        const staff = STATE.data?.staff?.find(s => s.name === driverName || s.id === driverName);
+        const role = (staff && (staff.position || staff.role)) || null;
+        if (role && typeof window.getRoleColor === 'function') {
+            return window.getRoleColor(role);
+        }
+
+        // Fallback to staff module getter if present
+        if (window.staffModule && typeof window.staffModule.getRoleColor === 'function') {
+            return window.staffModule.getRoleColor(role || 'Driver');
+        }
+
+        // Default route type color
+        const typeKey = Object.keys(ROUTE_TYPES).find(k => ROUTE_TYPES[k].id === route.type);
+        return ROUTE_TYPES[typeKey]?.color || '#6b7280';
+    } catch (e) {
+        console.warn('getDriverRoleColorForRoute error', e);
+        return '#6b7280';
+    }
+}
+
+/**
+ * Given a hex color, return readable text color and subtle panel colors
+ */
+function computeContrastColors(hex) {
+    // Normalize hex
+    try {
+        if (!hex) hex = '#6b7280';
+        const clean = hex.replace('#', '');
+        const r = parseInt(clean.substring(0,2), 16);
+        const g = parseInt(clean.substring(2,4), 16);
+        const b = parseInt(clean.substring(4,6), 16);
+        // Relative luminance
+        const luminance = (0.2126 * (r/255) + 0.7152 * (g/255) + 0.0722 * (b/255));
+        // Choose text color: light text on dark bg
+        const textColor = luminance < 0.5 ? '#ffffff' : '#111827';
+        // Panel backgrounds/borders (subtle translucent overlays)
+        if (textColor === '#ffffff') {
+            return {
+                textColor,
+                panelBg: 'rgba(255,255,255,0.08)',
+                panelBorder: 'rgba(255,255,255,0.16)'
+            };
+        }
+        return {
+            textColor,
+            panelBg: 'rgba(0,0,0,0.06)',
+            panelBorder: 'rgba(0,0,0,0.12)'
+        };
+    } catch (e) {
+        return { textColor: '#111827', panelBg: 'rgba(0,0,0,0.06)', panelBorder: 'rgba(0,0,0,0.12)' };
+    }
+}
+
 // =============================================================================
 // ROUTE MANAGEMENT FUNCTIONS
 // =============================================================================
@@ -560,12 +625,14 @@ function getAvailableSafetyEscorts(excludeRouteId = null) {
 function generateRouteCardHtml(route) {
     const routeType = ROUTE_TYPES[route.type.toUpperCase().replace('-', '_')] || ROUTE_TYPES.GENERAL_ED;
     const isFieldTrip = route.type === 'field-trips';
+    const roleAccent = getDriverRoleColorForRoute(route);
+    const contrast = computeContrastColors(roleAccent);
     
     return `
-        <div class="route-card bg-white rounded-lg shadow-md border p-4 hover:shadow-lg transition-shadow" 
-             data-route-id="${route.id}"
-             data-route-type="${route.type}"
-             style="min-height: 400px; width: 300px;">
+       <div class="route-card bg-white rounded-lg shadow-md border p-4 hover:shadow-lg transition-shadow" 
+           data-route-id="${route.id}"
+           data-route-type="${route.type}"
+           style="background: ${roleAccent}; color: ${contrast.textColor}; border-left:6px solid ${roleAccent}; --panel-bg: ${contrast.panelBg}; --panel-border: ${contrast.panelBorder}; min-height: 400px; width: 300px;">
             
             <!-- Add CSS for collapsed state -->
             <style>
@@ -573,6 +640,32 @@ function generateRouteCardHtml(route) {
                     position: relative;
                     overflow: hidden;
                     box-sizing: border-box;
+                }
+                /* Keep assignment/asset/escort panels white for readability */
+                .route-card .driver-assignment,
+                .route-card .asset-assignment .flex-1,
+                .route-card .trailer-assignment .flex-1,
+                .route-card .safety-escort-assignment > div,
+                .route-card .notes-section,
+                .route-card .route-actions,
+                .route-card .assignment-section .p-2 {
+                    background: #ffffff !important;
+                    border-color: rgba(0,0,0,0.08) !important;
+                    color: #111827 !important;
+                }
+                .route-card textarea {
+                    background: transparent !important;
+                    color: inherit !important;
+                    border-color: var(--panel-border) !important;
+                }
+                /* Keep form controls white for readability */
+                .route-card input[type="text"],
+                .route-card input[type="number"],
+                .route-card select,
+                .route-card textarea {
+                    background: #ffffff !important;
+                    color: #111827 !important;
+                    border: 1px solid rgba(0,0,0,0.08) !important;
                 }
                 .route-card.collapsed {
                     min-height: auto !important;
@@ -898,6 +991,12 @@ function renderRouteCards() {
         PERFORMANCE.isRendering = false;
     }
 }
+
+// Re-render when role colors change
+eventBus.on('colors:changed', (data) => {
+    console.log('🎨 Role colors changed, re-rendering route cards', data);
+    debounceRender('renderRouteCards');
+});
 
 // Initialize sample routes for demonstration
 function initializeSampleRoutes() {
