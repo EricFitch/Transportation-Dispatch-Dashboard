@@ -1,0 +1,6 @@
+{
+  "appId": "com.example.dispatch",
+  "appName": "DispatchDashboard",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
