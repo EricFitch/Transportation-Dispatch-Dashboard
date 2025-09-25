@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Transportation Dispatch Dashboard - 75" Touch Optimized</title>
-        <!-- NOTE: Using Tailwind CDN for development/demo purposes only. 
-             For production deployment, install Tailwind CSS locally using:
-             npm install -D tailwindcss && npx tailwindcss init -->
-        <script src="https://cdn.tailwindcss.com?v=3.4.0"></script>
+        <!-- PWA manifest -->
+        <link rel="manifest" href="/manifest.json">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <!-- theme-color provides address bar tint in supporting browsers (progressive enhancement) -->
+    <meta name="theme-color" content="#1e40af">
+       <!-- Tailwind and project styles compiled locally -->
+       <link rel="stylesheet" href="./dist/css/main.css">
+       <link rel="stylesheet" href="./src/styles/main.css">
         <style>
             /* Sidebar panel compactness */
             .responsive-sidebar > div, .responsive-sidebar .bg-white, .responsive-sidebar .bg-gradient-to-r, .responsive-sidebar .rounded-lg, .responsive-sidebar .border {
@@ -149,11 +153,7 @@
                 font-weight: 700 !important;
                 border-radius: 6px !important;
                 margin: 0 2px !important;
-                .responsive-sidebar {
-                    width: 25vw !important;           /* 25% of viewport width */
-                    min-width: 320px !important;      /* Minimum 320px */
-                    max-width: 450px !important;      /* Maximum 450px */
-                }                padding: 4px 0 !important;
+                padding: 4px 0 !important;
                 box-shadow: none !important;
             }
             #am-toggle.active, #am-toggle.bg-blue-500, #am-toggle.selected {
@@ -176,7 +176,7 @@
             .responsive-sidebar::-webkit-scrollbar-track {
                 background: #f3f4f6;
             }
-            /* Firefox scrollbar styling for supported versions */
+            /* Firefox scrollbar styling (progressive enhancement; ignored by unsupported browsers) */
             @supports (scrollbar-width: thin) {
                 .responsive-sidebar {
                     scrollbar-width: thin;
@@ -193,12 +193,22 @@
                 background: transparent;
             }
             
+            /* Hide scrollbars (Firefox specific). Using @-moz-document to isolate and suppress compat warnings elsewhere */
             #staff-available-list,
             #staff-out-list,
             #down-list,
             #spares-list {
-                scrollbar-width: none; /* Firefox */
                 -ms-overflow-style: none; /* Internet Explorer 10+ */
+            }
+            @supports (scrollbar-width: none) {
+                #staff-available-list,
+                #staff-out-list,
+                #down-list,
+                #spares-list { scrollbar-width: none; }
+                .bg-gradient-to-r.from-blue-50.to-indigo-50,
+                .bg-gradient-to-r.from-blue-50.to-indigo-50 *,
+                #staff-summary,
+                #staff-summary * { scrollbar-width: none !important; }
             }
             
             /* Hide any scrollbars on Personnel Status section */
@@ -214,7 +224,6 @@
             .bg-gradient-to-r.from-blue-50.to-indigo-50 *,
             #staff-summary,
             #staff-summary * {
-                scrollbar-width: none !important; /* Firefox */
                 -ms-overflow-style: none !important; /* Internet Explorer 10+ */
                 overflow: hidden !important;
             }
@@ -1026,26 +1035,28 @@
                             <div class="flex items-center space-x-4">
                                 <div class="flex items-center space-x-2">
                                     <label class="text-sm font-medium text-gray-700">Bulk Actions:</label>
-                                    <select id="bulk-route-range-start" class="px-2 py-1 border rounded text-sm w-20">
+                                    <label for="bulk-route-range-start" class="sr-only">Bulk start route number</label>
+                                    <select id="bulk-route-range-start" class="px-2 py-1 border rounded text-sm w-20" aria-label="Bulk start route number" title="Select starting route number for bulk operations">
                                         <option value="1">1</option>
                                         <!-- Will be populated 1-100 -->
                                     </select>
                                     <span class="text-gray-500">to</span>
-                                    <select id="bulk-route-range-end" class="px-2 py-1 border rounded text-sm w-20">
+                                    <label for="bulk-route-range-end" class="sr-only">Bulk end route number</label>
+                                    <select id="bulk-route-range-end" class="px-2 py-1 border rounded text-sm w-20" aria-label="Bulk end route number">
                                         <option value="100">100</option>
                                         <!-- Will be populated 1-100 -->
                                     </select>
                                 </div>
                                 <div class="flex items-center space-x-2">
                                     <label class="text-sm text-gray-700">Set:</label>
-                                    <select id="bulk-route-type" class="px-2 py-1 border rounded text-sm">
+                                    <select id="bulk-route-type" class="px-2 py-1 border rounded text-sm" aria-label="Bulk route type">
                                         <option value="">Select Type...</option>
                                         <option value="general-education">General Education</option>
                                         <option value="special-education">Special Education</option>
                                         <option value="miscellaneous">Miscellaneous</option>
                                         <option value="inactive">Inactive</option>
                                     </select>
-                                    <select id="bulk-route-schedule" class="px-2 py-1 border rounded text-sm">
+                                    <select id="bulk-route-schedule" class="px-2 py-1 border rounded text-sm" aria-label="Bulk route schedule">
                                         <option value="">Select Schedule...</option>
                                         <option value="am">AM Only</option>
                                         <option value="pm">PM Only</option>
@@ -1060,7 +1071,7 @@
                         </div>
                         
                         <!-- Hidden file input for CSV import -->
-                        <input type="file" id="csv-import-input" class="hidden" accept=".csv" />
+                        <input type="file" id="csv-import-input" class="hidden" accept=".csv" aria-label="Import routes CSV" />
                     </div>
                 </div>
 
@@ -1083,7 +1094,7 @@
                                     </div>
                                     <p class="text-green-700 font-medium">Drag & drop CSV file here</p>
                                     <p class="text-green-600 text-sm mt-1">or click to browse</p>
-                                    <input type="file" id="asset-csv-file-input" class="hidden" accept=".csv,.txt" />
+                                    <input type="file" id="asset-csv-file-input" class="hidden" accept=".csv,.txt" aria-label="Import assets CSV" />
                                 </div>
                                 <div class="mt-3 text-xs text-gray-600">
                                     <p><strong>CSV Format:</strong> Vehicle Number, Maximum Capacity, Type (optional), Status (optional)</p>
@@ -1097,14 +1108,14 @@
                                 <h4 class="font-medium text-gray-700 mb-3">📝 Manual Bulk Entry</h4>
                                 <div class="space-y-3">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Enter assets (one per line)</label>
-                                        <textarea id="bulk-asset-input" class="w-full p-3 border rounded h-32 font-mono text-sm" 
+                                            <label for="bulk-asset-input" class="block text-sm font-medium text-gray-700 mb-1">Enter assets (one per line)</label>
+                                        <textarea id="bulk-asset-input" class="w-full p-3 border rounded h-32 font-mono text-sm" aria-label="Bulk asset entry" 
                                                   placeholder="Enter assets one per line:&#10;052, 77, Bus, active&#10;SUV 12-1, 7, Van&#10;Shop Truck, 6&#10;1388, 77, Bus&#10;VAN 18-3, 8, Van, maintenance"></textarea>
                                     </div>
                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Default Type</label>
-                                            <select id="bulk-default-asset-type" class="w-full p-2 border rounded text-sm">
+                                            <label for="bulk-default-asset-type" class="block text-sm font-medium text-gray-700 mb-1">Default Type</label>
+                                            <select id="bulk-default-asset-type" class="w-full p-2 border rounded text-sm" aria-label="Default asset type">
                                                 <option value="">Use per-line value</option>
                                                 <option value="Bus">Bus (for all)</option>
                                                 <option value="Van">Van (for all)</option>
@@ -1114,8 +1125,8 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Default Status</label>
-                                            <select id="bulk-default-asset-status" class="w-full p-2 border rounded text-sm">
+                                            <label for="bulk-default-asset-status" class="block text-sm font-medium text-gray-700 mb-1">Default Status</label>
+                                            <select id="bulk-default-asset-status" class="w-full p-2 border rounded text-sm" aria-label="Default asset status">
                                                 <option value="">Use per-line value</option>
                                                 <option value="active">Active (for all)</option>
                                                 <option value="maintenance">Maintenance (for all)</option>
@@ -1146,16 +1157,16 @@
                                     <h4 class="font-medium text-gray-700 mb-3">Add New Asset</h4>
                                     <form id="add-asset-form" class="space-y-3">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Asset Name/ID</label>
-                                            <input type="text" id="asset-name" class="w-full p-2 border rounded" placeholder="Asset name or ID" required>
+                                            <label for="asset-name" class="block text-sm font-medium text-gray-700 mb-1">Asset Name/ID</label>
+                                            <input type="text" id="asset-name" class="w-full p-2 border rounded" placeholder="Asset name or ID" aria-required="true" required>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Maximum Capacity</label>
-                                            <input type="number" id="asset-capacity" class="w-full p-2 border rounded" placeholder="Passenger capacity" min="0" max="200">
+                                            <label for="asset-capacity" class="block text-sm font-medium text-gray-700 mb-1">Maximum Capacity</label>
+                                            <input type="number" id="asset-capacity" class="w-full p-2 border rounded" placeholder="Passenger capacity" min="0" max="200" aria-label="Asset maximum capacity">
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                            <select id="asset-type" class="w-full p-2 border rounded" required>
+                                            <label for="asset-type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                            <select id="asset-type" class="w-full p-2 border rounded" aria-required="true" required aria-label="Asset type">
                                                 <option value="Bus">Bus</option>
                                                 <option value="Van">Van</option>
                                                 <option value="Car">Car</option>
@@ -1164,8 +1175,8 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                            <select id="asset-status" class="w-full p-2 border rounded">
+                                            <label for="asset-status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                            <select id="asset-status" class="w-full p-2 border rounded" aria-label="Asset status">
                                                 <option value="active">Active</option>
                                                 <option value="maintenance">Maintenance</option>
                                                 <option value="retired">Retired</option>
@@ -1204,7 +1215,7 @@
                                     </div>
                                     <p class="text-purple-700 font-medium">Drag and drop CSV file here</p>
                                     <p class="text-purple-600 text-sm mt-1">or click to browse</p>
-                                    <input type="file" id="staff-csv-file-input" class="hidden" accept=".csv,.txt" />
+                                    <input type="file" id="staff-csv-file-input" class="hidden" accept=".csv,.txt" aria-label="Import staff CSV" />
                                 </div>
                                 <div id="staff-csv-status" class="mt-3 text-sm"></div>
                                 
@@ -1213,8 +1224,8 @@
                                     <h5 class="font-medium text-gray-600">Bulk Import Defaults</h5>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="text-sm text-gray-600">Default Status</label>
-                                            <select id="bulk-default-staff-status" class="w-full p-2 border rounded text-sm">
+                                            <label for="bulk-default-staff-status" class="text-sm text-gray-600">Default Status</label>
+                                            <select id="bulk-default-staff-status" class="w-full p-2 border rounded text-sm" aria-label="Bulk default staff status">
                                                 <option value="Active">Active</option>
                                                 <option value="Inactive">Inactive</option>
                                                 <option value="On Leave">On Leave</option>
@@ -1222,8 +1233,8 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="text-sm text-gray-600">Default Department</label>
-                                            <select id="bulk-default-department" class="w-full p-2 border rounded text-sm">
+                                            <label for="bulk-default-department" class="text-sm text-gray-600">Default Department</label>
+                                            <select id="bulk-default-department" class="w-full p-2 border rounded text-sm" aria-label="Bulk default department">
                                                 <option value="Transportation">Transportation</option>
                                                 <option value="Dispatch">Dispatch</option>
                                                 <option value="Maintenance">Maintenance</option>
@@ -1240,22 +1251,22 @@
                                 <form id="add-staff-form" class="space-y-4">
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                                            <input type="text" id="staff-first-name" class="w-full p-2 border rounded" required>
+                                            <label for="staff-first-name" class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                                            <input type="text" id="staff-first-name" class="w-full p-2 border rounded" aria-required="true" required>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
-                                            <input type="text" id="staff-last-name" class="w-full p-2 border rounded" required>
+                                            <label for="staff-last-name" class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                                            <input type="text" id="staff-last-name" class="w-full p-2 border rounded" aria-required="true" required>
                                         </div>
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
-                                            <input type="text" id="staff-employee-id" class="w-full p-2 border rounded">
+                                            <label for="staff-employee-id" class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+                                            <input type="text" id="staff-employee-id" class="w-full p-2 border rounded" aria-label="Employee ID">
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                                            <select id="staff-position" class="w-full p-2 border rounded">
+                                            <label for="staff-position" class="block text-sm font-medium text-gray-700 mb-1">Position</label>
+                                            <select id="staff-position" class="w-full p-2 border rounded" aria-label="Staff position">
                                                 <option value="Director">Director</option>
                                                 <option value="Assistant Director">Assistant Director</option>
                                                 <option value="Transportation Manager">Transportation Manager</option>
@@ -1295,8 +1306,8 @@
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                            <select id="staff-department" class="w-full p-2 border rounded">
+                                            <label for="staff-department" class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                                            <select id="staff-department" class="w-full p-2 border rounded" aria-label="Staff department">
                                                 <option value="Transportation">Transportation</option>
                                                 <option value="Dispatch">Dispatch</option>
                                                 <option value="Maintenance">Maintenance</option>
@@ -1304,8 +1315,8 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                            <select id="staff-status" class="w-full p-2 border rounded">
+                                            <label for="staff-status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                            <select id="staff-status" class="w-full p-2 border rounded" aria-label="Staff status">
                                                 <option value="Active">Active</option>
                                                 <option value="Inactive">Inactive</option>
                                                 <option value="On Leave">On Leave</option>
@@ -1315,17 +1326,17 @@
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                                            <input type="tel" id="staff-phone" class="w-full p-2 border rounded">
+                                            <label for="staff-phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                            <input type="tel" id="staff-phone" class="w-full p-2 border rounded" aria-label="Staff phone number">
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                            <input type="email" id="staff-email" class="w-full p-2 border rounded">
+                                            <label for="staff-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                            <input type="email" id="staff-email" class="w-full p-2 border rounded" aria-label="Staff email address">
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                                        <textarea id="staff-notes" class="w-full p-2 border rounded" rows="2"></textarea>
+                                        <label for="staff-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                        <textarea id="staff-notes" class="w-full p-2 border rounded" rows="2" aria-label="Staff notes"></textarea>
                                     </div>
                                     <div class="flex justify-end">
                                         <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
@@ -1495,164 +1506,10 @@
         <!-- Modular JS Loader -->
         <script type="module" src="./src/app.js"></script>
         
-        <!-- Additional CSS that was misplaced -->
-        <style>
-        .search-container {
-            background: white;
-            border-radius: 8px;
-            padding: 24px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow: hidden;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .search-input-wrapper {
-            display: flex;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        
-        .search-input {
-            flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 16px;
-            outline: none;
-        }
-        
-        .search-input:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-        
-        .search-close {
-            margin-left: 12px;
-            padding: 8px 12px;
-            background: #f3f4f6;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 18px;
-            color: #6b7280;
-        }
-        
-        .search-close:hover {
-            background: #e5e7eb;
-        }
-        
-        .search-results {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .search-result-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.15s ease;
-        }
-        
-        .search-result-item:hover {
-            background-color: #f9fafb;
-        }
-        
-        .search-result-icon {
-            margin-right: 12px;
-            font-size: 18px;
-        }
-        
-        .search-result-content {
-            flex: 1;
-        }
-        
-        .search-result-name {
-            font-weight: 500;
-            margin-bottom: 2px;
-        }
-        
-        .search-result-meta {
-            font-size: 14px;
-            color: #6b7280;
-        }
-        
-        .search-no-results {
-            text-align: center;
-            padding: 40px 20px;
-            color: #6b7280;
-        }
-        
-        /* Search Button */
-        .search-button {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.15s ease;
-        }
-        
-        .search-button:hover {
-            background: #2563eb;
-        }
-        
-        .context-menu {
-            animation: contextMenuFadeIn 0.2s ease-out;
-        }
-        
-        @keyframes contextMenuFadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        
-        .virtual-list-viewport {
-            overflow: auto;
-        }
-        
-        .virtual-list-content {
-            will-change: transform;
-        }
-        
-        .gesture-tutorial {
-            animation: tutorialFadeIn 0.3s ease-out;
-        }
-        
-        @keyframes tutorialFadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        /* Touch optimizations */
-        .touch-primary .route-card,
-        .touch-primary .staff-item,
-        .touch-primary .asset-item {
-            min-height: 48px;
-            padding: 12px;
-        }
-        
-        .touch-primary button {
-            min-height: 48px;
-            padding: 12px 16px;
-        }
-        
-        /* Screen reader announcer */
-        #screen-reader-announcer {
-            position: absolute;
-            left: -10000px;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-        }
-    </style>
-
-    <!-- JavaScript -->
-    <script type="module" src="./src/app.js"></script>
-    <script type="module" src="./src/modules/ui/search-debug.js"></script>
+        <!-- Removed duplicate style block. Unique search/context styles moved to main stylesheet above or Tailwind utilities used. -->
+        <!-- Accessibility live region -->
+        <div id="screen-reader-announcer" aria-live="polite" class="sr-only"></div>
+        <!-- Scripts -->
+        <script type="module" src="./src/modules/ui/search-debug.js"></script>
     </body>
 </html>

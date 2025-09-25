@@ -981,6 +981,23 @@ if (typeof window !== 'undefined') {
     window.renderStaffDetailsPage = renderStaffDetailsPage;
 }
 
+/**
+ * Close staff modal - Referenced in staff-details.html
+ */
+function closeStaffModal() {
+    const modal = document.getElementById('staff-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        console.log('✅ Staff modal closed');
+    } else {
+        console.warn('⚠️ Staff modal not found');
+    }
+}
+
+// Make available globally for onclick handlers in HTML
+if (typeof window !== 'undefined') {
+    window.closeStaffModal = closeStaffModal;
+}
 
 function removeStaffMember(staffId) {
     console.log('👥 Removing staff member:', staffId);
@@ -1232,6 +1249,7 @@ export {
     removeStaffMember,
     editStaffMember,
     exportStaffListAsCSV,
-    handleStaffCSVImport
-    , renderStaffDetailsPage
+    handleStaffCSVImport,
+    renderStaffDetailsPage,
+    closeStaffModal
 };

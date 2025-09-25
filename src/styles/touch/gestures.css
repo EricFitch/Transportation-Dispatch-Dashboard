@@ -29,6 +29,12 @@
   -webkit-touch-callout: none;
 }
 
+.touch-target {
+  min-width: var(--dispatch-touch-target, var(--touch-target, 48px));
+  min-height: var(--dispatch-touch-target, var(--touch-target, 48px));
+  padding: var(--dispatch-touch-padding, var(--touch-padding, 12px));
+}
+
 /* ==========================================================================
    GESTURE-SPECIFIC TOUCH ACTIONS
    ========================================================================== */

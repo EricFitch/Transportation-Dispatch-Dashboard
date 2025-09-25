@@ -12,6 +12,7 @@
 import { eventBus } from '../core/events.js';
 import { STATE, saveToLocalStorage } from '../core/state.js';
 import { PERFORMANCE, debounceRender } from '../core/utils.js';
+import { touchController } from './controller.js';
 
 // =============================================================================
 // RESPONSIVE LAYOUT CONFIGURATION
@@ -61,6 +62,8 @@ const RESPONSIVE_STATE = {
     cardStates: new Map() // Track individual card states
 };
 
+let responsiveInitialized = false;
+
 // =============================================================================
 // RESPONSIVE INITIALIZATION
 // =============================================================================
@@ -91,6 +94,24 @@ function initializeResponsiveSystem() {
         breakpoint: RESPONSIVE_STATE.currentBreakpoint
     });
     
+    return true;
+}
+
+function setupBreakpoints(options = {}) {
+    if (!responsiveInitialized) {
+        initializeResponsiveSystem();
+        responsiveInitialized = true;
+        return true;
+    }
+
+    if (options?.recalculate) {
+        handleResponsiveChange();
+    } else {
+        applyResponsiveClasses();
+        updateResponsiveGrids();
+        updateTouchTargets();
+    }
+
     return true;
 }
 
@@ -744,21 +765,23 @@ function handleBreakpointChange(from, to) {
 }
 
 function updateTouchTargets() {
-    const minSize = RESPONSIVE_CONFIG.touchTargets.minSize;
-    const padding = RESPONSIVE_CONFIG.touchTargets.padding;
-    
-    if (RESPONSIVE_STATE.currentBreakpoint === 'mobile') {
-        // Ensure touch targets are large enough
-        const buttons = document.querySelectorAll('button, .clickable, .touchable');
-        buttons.forEach(button => {
-            const rect = button.getBoundingClientRect();
-            if (rect.width < minSize || rect.height < minSize) {
-                button.style.minWidth = `${minSize}px`;
-                button.style.minHeight = `${minSize}px`;
-                button.style.padding = `${padding}px`;
-            }
-        });
-    }
+    const thresholds = touchController.getThresholds();
+    const targetSize = Math.max(
+        RESPONSIVE_CONFIG.touchTargets.minSize,
+        Math.round(thresholds.tap.distance * 4)
+    );
+
+    const padding = Math.round(targetSize * 0.28);
+
+    document.documentElement.style.setProperty('--dispatch-touch-target', `${targetSize}px`);
+    document.documentElement.style.setProperty('--dispatch-touch-padding', `${padding}px`);
+    document.documentElement.style.setProperty('--touch-target', `${targetSize}px`);
+    document.documentElement.style.setProperty('--touch-padding', `${padding}px`);
+
+    const interactiveElements = document.querySelectorAll('button, .clickable, .touchable, [role="button"], [data-touchable]');
+    interactiveElements.forEach(element => {
+        element.classList.add('touch-target');
+    });
 }
 
 function applyResponsiveClasses() {
@@ -860,6 +883,7 @@ eventBus.on('touch:initialized', () => {
 
 export {
     initializeResponsiveSystem,
+    setupBreakpoints,
     setupCardCollapse,
     toggleCardCollapse,
     collapseAllCards,

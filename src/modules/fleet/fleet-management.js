@@ -4,7 +4,24 @@
  */
 
 import { eventBus } from '../core/utils.js';
-import { STATE, getState, setState, saveToLocalStorage } from '../core/state.js';
+import { STATE, getState, setState, saveToLocalStorage, addAsset } from '../core/state.js';
+
+// Fallback functions for asset checking (will be replaced when assets module loads)
+let isAssetAssigned = (name) => false;
+let getAssetAssignmentInfo = (name) => 'Unknown';
+
+// Try to get asset functions from global scope if available
+if (typeof window !== 'undefined') {
+    // These will be set by the dispatch/assets module when it loads
+    const checkAssetFunctions = () => {
+        if (window.isAssetAssigned) isAssetAssigned = window.isAssetAssigned;
+        if (window.getAssetAssignmentInfo) getAssetAssignmentInfo = window.getAssetAssignmentInfo;
+    };
+    
+    // Check immediately and periodically
+    checkAssetFunctions();
+    setTimeout(checkAssetFunctions, 1000);
+}
 
 export class FleetManagement {
     constructor() {
@@ -724,15 +741,179 @@ window.toggleAssetStatus = function(assetName) {
 };
 
 window.addNewAsset = function() {
-    console.log('Adding new asset');
-    // Will implement add new asset functionality
-    alert('Add New Asset - Coming Soon!');
+    console.log('🚛 Opening add new asset modal...');
+    
+    try {
+        // Check if asset management modal already exists and use it
+        const assetModal = document.getElementById('asset-management-modal');
+        if (assetModal) {
+            assetModal.classList.remove('hidden');
+            
+            // Refresh the asset list when modal opens
+            if (typeof window.refreshAssetListModal === 'function') {
+                window.refreshAssetListModal();
+            }
+            
+            // Focus on the asset name input
+            setTimeout(() => {
+                const assetNameInput = document.getElementById('asset-name');
+                if (assetNameInput) {
+                    assetNameInput.focus();
+                }
+            }, 100);
+            
+            console.log('✅ Asset management modal opened');
+            return;
+        }
+        
+        // Fallback: Create a simple inline form if modal doesn't exist
+        const formHtml = `
+            <div id="quick-asset-form" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:1000;min-width:320px;">
+                <h3 style="margin:0 0 15px 0;font-size:1.2em;font-weight:bold;">Add New Asset</h3>
+                <form id="quick-asset-add-form">
+                    <div style="margin-bottom:10px;">
+                        <label style="display:block;margin-bottom:3px;font-weight:500;">Vehicle Number *</label>
+                        <input type="text" id="quick-asset-name" required style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    </div>
+                    <div style="margin-bottom:10px;">
+                        <label style="display:block;margin-bottom:3px;font-weight:500;">Type</label>
+                        <select id="quick-asset-type" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                            <option value="Bus">Bus</option>
+                            <option value="Van">Van</option>
+                            <option value="Car">Car</option>
+                            <option value="Suburban">Suburban</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:15px;">
+                        <label style="display:block;margin-bottom:3px;font-weight:500;">Capacity</label>
+                        <input type="number" id="quick-asset-capacity" min="0" max="200" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button type="submit" style="flex:1;background:#10b981;color:white;padding:8px;border:none;border-radius:4px;font-weight:500;cursor:pointer;">Add Asset</button>
+                        <button type="button" onclick="document.getElementById('quick-asset-form').remove()" style="flex:1;background:#6b7280;color:white;padding:8px;border:none;border-radius:4px;font-weight:500;cursor:pointer;">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        
+        // Remove existing form if any
+        const existingForm = document.getElementById('quick-asset-form');
+        if (existingForm) existingForm.remove();
+        
+        // Add form to page
+        document.body.insertAdjacentHTML('beforeend', formHtml);
+        
+        // Add form handler
+        const form = document.getElementById('quick-asset-add-form');
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('quick-asset-name').value.trim();
+            const type = document.getElementById('quick-asset-type').value;
+            const capacity = parseInt(document.getElementById('quick-asset-capacity').value) || 0;
+            
+            if (!name) {
+                alert('Please enter a vehicle number.');
+                return;
+            }
+            
+            // Add asset using core state function
+            const success = addAsset({
+                name: name,
+                type: type,
+                capacity: capacity,
+                status: 'active'
+            });
+            
+            if (success) {
+                console.log(`✅ Asset added: ${name}`);
+                alert(`Asset "${name}" added successfully!`);
+                
+                // Refresh displays
+                if (typeof window.renderAssetPanel === 'function') {
+                    window.renderAssetPanel();
+                }
+                if (typeof window.fleetManager?.applyFilters === 'function') {
+                    window.fleetManager.applyFilters();
+                }
+                
+                // Remove form
+                document.getElementById('quick-asset-form').remove();
+            } else {
+                alert('Asset already exists or failed to add.');
+            }
+        });
+        
+        // Focus on name input
+        setTimeout(() => {
+            document.getElementById('quick-asset-name').focus();
+        }, 100);
+        
+    } catch (error) {
+        console.error('❌ Error opening add asset form:', error);
+        alert('Error opening add asset form. Please try again.');
+    }
 };
 
 window.exportFleetData = function() {
-    console.log('Exporting fleet data');
-    // Will implement export functionality
-    alert('Export Fleet Data - Coming Soon!');
+    console.log('🚛 Exporting fleet data...');
+    
+    try {
+        // Get assets from state
+        const assets = STATE.data?.assets || [];
+        
+        if (assets.length === 0) {
+            alert('No fleet data to export.');
+            return;
+        }
+        
+        // Prepare CSV headers
+        const headers = ['Vehicle Number', 'Type', 'Capacity', 'Status', 'Assignment', 'Notes', 'Year', 'Fuel', 'License', 'VIN'];
+        
+        // Prepare CSV rows
+        const rows = assets.map(asset => {
+            // Get current assignment info
+            let assignment = 'Available';
+            if (isAssetAssigned(asset.name)) {
+                const assignmentInfo = getAssetAssignmentInfo(asset.name);
+                assignment = assignmentInfo || 'Assigned';
+            }
+            
+            return [
+                asset.name || '',
+                asset.type || '',
+                asset.capacity || '',
+                asset.status || 'active',
+                assignment,
+                asset.notes || '',
+                asset.year || '',
+                asset.fuel || '',
+                asset.license || '',
+                asset.vin || ''
+            ].map(field => `"${(field || '').toString().replace(/"/g, '""')}"`);
+        });
+        
+        // Combine headers and rows
+        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+        
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `fleet_data_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log(`✅ Fleet data exported: ${assets.length} assets`);
+        
+    } catch (error) {
+        console.error('❌ Error exporting fleet data:', error);
+        alert('Error exporting fleet data. Please try again.');
+    }
 };
 
 window.resetFilters = function() {

@@ -1,5 +1,22 @@
 # Transportation Dispatch Dashboard
 
+🚌 **Professional school district transportation dispatch system optimized for web deployment**
+
+A comprehensive transportation management system featuring real-time fleet tracking, route management, staff assignments, and advanced reporting capabilities. Designed for Firebase hosting with touch screen optimization.
+
+## 🎯 Features
+
+- **Web-Based Dashboard**: Optimized for browser deployment with Firebase hosting
+- **Touch Screen Optimized**: Designed specifically for large touch displays (75+ inches)
+- **Real-time Fleet Tracking**: Live status updates with 10-7, 10-8, and 10-11 radio codes
+- **Advanced Routing**: Dynamic route management with GPS tracking
+- **Staff Management**: Complete driver and monitor assignment system
+- **Comprehensive Reporting**: Detailed timestamp reports with route analytics
+- **Data Import/Export**: CSV support for fleet and routing databases
+- **Dark/Light Mode**: AM/PM toggle with visual mode switching
+- **PWA Support**: Progressive Web App with offline capability
+- **Responsive Design**: Tailwind CSS for consistent styling across devicesDispatch Dashboard
+
 🚌 **Professional school district transportation dispatch system optimized for 75-inch touch displays**
 
 A comprehensive transportation management system featuring real-time fleet tracking, route management, staff assignments, and advanced reporting capabilities.
@@ -23,6 +40,7 @@ Dispatch Command Center/
 ├── index.html                 # Main dashboard interface
 ├── package.json              # Project configuration
 ├── sw.js                     # Service worker for offline support
+├── manifest.json             # PWA manifest for app-like experience
 ├── assets/
 │   └── css/
 │       └── dashboard.css      # Complete styling system
@@ -31,30 +49,41 @@ Dispatch Command Center/
 │   ├── modules/              # Modular JavaScript components
 │   │   ├── core/             # State, utils, events
 │   │   ├── dispatch/         # Routes, staff, assets
-│   │   ├── touch/            # 75" display touch optimization
+│   │   ├── touch/            # Touch display optimization
 │   │   ├── fleet/            # Fleet management & service
 │   │   ├── ui/               # Search, settings, utilities
 │   │   ├── operations/       # Field trips, route operations
 │   │   └── data/             # Import/export functionality
 │   └── styles/               # Organized CSS modules
-└── tools/                    # Development and extraction tools
 ```
 
-## 🛠️ Quick Start
+## 🚀 Firebase Deployment
 
-1. **Clone the repository**:
+### Prerequisites
+- Firebase CLI installed: `npm install -g firebase-tools`
+- Firebase project set up in console
+- Login to Firebase: `firebase login`
+
+### Deployment Steps
+
+1. **Initialize Firebase in your project**:
    ```bash
-   git clone [repository-url]
-   cd "Dispatch Command Center"
+   firebase init hosting
+   ```
+   - Select your Firebase project
+   - Set public directory to current folder (`.`)
+   - Configure as single-page app: Yes
+   - Don't overwrite index.html
+
+2. **Deploy to Firebase**:
+   ```bash
+   firebase deploy
    ```
 
-2. **Open in a web server**:
-   - Use VS Code Live Server extension, or
-   - Run `python -m http.server 8000` or `npx serve`
-
-3. **Access the dashboard**:
-   - Open `http://localhost:8000` in your browser
-   - For best experience, use a large touch display (75+ inches)
+3. **Custom Domain (Optional)**:
+   ```bash
+   firebase hosting:channel:create live
+   ```
 
 ## 💾 Data Management
 
@@ -100,7 +129,44 @@ Files can be imported via the settings panel or drag-and-drop interface.
 ### **Data Management**
 - `data/importExport.js` - CSV import/export and data synchronization
 
-## 🔧 Technical Details
+## �️ UI Controls & Event Wiring Overview
+
+The dispatcher interface uses explicit element IDs, delegated listeners, and shared module exports to keep behavior predictable across the dashboard. The latest audit cross-referenced every visible control with its handler to confirm coverage and surface any remaining follow-ups.
+
+### Main Dashboard (`index.html`)
+- `#hamburger-menu-btn` &mdash; Wired in `src/app.js` with a fallback to `settingsSystem` so the settings slide-out opens even if initialization order changes.
+- `#search-toggle-btn` &mdash; Opens the floating search overlay and gracefully no-ops if the search system has not finished booting.
+- `#reset-board-btn` &mdash; Prompts for confirmation and calls `window.resetRouteBoard`, guaranteeing a full board reset when accepted.
+- `#timestamp-report-btn` &mdash; Launches the timestamp report modal and reuses shared modal handlers for printing and clearing.
+- `#am-toggle` / `#pm-toggle` &mdash; Switches the view via `switchToView`, re-renders route cards, and emits `view:changed` through the event bus.
+- Slide-out menu shortcuts (`#open-comprehensive-settings`, `#open-route-management`, `#open-asset-management`, `#open-staff-management`, `#export-all-data`, `#import-data`, `#open-search-dialog`) &mdash; Each control routes through `app.js` to open the corresponding modal or settings workflow.
+- `#staff-details-btn` / `#fleet-details-btn` &mdash; Provide quick navigation to dedicated management pages while closing the slide-out for a clean transition.
+
+### Fleet Details (`fleet-details.html`)
+- `history.back()` back button &mdash; Uses native navigation so operators can quickly return to the dashboard.
+- `exportFleetData()` and `addNewAsset()` &mdash; Exposed as globals from `src/modules/fleet/fleet-management.js`, giving immediate access to export and asset-creation workflows.
+- Filter controls (`#fleet-search`, `#type-filter`, `#status-filter`) &mdash; Debounced listeners apply filters without refreshing the page; `resetFilters()` restores defaults.
+- `closeAssetModal()` &mdash; Global helper that hides the modal while keeping content intact for the next launch.
+
+### Staff Details (`staff-details.html`)
+- `history.back()` back button mirrors dashboard behavior for consistency.
+- `#export-staff-data` &mdash; Prefers `window.exportStaffListAsCSV`, then falls back to on-the-fly CSV generation if the module is still loading.
+- `#add-staff-btn` &mdash; Scrolls to the creation form or emits `staff:showAddForm` when the modal lives elsewhere.
+- Search and filter inputs (`#staff-search`, `#role-filter`, `#status-filter`, `#reset-filters`) &mdash; Apply live filtering through `renderStaffDetailsPage` with graceful degradation.
+- `closeStaffModal()` &mdash; Referenced in markup; ensure the helper is exported (see follow-ups below).
+
+### Module Wiring Highlights
+- Core modules (`core/state`, `core/utils`, `core/events`) initialize before UI layers, guaranteeing shared helpers (event bus, debouncers, storage access) are ready for downstream modules.
+- UI singletons (`ui/system`, `ui/settingsSystem`, `ui/advancedSearch`) register their own delegated listeners and expose entry points via `window` for cross-module reuse.
+- Dispatch modules (`dispatch/routes`, `dispatch/routeCards`, `dispatch/staff`, `dispatch/assets`) expose renderers and assignment helpers that `src/app.js` re-exports globally for modals, bulk actions, and diagnostics.
+- Fleet and operations managers (`fleet/management`, `operations/assignments`, `operations/routeManagement`) subscribe to event bus topics to stay synchronized with asset and route changes.
+
+### Follow-up Recommendations
+- Export `window.closeStaffModal` from `dispatch/staff.js` so the staff details modal matches the fleet modal behavior.
+- Complete the placeholder implementations for `window.exportFleetData` and `window.addNewAsset` to provide inline functionality from Fleet Details.
+- When extending the UI, continue using delegated listeners and module exports so new controls remain testable and maintainable.
+
+## �🔧 Technical Details
 
 - **Architecture**: ES6 modules with clean separation of concerns
 - **Styling**: Tailwind CSS via CDN for rapid development

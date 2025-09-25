@@ -26,6 +26,8 @@
   /* Touch targets that scale appropriately */
   --touch-target: clamp(44px, 3vw, 60px);
   --touch-padding: clamp(8px, 1vw, 16px);
+  --dispatch-touch-target: var(--touch-target);
+  --dispatch-touch-padding: var(--touch-padding);
   
   /* Panel and container dimensions */
   --sidebar-width: clamp(280px, 20vw, 400px);

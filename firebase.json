@@ -1,0 +1,44 @@
+{
+  "hosting": {
+    "public": "./",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "package*.json",
+      "tailwind.config.js",
+      "postcss.config.js",
+      "README*.md",
+      "dispatch-standalone-single-file.html",
+      "index-standalone.html",
+      "manifest-standalone.json",
+      "tailwind-standalone.css"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=31536000"
+          }
+        ]
+      },
+      {
+        "source": "sw.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  }
+}

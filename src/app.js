@@ -143,6 +143,9 @@ import {
 
 import { 
   initializeTouchGestures as initializeTouchGestureSystem,
+  enableAllGestures,
+  teardownTouchGestures,
+  disableAllGestures,
   showGestureTutorial,
   exportCurrentView,
   handleTouchStart,
@@ -165,10 +168,12 @@ import {
   getTouchDistance,
   getTouchCapabilities,
   resetGestureState,
-  TOUCH_GESTURES
+  TOUCH_GESTURES,
+  touchController
 } from './modules/touch/gestures.js';
 import { 
   initializeResponsiveSystem,
+  setupBreakpoints,
   setupCardCollapse,
   toggleCardCollapse,
   collapseAllCards,
@@ -470,6 +475,9 @@ class ModularDispatchApp {
     // Touch interface modules - group functions into module objects
     const gesturesModule = {
       initializeTouchGestures: initializeTouchGestureSystem,
+      enableAllGestures,
+      teardownTouchGestures,
+      disableAllGestures,
       showGestureTutorial,
       exportCurrentView,
       handleTouchStart,
@@ -492,12 +500,14 @@ class ModularDispatchApp {
       getTouchDistance,
       getTouchCapabilities,
       resetGestureState,
-      TOUCH_GESTURES
+      TOUCH_GESTURES,
+      touchController
     };
     this.modules.set('TouchGestures', gesturesModule);
     
     const responsiveModule = {
       initializeResponsiveSystem,
+      setupBreakpoints,
       setupCardCollapse,
       toggleCardCollapse,
       collapseAllCards,

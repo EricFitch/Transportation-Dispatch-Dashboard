@@ -1,437 +1,423 @@
 /* TOUCH - GESTURES MODULE
-   Transportation Dispatch Dashboard - Auto-extracted from legacy
-   
-   Functions included: Touch gesture recognition, swipe handling, long press detection,
-   haptic feedback, context menus, and mobile optimization
-   Total lines: 450
-   Extracted: 2025-09-11_23-56
-   Manual enhancement: Built comprehensive touch system from fragmented extraction
+   Transportation Dispatch Dashboard
+
+   High-level orchestration for gesture UX layered atop the TouchController. Manages
+   tutorials, contextual menus, swipe affordances, and analytics while delegating
+   low-level pointer work to the controller module.
 */
 
-// Transportation Dispatch Dashboard Module Dependencies
 import { eventBus } from '../core/events.js';
 import { STATE, saveToLocalStorage } from '../core/state.js';
-import { PERFORMANCE, debounceRender } from '../core/utils.js';
-
-// =============================================================================
-// TOUCH GESTURE CONFIGURATION
-// =============================================================================
+import { debounceRender } from '../core/utils.js';
+import { touchController } from './controller.js';
 
 const TOUCH_GESTURES = {
-    // Touch state management
-    activeElement: null,
-    startTouch: null,
-    currentTouch: null,
-    gestureType: null,
-    swipeDirection: null,
-    longPressTimer: null,
-    contextMenuElement: null,
-    
-    // Touch thresholds and timing
-    swipeThreshold: 50,        // Minimum pixels for swipe
-    maxTapTime: 200,           // Maximum time for tap (ms)
-    longPressTime: 500,        // Time for long press (ms)
-    maxTapDistance: 15,        // Maximum movement for tap
-    
-    // Gesture sensitivity
-    swipeVelocityThreshold: 0.5,
-    pinchThreshold: 10,
-    
-    // Device capabilities
     hasHaptics: 'vibrate' in navigator,
-    hasTouchScreen: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
-    
-    // Touch feedback settings
+    hasTouchScreen: typeof window !== 'undefined' && (
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        window.matchMedia?.('(pointer: coarse)').matches
+    ),
     feedbackEnabled: true,
     hapticsEnabled: true,
     visualFeedbackEnabled: true,
-    
-    // Gesture history for analysis
+    contextMenuElement: null,
+    swipeIndicator: null,
     gestureHistory: [],
-    maxHistorySize: 10
+    maxHistorySize: 15,
+    analytics: {
+        taps: 0,
+        swipes: 0,
+        longPresses: 0,
+        lastGestureAt: null
+    },
+    thresholds: touchController.getThresholds()
 };
+
+let initialized = false;
+const globalListeners = [];
+const eventSubscriptions = [];
+
+function subscribe(event, handler) {
+    eventBus.on(event, handler);
+    eventSubscriptions.push({ event, handler });
+}
+
+function registerGlobalListener(target, type, handler, options) {
+    target.addEventListener(type, handler, options);
+    globalListeners.push({ target, type, handler, options });
+}
+
+function removeGlobalListeners() {
+    globalListeners.forEach(({ target, type, handler, options }) => {
+        target.removeEventListener(type, handler, options);
+    });
+    globalListeners.length = 0;
+}
+
+function removeEventSubscriptions() {
+    eventSubscriptions.forEach(({ event, handler }) => {
+        eventBus.off(event, handler);
+    });
+    eventSubscriptions.length = 0;
+}
 
 // =============================================================================
 // TOUCH GESTURE INITIALIZATION
 // =============================================================================
 
-function initializeTouchGestures() {
-    console.log('👆 Initializing touch gesture system...');
-    
+function initializeTouchGestures(options = {}) {
     if (!TOUCH_GESTURES.hasTouchScreen) {
         console.log('⚠️ No touch screen detected, skipping touch gesture initialization');
         return false;
     }
-    
-    // Load touch preferences from state
+
+    if (initialized) {
+        return true;
+    }
+
+    console.log('👆 Initializing touch gesture system...');
+
     loadTouchPreferences();
-    
-    // Set up touch event listeners
-    setupTouchEventListeners();
-    
-    // Initialize touch CSS classes
     initializeTouchStyles();
-    
-    // Set up gesture tutorial if first time
+
+    const mounted = touchController.initialize({
+        root: options.root,
+        selectors: options.selectors,
+        enableMouseGestures: options.enableMouseGestures
+    });
+
+    if (!mounted) {
+        console.warn('TouchController failed to mount; gestures disabled.');
+        return false;
+    }
+
+    TOUCH_GESTURES.thresholds = touchController.getThresholds();
+
+    registerEventBusHandlers();
+    setupGlobalListeners();
+
     if (!STATE.touchTutorialShown) {
         setTimeout(() => showGestureTutorial(), 2000);
     }
-    
+
+    initialized = true;
+
     console.log('✅ Touch gesture system initialized');
     eventBus.emit('touch:initialized', {
         hasHaptics: TOUCH_GESTURES.hasHaptics,
         capabilities: getTouchCapabilities()
     });
-    
+
     return true;
 }
 
-function setupTouchEventListeners() {
-    const dashboard = document.getElementById('dashboard') || document.body;
-    
-    // Primary touch events
-    dashboard.addEventListener('touchstart', handleTouchStart, { passive: false });
-    dashboard.addEventListener('touchmove', handleTouchMove, { passive: false });
-    dashboard.addEventListener('touchend', handleTouchEnd, { passive: false });
-    dashboard.addEventListener('touchcancel', handleTouchCancel, { passive: false });
-    
-    // Prevent default behaviors that interfere with gestures
-    dashboard.addEventListener('contextmenu', (e) => {
+function enableAllGestures(options = {}) {
+    TOUCH_GESTURES.feedbackEnabled = true;
+    TOUCH_GESTURES.hapticsEnabled = true;
+    TOUCH_GESTURES.visualFeedbackEnabled = true;
+
+    if (!initialized) {
+        return initializeTouchGestures(options);
+    }
+
+    // Refresh thresholds in case viewport or pointer type changed while disabled
+    TOUCH_GESTURES.thresholds = touchController.computeAdaptiveThresholds?.() || touchController.getThresholds();
+    return true;
+}
+
+function teardownTouchGestures() {
+    if (!initialized) {
+        return;
+    }
+
+    removeGlobalListeners();
+    removeEventSubscriptions();
+    hideContextMenu();
+    hideSwipeIndicator();
+
+    touchController.unmount();
+    initialized = false;
+}
+
+function disableAllGestures() {
+    TOUCH_GESTURES.feedbackEnabled = false;
+    TOUCH_GESTURES.hapticsEnabled = false;
+    TOUCH_GESTURES.visualFeedbackEnabled = false;
+
+    if (initialized) {
+        teardownTouchGestures();
+    }
+}
+
+function registerEventBusHandlers() {
+    subscribe('touch:tap', handleTap);
+    subscribe('touch:longpress', handleLongPress);
+    subscribe('touch:swipeStart', handleSwipeStart);
+    subscribe('touch:swipe', handleSwipe);
+    subscribe('touch:pointerdown', handlePointerDown);
+    subscribe('touch:pointerup', handlePointerUp);
+    subscribe('touch:gestureRecorded', recordGesture);
+    subscribe('touch:thresholdsUpdated', ({ thresholds }) => {
+        TOUCH_GESTURES.thresholds = thresholds;
+    });
+}
+
+function setupGlobalListeners() {
+    const root = document.getElementById('dashboard') || document.body;
+
+    registerGlobalListener(root, 'contextmenu', (event) => {
         if (TOUCH_GESTURES.contextMenuElement) {
-            e.preventDefault();
+            event.preventDefault();
+        }
+    }, true);
+
+    registerGlobalListener(document, 'click', (event) => {
+        if (TOUCH_GESTURES.contextMenuElement &&
+            !TOUCH_GESTURES.contextMenuElement.contains(event.target)) {
+            hideContextMenu();
+        }
+    }, true);
+
+    registerGlobalListener(document, 'keyup', (event) => {
+        if (event.key === 'Escape') {
+            hideContextMenu();
+            hideSwipeIndicator();
         }
     });
-    
-    // Handle orientation changes
-    window.addEventListener('orientationchange', () => {
+
+    registerGlobalListener(window, 'orientationchange', () => {
         setTimeout(() => {
             debounceRender('recalculateTouchAreas');
         }, 300);
     });
-    
-    // Clean up context menus on outside tap
-    document.addEventListener('click', (e) => {
-        if (TOUCH_GESTURES.contextMenuElement && 
-            !TOUCH_GESTURES.contextMenuElement.contains(e.target)) {
-            hideContextMenu();
-        }
-    });
 }
 
 function initializeTouchStyles() {
-    // Inject touch-specific CSS if not already present
-    if (!document.getElementById('touch-gesture-styles')) {
-        const style = document.createElement('style');
-        style.id = 'touch-gesture-styles';
-        style.textContent = `
-            .touch-active {
-                transform: scale(0.98);
-                transition: transform 0.1s ease;
-            }
-            
-            .long-press-active {
-                background-color: rgba(59, 130, 246, 0.1) !important;
-                border-color: #3b82f6 !important;
-                transition: all 0.2s ease;
-            }
-            
-            .swipe-indicator {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(0, 0, 0, 0.8);
-                color: white;
-                padding: 8px 16px;
-                border-radius: 20px;
-                font-size: 14px;
-                z-index: 10000;
-                pointer-events: none;
-                opacity: 0;
-                transition: opacity 0.2s ease;
-            }
-            
-            .swipe-indicator.visible {
-                opacity: 1;
-            }
-            
-            .touch-context-menu {
-                position: fixed;
-                background: white;
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-                z-index: 10001;
-                min-width: 150px;
-                overflow: hidden;
-            }
-            
-            .touch-context-menu .menu-item {
-                display: block;
-                width: 100%;
-                padding: 12px 16px;
-                border: none;
-                background: none;
-                text-align: left;
-                cursor: pointer;
-                font-size: 14px;
-                color: #374151;
-                border-bottom: 1px solid #f3f4f6;
-            }
-            
-            .touch-context-menu .menu-item:hover {
-                background-color: #f9fafb;
-            }
-            
-            .touch-context-menu .menu-item:last-child {
-                border-bottom: none;
-            }
-            
-            .gesture-tutorial {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.8);
-                z-index: 10002;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                text-align: center;
-            }
-            
-            .tutorial-content {
-                background: #1f2937;
-                padding: 32px;
-                border-radius: 12px;
-                max-width: 400px;
-                margin: 20px;
-            }
-        `;
-        document.head.appendChild(style);
+    if (document.getElementById('touch-gesture-styles')) {
+        return;
     }
+
+    const style = document.createElement('style');
+    style.id = 'touch-gesture-styles';
+    style.textContent = `
+        .touch-feedback--active {
+            transform: scale(0.97);
+            transition: transform 0.12s ease;
+        }
+
+        .touch-feedback--tap {
+            animation: touchTapPulse 180ms ease-out;
+        }
+
+        .touch-feedback--longpress {
+            outline: 2px solid rgba(59, 130, 246, 0.45);
+            outline-offset: 2px;
+            filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.25));
+        }
+
+        .touch-swipe-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.92);
+            background: rgba(17, 24, 39, 0.92);
+            color: white;
+            padding: 9px 18px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 10000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 120ms ease, transform 120ms ease;
+        }
+
+        .touch-swipe-indicator.visible {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .touch-context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+            z-index: 10001;
+            min-width: 170px;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 120ms ease, transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .touch-context-menu.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .touch-context-menu .menu-item {
+            display: block;
+            width: 100%;
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #1f2937;
+            transition: background 120ms ease;
+        }
+
+        .touch-context-menu .menu-item:hover,
+        .touch-context-menu .menu-item:focus-visible {
+            background-color: #f3f4f6;
+        }
+
+        .gesture-tutorial {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.78);
+            z-index: 10002;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 24px;
+        }
+
+        .gesture-tutorial .tutorial-content {
+            background: rgba(31, 41, 55, 0.88);
+            backdrop-filter: blur(6px);
+            padding: 32px;
+            border-radius: 18px;
+            max-width: 420px;
+            width: 100%;
+        }
+
+        @keyframes touchTapPulse {
+            0% { transform: scale(0.96); }
+            60% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+    `;
+
+    document.head.appendChild(style);
 }
 
 // =============================================================================
 // TOUCH EVENT HANDLERS
 // =============================================================================
 
-function handleTouchStart(event) {
-    const touch = event.touches[0];
-    const target = event.target.closest('[data-touchable], .route-card, .staff-card, .asset-card, .panel, button');
-    
-    if (!target) return;
-    
-    // Store touch start information
-    TOUCH_GESTURES.startTouch = {
-        x: touch.clientX,
-        y: touch.clientY,
-        timestamp: Date.now(),
-        target: target
-    };
-    
-    TOUCH_GESTURES.currentTouch = { ...TOUCH_GESTURES.startTouch };
-    TOUCH_GESTURES.activeElement = target;
-    TOUCH_GESTURES.gestureType = null;
-    TOUCH_GESTURES.swipeDirection = null;
-    
-    // Add visual feedback
-    if (TOUCH_GESTURES.visualFeedbackEnabled) {
-        addTouchFeedback(target);
-    }
-    
-    // Start long press timer
-    startLongPressTimer(touch, target);
-    
-    // Prevent scrolling on certain elements
-    if (target.closest('.route-card, .staff-card, .asset-card')) {
-        event.preventDefault();
+function handleTouchStart() {
+    if (!handleTouchStart.warned) {
+        console.warn('handleTouchStart is managed by TouchController. Direct calls are no longer required.');
+        handleTouchStart.warned = true;
     }
 }
 
-function handleTouchMove(event) {
-    if (!TOUCH_GESTURES.startTouch || !TOUCH_GESTURES.activeElement) return;
-    
-    const touch = event.touches[0];
-    const deltaX = touch.clientX - TOUCH_GESTURES.startTouch.x;
-    const deltaY = touch.clientY - TOUCH_GESTURES.startTouch.y;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    
-    // Update current touch position
-    TOUCH_GESTURES.currentTouch = {
-        x: touch.clientX,
-        y: touch.clientY,
-        timestamp: Date.now(),
-        target: TOUCH_GESTURES.startTouch.target
-    };
-    
-    // Cancel long press if moved too much
-    if (distance > TOUCH_GESTURES.maxTapDistance) {
-        clearLongPressTimer();
-        removeTouchFeedback();
-    }
-    
-    // Detect swipe gesture
-    if (distance > TOUCH_GESTURES.swipeThreshold && !TOUCH_GESTURES.gestureType) {
-        TOUCH_GESTURES.gestureType = 'swipe';
-        
-        // Determine swipe direction
-        const absX = Math.abs(deltaX);
-        const absY = Math.abs(deltaY);
-        
-        if (absX > absY) {
-            TOUCH_GESTURES.swipeDirection = deltaX > 0 ? 'right' : 'left';
-        } else {
-            TOUCH_GESTURES.swipeDirection = deltaY > 0 ? 'down' : 'up';
-        }
-        
-        // Show swipe indicator
-        if (TOUCH_GESTURES.visualFeedbackEnabled) {
-            addSwipeIndicator(TOUCH_GESTURES.swipeDirection);
-        }
-        
-        // Haptic feedback for swipe start
-        if (TOUCH_GESTURES.hapticsEnabled && TOUCH_GESTURES.hasHaptics) {
-            navigator.vibrate(10);
-        }
+function handleTouchMove() {
+    if (!handleTouchMove.warned) {
+        console.warn('handleTouchMove is managed by TouchController.');
+        handleTouchMove.warned = true;
     }
 }
 
-function handleTouchEnd(event) {
-    if (!TOUCH_GESTURES.startTouch || !TOUCH_GESTURES.activeElement) return;
-    
-    const duration = Date.now() - TOUCH_GESTURES.startTouch.timestamp;
-    const touch = event.changedTouches[0];
-    const deltaX = touch.clientX - TOUCH_GESTURES.startTouch.x;
-    const deltaY = touch.clientY - TOUCH_GESTURES.startTouch.y;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    
-    // Clean up timers and feedback
-    clearLongPressTimer();
-    removeTouchFeedback();
+function handleTouchEnd() {
+    if (!handleTouchEnd.warned) {
+        console.warn('handleTouchEnd is managed by TouchController.');
+        handleTouchEnd.warned = true;
+    }
+}
+
+function handleTouchCancel() {
+    if (!handleTouchCancel.warned) {
+        console.warn('handleTouchCancel is managed by TouchController.');
+        handleTouchCancel.warned = true;
+    }
+}
+
+function handlePointerDown() {
+    hideContextMenu();
+}
+
+function handlePointerUp() {
     hideSwipeIndicator();
-    
-    // Determine gesture type and handle accordingly
-    if (duration < TOUCH_GESTURES.maxTapTime && distance < TOUCH_GESTURES.maxTapDistance) {
-        // TAP gesture
-        handleTap(TOUCH_GESTURES.activeElement);
-        
-    } else if (TOUCH_GESTURES.gestureType === 'swipe') {
-        // SWIPE gesture
-        completeSwipeGesture();
-        
-    } else if (duration >= TOUCH_GESTURES.longPressTime && distance < TOUCH_GESTURES.maxTapDistance) {
-        // LONG PRESS gesture (already handled in timer)
-        console.log('👆 Long press completed');
+}
+
+function handleTap({ target }) {
+    if (!target) {
+        return;
     }
-    
-    // Record gesture in history
-    recordGesture({
-        type: TOUCH_GESTURES.gestureType || 'tap',
-        direction: TOUCH_GESTURES.swipeDirection,
-        duration: duration,
-        distance: distance,
-        target: TOUCH_GESTURES.activeElement.className,
-        timestamp: Date.now()
-    });
-    
-    // Reset gesture state
-    resetGestureState();
-}
 
-function handleTouchCancel(event) {
-    console.log('👆 Touch cancelled');
-    clearLongPressTimer();
-    removeTouchFeedback();
-    hideSwipeIndicator();
-    resetGestureState();
-}
-
-// =============================================================================
-// GESTURE HANDLERS
-// =============================================================================
-
-function handleTap(target) {
-    console.log('👆 Tap detected on:', target.className);
-    
-    // Haptic feedback for tap
     if (TOUCH_GESTURES.hapticsEnabled && TOUCH_GESTURES.hasHaptics) {
-        navigator.vibrate(10);
-    }
-    
-    // Add tap animation
-    if (TOUCH_GESTURES.visualFeedbackEnabled) {
-        target.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-            target.style.transform = '';
-        }, 100);
-    }
-    
-    // Emit tap event for other modules to handle
-    eventBus.emit('touch:tap', {
-        target: target,
-        element: target,
-        type: 'tap'
-    });
-}
-
-function startLongPressTimer(touch, target) {
-    TOUCH_GESTURES.longPressTimer = setTimeout(() => {
-        if (TOUCH_GESTURES.activeElement === target) {
-            handleLongPress(touch, target);
+        try {
+            navigator.vibrate?.(10);
+        } catch (error) {
+            // Ignore devices that disallow vibration.
         }
-    }, TOUCH_GESTURES.longPressTime);
+    }
+
+    if (TOUCH_GESTURES.visualFeedbackEnabled) {
+        target.classList.add('touch-feedback--tap');
+        setTimeout(() => target.classList.remove('touch-feedback--tap'), 200);
+    }
+
+    TOUCH_GESTURES.analytics.taps += 1;
+    TOUCH_GESTURES.analytics.lastGestureAt = Date.now();
+
+    eventBus.emit('touch:tap:processed', { target });
 }
 
-function clearLongPressTimer() {
-    if (TOUCH_GESTURES.longPressTimer) {
-        clearTimeout(TOUCH_GESTURES.longPressTimer);
-        TOUCH_GESTURES.longPressTimer = null;
+function handleLongPress({ pointer, target }) {
+    if (!target) {
+        return;
     }
-}
 
-function handleLongPress(touch, target) {
-    console.log('👆 Long press detected on:', target.className);
-    
-    TOUCH_GESTURES.gestureType = 'longpress';
-    
-    // Haptic feedback for long press
-    if (TOUCH_GESTURES.hapticsEnabled && TOUCH_GESTURES.hasHaptics) {
-        navigator.vibrate([50, 10, 50]); // Pattern vibration
-    }
-    
-    // Add long press visual feedback
     if (TOUCH_GESTURES.visualFeedbackEnabled) {
         addLongPressFeedback(target);
     }
-    
-    // Show context menu
-    showContextMenu(touch, target);
-    
-    // Emit long press event
-    eventBus.emit('touch:longpress', {
-        target: target,
-        element: target,
-        type: 'longpress',
-        x: touch.clientX,
-        y: touch.clientY
-    });
+
+    if (TOUCH_GESTURES.hapticsEnabled && TOUCH_GESTURES.hasHaptics) {
+        try {
+            navigator.vibrate?.([40, 20, 40]);
+        } catch (error) {
+            // Ignore vibration errors.
+        }
+    }
+
+    const x = pointer?.lastX ?? pointer?.startX ?? target.getBoundingClientRect().left;
+    const y = pointer?.lastY ?? pointer?.startY ?? target.getBoundingClientRect().top;
+
+    showContextMenu({ clientX: x, clientY: y }, target);
+
+    TOUCH_GESTURES.analytics.longPresses += 1;
+    TOUCH_GESTURES.analytics.lastGestureAt = Date.now();
 }
 
-function completeSwipeGesture() {
-    const target = TOUCH_GESTURES.activeElement;
-    const direction = TOUCH_GESTURES.swipeDirection;
-    
-    console.log(`👆 Swipe ${direction} detected on:`, target.className);
-    
-    // Haptic feedback for swipe completion
-    if (TOUCH_GESTURES.hapticsEnabled && TOUCH_GESTURES.hasHaptics) {
-        navigator.vibrate(20);
+function handleSwipeStart({ direction }) {
+    if (!TOUCH_GESTURES.visualFeedbackEnabled) {
+        return;
     }
-    
-    // Handle direction-specific actions
+
+    addSwipeIndicator(direction);
+
+    if (TOUCH_GESTURES.hapticsEnabled && TOUCH_GESTURES.hasHaptics) {
+        try {
+            navigator.vibrate?.(12);
+        } catch (error) {
+            // Ignore.
+        }
+    }
+}
+
+function handleSwipe({ target, direction }) {
+    if (!target || !direction) {
+        return;
+    }
+
     switch (direction) {
         case 'left':
             handleSwipeLeft(target);
@@ -446,14 +432,39 @@ function completeSwipeGesture() {
             handleSwipeDown(target);
             break;
     }
-    
-    // Emit swipe event
-    eventBus.emit('touch:swipe', {
-        target: target,
-        direction: direction,
-        element: target,
-        type: 'swipe'
-    });
+
+    showSwipeNotification(direction);
+
+    TOUCH_GESTURES.analytics.swipes += 1;
+    TOUCH_GESTURES.analytics.lastGestureAt = Date.now();
+}
+
+// =============================================================================
+// GESTURE HANDLERS
+// =============================================================================
+
+function showSwipeNotification(direction) {
+    if (!TOUCH_GESTURES.visualFeedbackEnabled) {
+        return;
+    }
+
+    const messageMap = {
+        left: 'Swipe left',
+        right: 'Swipe right',
+        up: 'Swipe up',
+        down: 'Swipe down'
+    };
+
+    const indicator = document.createElement('div');
+    indicator.className = 'touch-swipe-indicator visible';
+    indicator.textContent = messageMap[direction] || 'Swipe';
+
+    document.body.appendChild(indicator);
+
+    setTimeout(() => {
+        indicator.classList.remove('visible');
+        setTimeout(() => indicator.remove(), 160);
+    }, 900);
 }
 
 function handleSwipeLeft(target) {
@@ -542,35 +553,28 @@ function handleSwipeDown(target) {
 // CONTEXT MENU SYSTEM
 // =============================================================================
 
-function showContextMenu(touch, target) {
-    // Hide existing context menu
+function showContextMenu(position, target) {
     hideContextMenu();
-    
-    // Create context menu based on target type
     const menu = createContextMenu(target);
-    if (!menu) return;
-    
-    // Position menu
-    positionContextMenu(menu, touch.clientX, touch.clientY);
-    
-    // Store reference
+    if (!menu) {
+        return;
+    }
+
+    const coordinates = resolveCoordinates(position, target);
+    positionContextMenu(menu, coordinates.x, coordinates.y);
+
     TOUCH_GESTURES.contextMenuElement = menu;
-    
-    // Add to DOM with animation
     document.body.appendChild(menu);
+
     requestAnimationFrame(() => {
-        menu.style.opacity = '1';
-        menu.style.transform = 'scale(1)';
+        menu.classList.add('visible');
     });
 }
 
 function createContextMenu(target) {
     const menu = document.createElement('div');
     menu.className = 'touch-context-menu';
-    menu.style.opacity = '0';
-    menu.style.transform = 'scale(0.8)';
-    menu.style.transition = 'all 0.2s ease';
-    
+
     let menuItems = [];
     
     // Determine menu items based on target
@@ -607,10 +611,10 @@ function createContextMenu(target) {
         ];
     }
     
-    // Create menu items
     menuItems.forEach(item => {
         const button = document.createElement('button');
         button.className = 'menu-item';
+        button.type = 'button';
         button.textContent = item.text;
         button.addEventListener('click', () => {
             handleContextMenuAction(item.action, target);
@@ -618,12 +622,11 @@ function createContextMenu(target) {
         });
         menu.appendChild(button);
     });
-    
+
     return menu;
 }
 
 function positionContextMenu(menu, x, y) {
-    // Calculate position to keep menu on screen
     const rect = menu.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
@@ -653,16 +656,15 @@ function positionContextMenu(menu, x, y) {
 
 function hideContextMenu() {
     if (TOUCH_GESTURES.contextMenuElement) {
-        TOUCH_GESTURES.contextMenuElement.style.transition = 'all 0.2s ease';
-        TOUCH_GESTURES.contextMenuElement.style.opacity = '0';
-        TOUCH_GESTURES.contextMenuElement.style.transform = 'scale(0.8)';
-        
+        const menu = TOUCH_GESTURES.contextMenuElement;
+        menu.classList.remove('visible');
+
         setTimeout(() => {
-            if (TOUCH_GESTURES.contextMenuElement) {
-                document.body.removeChild(TOUCH_GESTURES.contextMenuElement);
+            menu.remove();
+            if (TOUCH_GESTURES.contextMenuElement === menu) {
                 TOUCH_GESTURES.contextMenuElement = null;
             }
-        }, 200);
+        }, 160);
     }
 }
 
@@ -698,84 +700,49 @@ function handleContextMenuAction(action, target) {
 // =============================================================================
 
 function addTouchFeedback(element) {
-    element.classList.add('touch-active');
-    element.style.transform = 'scale(0.98)';
-    element.style.transition = 'transform 0.1s ease';
+    if (!element) return;
+    element.classList.add('touch-feedback--active');
 }
 
-function removeTouchFeedback() {
-    document.querySelectorAll('.touch-active').forEach(element => {
-        element.classList.remove('touch-active');
-        element.style.transform = '';
-        element.style.transition = '';
-    });
+function removeTouchFeedback(element = null) {
+    if (element) {
+        element.classList.remove('touch-feedback--active', 'touch-feedback--tap', 'touch-feedback--longpress');
+        return;
+    }
+
+    document.querySelectorAll('.touch-feedback--active, .touch-feedback--tap, .touch-feedback--longpress')
+        .forEach(node => node.classList.remove('touch-feedback--active', 'touch-feedback--tap', 'touch-feedback--longpress'));
 }
 
 function addLongPressFeedback(element) {
-    element.classList.add('long-press-active');
-    element.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-    element.style.borderColor = '#3b82f6';
-    element.style.transition = 'all 0.2s ease';
+    if (!element) return;
+    element.classList.add('touch-feedback--longpress');
 }
 
 function addSwipeIndicator(direction) {
-    hideSwipeIndicator(); // Remove any existing indicator
-    
+    hideSwipeIndicator();
     const indicator = document.createElement('div');
-    indicator.className = 'swipe-indicator';
     indicator.id = 'touch-swipe-indicator';
+    indicator.className = 'touch-swipe-indicator visible';
     indicator.innerHTML = `${getSwipeIcon(direction)} Swipe ${direction}`;
-    
     document.body.appendChild(indicator);
-    
-    requestAnimationFrame(() => {
-        indicator.classList.add('visible');
-    });
+    TOUCH_GESTURES.swipeIndicator = indicator;
 }
 
 function hideSwipeIndicator() {
-    const indicator = document.getElementById('touch-swipe-indicator');
-    if (indicator) {
-        indicator.classList.remove('visible');
-        setTimeout(() => {
-            if (indicator.parentNode) {
-                indicator.parentNode.removeChild(indicator);
-            }
-        }, 200);
-    }
+    const indicator = TOUCH_GESTURES.swipeIndicator || document.getElementById('touch-swipe-indicator');
+    if (!indicator) return;
+
+    indicator.classList.remove('visible');
+    setTimeout(() => {
+        indicator.remove();
+    }, 160);
+    TOUCH_GESTURES.swipeIndicator = null;
 }
 
 function getSwipeIcon(direction) {
-    const icons = {
-        left: '←',
-        right: '→',
-        up: '↑',
-        down: '↓'
-    };
+    const icons = { left: '←', right: '→', up: '↑', down: '↓' };
     return icons[direction] || '↔';
-}
-
-function showSwipeNotification(message) {
-    // Create temporary notification
-    const notification = document.createElement('div');
-    notification.className = 'swipe-indicator';
-    notification.textContent = message;
-    notification.style.top = '20%';
-    
-    document.body.appendChild(notification);
-    
-    requestAnimationFrame(() => {
-        notification.classList.add('visible');
-    });
-    
-    setTimeout(() => {
-        notification.classList.remove('visible');
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 200);
-    }, 1500);
 }
 
 // =============================================================================
@@ -820,10 +787,24 @@ function showGestureTutorial() {
 // UTILITY FUNCTIONS
 // =============================================================================
 
-function getTouchDistance(touch1, touch2) {
-    const deltaX = touch2.clientX - touch1.clientX;
-    const deltaY = touch2.clientY - touch1.clientY;
-    return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+function getTouchDistance(pointA, pointB) {
+    if (!pointA || !pointB) return 0;
+    const dx = (pointB.clientX ?? pointB.x) - (pointA.clientX ?? pointA.x);
+    const dy = (pointB.clientY ?? pointB.y) - (pointA.clientY ?? pointA.y);
+    return Math.sqrt((dx * dx) + (dy * dy));
+}
+
+function resolveCoordinates(position, fallbackTarget) {
+    if (position && typeof position.clientX === 'number' && typeof position.clientY === 'number') {
+        return { x: position.clientX, y: position.clientY };
+    }
+
+    if (fallbackTarget) {
+        const rect = fallbackTarget.getBoundingClientRect();
+        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+
+    return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 }
 
 function getTouchCapabilities() {
@@ -831,30 +812,27 @@ function getTouchCapabilities() {
         hasTouch: TOUCH_GESTURES.hasTouchScreen,
         hasHaptics: TOUCH_GESTURES.hasHaptics,
         maxTouchPoints: navigator.maxTouchPoints || 0,
-        supportsPointerEvents: 'PointerEvent' in window
+        supportsPointerEvents: 'PointerEvent' in window,
+        thresholds: touchController.getThresholds()
     };
 }
 
 function loadTouchPreferences() {
-    if (STATE.touchPreferences) {
-        TOUCH_GESTURES.feedbackEnabled = STATE.touchPreferences.feedbackEnabled !== false;
-        TOUCH_GESTURES.hapticsEnabled = STATE.touchPreferences.hapticsEnabled !== false;
-        TOUCH_GESTURES.visualFeedbackEnabled = STATE.touchPreferences.visualFeedbackEnabled !== false;
-    }
+    if (!STATE.touchPreferences) return;
+
+    TOUCH_GESTURES.feedbackEnabled = STATE.touchPreferences.feedbackEnabled !== false;
+    TOUCH_GESTURES.hapticsEnabled = STATE.touchPreferences.hapticsEnabled !== false;
+    TOUCH_GESTURES.visualFeedbackEnabled = STATE.touchPreferences.visualFeedbackEnabled !== false;
 }
 
 function resetGestureState() {
-    TOUCH_GESTURES.activeElement = null;
-    TOUCH_GESTURES.startTouch = null;
-    TOUCH_GESTURES.currentTouch = null;
-    TOUCH_GESTURES.gestureType = null;
-    TOUCH_GESTURES.swipeDirection = null;
+    hideContextMenu();
+    hideSwipeIndicator();
+    removeTouchFeedback();
 }
 
 function recordGesture(gestureData) {
     TOUCH_GESTURES.gestureHistory.push(gestureData);
-    
-    // Keep history size manageable
     if (TOUCH_GESTURES.gestureHistory.length > TOUCH_GESTURES.maxHistorySize) {
         TOUCH_GESTURES.gestureHistory.shift();
     }
@@ -918,6 +896,9 @@ eventBus.on('ui:panelChanged', () => {
 
 export {
     initializeTouchGestures,
+    enableAllGestures,
+    teardownTouchGestures,
+    disableAllGestures,
     showGestureTutorial,
     exportCurrentView,
     handleTouchStart,
@@ -940,5 +921,6 @@ export {
     getTouchDistance,
     getTouchCapabilities,
     resetGestureState,
-    TOUCH_GESTURES
+    TOUCH_GESTURES,
+    touchController
 };

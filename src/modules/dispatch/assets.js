@@ -890,6 +890,8 @@ if (typeof window !== 'undefined') {
     window.toggleAssetStatus = toggleAssetStatus;
     window.renderAssetPanel = renderAssetPanel;
     window.addNewAsset = () => eventBus.emit('assets:addNew');
+    window.isAssetAssigned = isAssetAssigned;
+    window.getAssetAssignmentInfo = getAssetAssignmentInfo;
 }
 
 // =============================================================================

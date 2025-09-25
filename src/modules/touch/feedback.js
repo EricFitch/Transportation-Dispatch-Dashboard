@@ -178,23 +178,40 @@ function initializeFeedbackStyles() {
             .feedback-active {
                 animation: feedbackPulse 0.2s ease-in-out;
             }
-            
+
             .feedback-success {
                 background-color: rgba(16, 185, 129, 0.1) !important;
                 border-color: #10b981 !important;
                 animation: feedbackGlow 0.6s ease-in-out;
             }
-            
+
             .feedback-error {
                 background-color: rgba(239, 68, 68, 0.1) !important;
                 border-color: #ef4444 !important;
                 animation: feedbackShake 0.4s ease-in-out;
             }
-            
+
             .feedback-warning {
                 background-color: rgba(245, 158, 11, 0.1) !important;
                 border-color: #f59e0b !important;
                 animation: feedbackPulse 0.3s ease-in-out;
+            }
+
+            .feedback-pulse {
+                animation: feedbackPulse 0.6s ease-in-out;
+            }
+
+            .feedback-shake {
+                animation: feedbackShake 0.4s ease-in-out;
+            }
+
+            .feedback-glow {
+                animation: feedbackGlow 0.6s ease-in-out;
+            }
+
+            .feedback-touch-active {
+                transform: scale(0.97);
+                transition: transform 0.12s ease;
             }
             
             .feedback-toast {
@@ -249,8 +266,9 @@ function initializeFeedbackStyles() {
             .feedback-loading {
                 position: relative;
                 overflow: hidden;
+                pointer-events: none;
             }
-            
+
             .feedback-loading::after {
                 content: '';
                 position: absolute;
@@ -301,72 +319,66 @@ function testDeviceCapabilities() {
 
 function addVisualFeedback(element, type = 'active', duration = null) {
     if (!element || !FEEDBACK_CONFIG.visual.enabled) return;
-    
+
     const actualDuration = duration || FEEDBACK_CONFIG.visual.animationDuration;
     const className = `feedback-${type}`;
-    
-    // Remove any existing feedback classes
+
     element.classList.remove('feedback-active', 'feedback-success', 'feedback-error', 'feedback-warning');
-    
-    // Add new feedback class
     element.classList.add(className);
-    
-    // Track active animation
+
     const animationId = `${element.id || 'element'}-${Date.now()}`;
     FEEDBACK_STATE.activeAnimations.add(animationId);
-    
-    // Remove class after animation
-    setTimeout(() => {
+
+    window.setTimeout(() => {
         element.classList.remove(className);
         FEEDBACK_STATE.activeAnimations.delete(animationId);
     }, actualDuration);
-    
+
     return animationId;
 }
 
 function addPulseFeedback(element, iterations = 1) {
     if (!element || !FEEDBACK_CONFIG.visual.enabled) return;
-    
-    const duration = FEEDBACK_CONFIG.animations.pulse.duration;
-    element.style.animation = `feedbackPulse ${duration}ms ease-in-out ${iterations}`;
-    
-    setTimeout(() => {
-        element.style.animation = '';
-    }, duration * iterations);
+
+    const duration = FEEDBACK_CONFIG.animations.pulse.duration * iterations;
+    element.classList.add('feedback-pulse');
+
+    window.setTimeout(() => {
+        element.classList.remove('feedback-pulse');
+    }, duration);
 }
 
 function addShakeFeedback(element) {
     if (!element || !FEEDBACK_CONFIG.visual.enabled) return;
-    
+
     const duration = FEEDBACK_CONFIG.animations.shake.duration;
-    element.style.animation = `feedbackShake ${duration}ms ease-in-out`;
-    
-    setTimeout(() => {
-        element.style.animation = '';
+    element.classList.add('feedback-shake');
+
+    window.setTimeout(() => {
+        element.classList.remove('feedback-shake');
     }, duration);
 }
 
 function addGlowFeedback(element, color = null) {
     if (!element || !FEEDBACK_CONFIG.visual.enabled) return;
-    
+
     const glowColor = color || FEEDBACK_CONFIG.visual.highlightColor;
-    element.style.animation = `feedbackGlow 0.6s ease-in-out`;
+    element.classList.add('feedback-glow');
     element.style.setProperty('--glow-color', glowColor);
-    
-    setTimeout(() => {
-        element.style.animation = '';
+
+    window.setTimeout(() => {
+        element.classList.remove('feedback-glow');
+        element.style.removeProperty('--glow-color');
     }, 600);
 }
 
 function addLoadingFeedback(element, enable = true) {
     if (!element) return;
-    
+
     if (enable) {
         element.classList.add('feedback-loading');
-        element.style.pointerEvents = 'none';
     } else {
         element.classList.remove('feedback-loading');
-        element.style.pointerEvents = '';
     }
 }
 
@@ -388,6 +400,10 @@ function triggerHapticFeedback(pattern = 'tap', force = false) {
     if (!FEEDBACK_STATE.isHapticSupported || (!FEEDBACK_CONFIG.haptic.enabled && !force)) {
         return false;
     }
+
+    if (typeof navigator?.vibrate !== 'function') {
+        return false;
+    }
     
     try {
         const hapticPattern = FEEDBACK_CONFIG.haptic.patterns[pattern] || FEEDBACK_CONFIG.haptic.patterns.tap;
@@ -403,6 +419,10 @@ function triggerHapticFeedback(pattern = 'tap', force = false) {
 
 function triggerCustomHaptic(pattern) {
     if (!FEEDBACK_STATE.isHapticSupported || !FEEDBACK_CONFIG.haptic.enabled) {
+        return false;
+    }
+
+    if (typeof navigator?.vibrate !== 'function') {
         return false;
     }
     
@@ -634,12 +654,11 @@ function handleGlobalTouchFeedback(event) {
     
     // Add touch feedback to touchable elements
     if (target.matches('.route-card, .staff-card, .asset-card, .touchable')) {
-        target.style.transform = 'scale(0.98)';
-        target.style.transition = 'transform 0.1s ease';
-        
+        target.classList.add('feedback-touch-active');
+
         setTimeout(() => {
-            target.style.transform = '';
-        }, 100);
+            target.classList.remove('feedback-touch-active');
+        }, 140);
     }
 }
 
