@@ -270,24 +270,35 @@ class SettingsSystem {
     const root = document.documentElement;
     const display = this.settings.display;
 
-    // Card size
-    root.style.setProperty('--card-size', this.getCardSizeValue(display.cardSize));
-    
-    // Grid density
-    root.style.setProperty('--grid-gap', this.getGridDensityValue(display.gridDensity));
-    
-    // Animation speed
-    root.style.setProperty('--animation-duration', this.getAnimationSpeed(display.animationSpeed));
-    
+    // Card size / density / animation variables consumed by CSS
+    const cardSize = ['small', 'medium', 'large'].includes(display.cardSize) ? display.cardSize : 'medium';
+    const density = ['compact', 'comfortable', 'spacious'].includes(display.gridDensity) ? display.gridDensity : 'comfortable';
+    const animSpeed = ['slow', 'medium', 'fast'].includes(display.animationSpeed) ? display.animationSpeed : 'medium';
+
+    root.style.setProperty('--route-card-scale', this.getCardSizeValue(cardSize));
+    root.style.setProperty('--route-grid-gap', this.getGridDensityValue(density));
+    root.style.setProperty('--route-animation-duration', this.getAnimationSpeed(animSpeed));
+
     // Sidebar and header dimensions
     root.style.setProperty('--sidebar-width', `${display.sidebarWidth}px`);
     root.style.setProperty('--header-height', `${display.headerHeight}px`);
+
+    // Body classes used for conditional styling
+    document.body.classList.remove('card-size-small', 'card-size-medium', 'card-size-large');
+    document.body.classList.add(`card-size-${cardSize}`);
+
+    document.body.classList.remove('grid-density-compact', 'grid-density-comfortable', 'grid-density-spacious');
+    document.body.classList.add(`grid-density-${density}`);
+
+    document.body.classList.remove('anim-speed-slow', 'anim-speed-medium', 'anim-speed-fast');
+    document.body.classList.add(`anim-speed-${animSpeed}`);
 
     // Toggle UI elements
     document.body.classList.toggle('hide-icons', !display.showIcons);
     document.body.classList.toggle('hide-timestamps', !display.showTimestamps);
     document.body.classList.toggle('hide-status-badges', !display.showStatusBadges);
     document.body.classList.toggle('hide-tooltips', !display.tooltips);
+    document.body.classList.toggle('hide-breadcrumbs', !display.breadcrumbs);
   }
 
   /**
@@ -349,9 +360,9 @@ class SettingsSystem {
    */
   getCardSizeValue(size) {
     const sizes = {
-      small: '0.9rem',
-      medium: '1rem',
-      large: '1.1rem'
+      small: '0.9',
+      medium: '1',
+      large: '1.1'
     };
     return sizes[size] || sizes.medium;
   }
@@ -649,6 +660,8 @@ class SettingsSystem {
     const saveBtn = modal.querySelector('#settings-save');
     if (saveBtn) {
       saveBtn.onclick = () => {
+        this.updateFromForm();
+        this.applySettings();
         this.saveSettings();
         modal.classList.add('hidden');
         uiSystem.showNotification('Settings saved successfully', 'success');
@@ -1312,8 +1325,11 @@ class SettingsSystem {
       });
     }
 
-    // Real-time preview updates
-    this.setupRealtimePreview();
+  // Real-time preview updates
+  this.setupRealtimePreview();
+
+  // Display settings specific handlers
+  this.setupDisplaySettingsHandlers();
 
     // Re-wire role color inputs if present (they are injected via createColorSettingsContent)
     document.querySelectorAll('.role-color-input').forEach(input => {
@@ -1414,6 +1430,72 @@ class SettingsSystem {
   }
 
   /**
+   * Wire up display settings controls for real-time previews
+   */
+  setupDisplaySettingsHandlers() {
+    const cardSize = document.getElementById('card-size');
+    if (cardSize) {
+      cardSize.addEventListener('change', (e) => {
+        this.settings.display.cardSize = e.target.value;
+        this.applyDisplaySettings();
+      });
+    }
+
+    const gridDensity = document.getElementById('grid-density');
+    if (gridDensity) {
+      gridDensity.addEventListener('change', (e) => {
+        this.settings.display.gridDensity = e.target.value;
+        this.applyDisplaySettings();
+      });
+    }
+
+    const animationSpeed = document.getElementById('animation-speed');
+    if (animationSpeed) {
+      animationSpeed.addEventListener('change', (e) => {
+        this.settings.display.animationSpeed = e.target.value;
+        this.applyDisplaySettings();
+      });
+    }
+
+    const sidebarWidth = document.getElementById('sidebar-width');
+    if (sidebarWidth) {
+      const updateSidebarWidth = (value) => {
+        const parsed = parseInt(value, 10);
+        if (!Number.isNaN(parsed)) {
+          this.settings.display.sidebarWidth = parsed;
+          this.applyDisplaySettings();
+        }
+      };
+
+      sidebarWidth.addEventListener('input', (e) => {
+        updateSidebarWidth(e.target.value);
+      });
+
+      sidebarWidth.addEventListener('change', (e) => {
+        updateSidebarWidth(e.target.value);
+      });
+    }
+
+    const checkboxMap = [
+      { id: 'show-icons', key: 'showIcons' },
+      { id: 'show-timestamps', key: 'showTimestamps' },
+      { id: 'show-status-badges', key: 'showStatusBadges' },
+      { id: 'show-tooltips', key: 'tooltips' },
+      { id: 'show-breadcrumbs', key: 'breadcrumbs' }
+    ];
+
+    checkboxMap.forEach(({ id, key }) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', (e) => {
+          this.settings.display[key] = e.target.checked;
+          this.applyDisplaySettings();
+        });
+      }
+    });
+  }
+
+  /**
    * Update theme preview
    */
   updateThemePreview() {
@@ -1459,6 +1541,39 @@ class SettingsSystem {
       const input = document.getElementById(`status-${status}`);
       if (input) this.settings.colors.statusColors[status] = input.value;
     });
+
+    // Display settings
+    const cardSize = document.getElementById('card-size');
+    if (cardSize) this.settings.display.cardSize = cardSize.value;
+
+    const gridDensity = document.getElementById('grid-density');
+    if (gridDensity) this.settings.display.gridDensity = gridDensity.value;
+
+    const animationSpeed = document.getElementById('animation-speed');
+    if (animationSpeed) this.settings.display.animationSpeed = animationSpeed.value;
+
+    const sidebarWidth = document.getElementById('sidebar-width');
+    if (sidebarWidth) {
+      const parsed = parseInt(sidebarWidth.value, 10);
+      if (!Number.isNaN(parsed)) {
+        this.settings.display.sidebarWidth = parsed;
+      }
+    }
+
+    const showIcons = document.getElementById('show-icons');
+    if (showIcons) this.settings.display.showIcons = showIcons.checked;
+
+    const showTimestamps = document.getElementById('show-timestamps');
+    if (showTimestamps) this.settings.display.showTimestamps = showTimestamps.checked;
+
+    const showStatusBadges = document.getElementById('show-status-badges');
+    if (showStatusBadges) this.settings.display.showStatusBadges = showStatusBadges.checked;
+
+    const showTooltips = document.getElementById('show-tooltips');
+    if (showTooltips) this.settings.display.tooltips = showTooltips.checked;
+
+    const showBreadcrumbs = document.getElementById('show-breadcrumbs');
+    if (showBreadcrumbs) this.settings.display.breadcrumbs = showBreadcrumbs.checked;
 
     // Continue updating other settings...
     // (This would continue for all form fields)

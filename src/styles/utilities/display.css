@@ -252,6 +252,33 @@
 }
 
 /* ==========================================================================
+   DASHBOARD DISPLAY TOGGLES (linked to settings)
+   ========================================================================== */
+
+body.hide-status-badges .status-badge {
+  display: none !important;
+}
+
+body.hide-icons .route-type-section h2 span:first-child {
+  display: none !important;
+}
+
+body.hide-timestamps .timestamp,
+body.hide-timestamps [data-timestamp] {
+  display: none !important;
+}
+
+body.hide-tooltips [title],
+body.hide-tooltips [data-tooltip],
+body.hide-tooltips [data-tip] {
+  pointer-events: none !important;
+}
+
+body.hide-breadcrumbs .breadcrumbs {
+  display: none !important;
+}
+
+/* ==========================================================================
    PRINT UTILITIES
    ========================================================================== */
 

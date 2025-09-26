@@ -93,6 +93,40 @@ The system supports CSV import for:
 
 Files can be imported via the settings panel or drag-and-drop interface.
 
+### 🔄 Real-Time Sync (Firebase)
+
+Multi-user synchronization is now wired through Firebase. To enable it:
+
+1. **Create a Firebase project** (Firestore in native mode).
+2. **Populate `firebase-config.js`** with your project credentials. The stub file ships with empty strings—replace them with the real values exported from the Firebase console:
+
+    ```js
+    // firebase-config.js
+    window.__FIREBASE_CONFIG__ = {
+       apiKey: '...your key...',
+       authDomain: '...firebaseapp.com',
+       projectId: 'your-project-id',
+       storageBucket: 'your-project-id.appspot.com',
+       messagingSenderId: '...',
+       appId: '...'
+    };
+    ```
+
+    For production deployments, you can generate this file during your build or serve it from a secure endpoint so secrets stay out of source control.
+
+3. **Deploy Firestore security rules**. The repo ships with `firestore.rules`, which locks access to `dispatch/sharedState` to authenticated users. Adjust the path if you change the collection/document names in `src/modules/core/state.js`.
+4. **Enable Anonymous Authentication** under *Build → Authentication → Sign-in method*. The dashboard signs in anonymously so the stricter Firestore rules still work without a manual login flow. You can swap this for another auth strategy later.
+5. **Deploy hosting and rules together**:
+   ```bash
+   firebase deploy --only hosting,firestore:rules
+   ```
+
+With the configuration in place the dashboard will:
+
+- Mirror the entire shared state to `dispatch/sharedState` in Firestore.
+- Listen for remote updates and broadcast them through the event bus (`routes:dataChanged`, `assets:dataChanged`, etc.).
+- Fall back to localStorage gracefully if Firebase is unreachable.
+
 ## 🎯 Core Modules
 
 ### **Core Infrastructure**

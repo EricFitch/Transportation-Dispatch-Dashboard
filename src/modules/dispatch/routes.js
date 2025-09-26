@@ -94,7 +94,7 @@ function renderRouteCards() {
                 <h2 class="text-xl font-bold mb-4 text-gray-800">
                     📍 ${STATE.currentView} Routes (${currentRoutes.length})
                 </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div class="route-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     ${routeCardsHtml}
                 </div>
             </div>
@@ -273,7 +273,7 @@ function generateFieldTripsHtml() {
             <h2 class="text-xl font-bold mb-4 text-gray-800">
                 🚌 Field Trips (${currentFieldTrips.length})
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="route-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 ${fieldTripCardsHtml}
             </div>
             <div class="mt-4 text-center">

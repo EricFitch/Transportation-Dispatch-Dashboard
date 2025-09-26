@@ -12,7 +12,10 @@
 
 /* Responsive sidebar using CSS variable */
 .responsive-sidebar {
-  width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width, clamp(280px, 20vw, 400px));
+  width: var(--sidebar-width, clamp(280px, 20vw, 400px));
+  min-width: 240px;
+  max-width: 100%;
   transition: width 0.3s ease;
 }
 

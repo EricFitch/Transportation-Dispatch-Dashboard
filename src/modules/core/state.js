@@ -10,6 +10,33 @@
 
 // Transportation Dispatch Dashboard Module Dependencies
 import { PERFORMANCE } from './utils.js';
+import { initFirebase } from '../../firebase.js';
+
+const REMOTE_COLLECTION = 'dispatch';
+const REMOTE_DOC_ID = 'sharedState';
+
+const REMOTE_SYNC = {
+    enabled: false,
+    initializing: false,
+    initPromise: null,
+    db: null,
+    modules: null,
+    docRef: null,
+    unsubscribe: null,
+    pendingConfig: null,
+    saveTimeout: null
+};
+
+const hasWindow = typeof window !== 'undefined';
+
+function getFirebaseConfig() {
+    if (!hasWindow) return null;
+    const cfg = window.__FIREBASE_CONFIG__ || null;
+    if (!cfg || !cfg.apiKey) {
+        return null;
+    }
+    return cfg;
+}
 
 // =============================================================================
 // GLOBAL STATE OBJECT
@@ -162,6 +189,22 @@ function getEmbeddedData() {
     };
 }
 
+function buildPersistencePayload() {
+    const clone = obj => JSON.parse(JSON.stringify(obj ?? {}));
+    return {
+        data: clone(STATE.data),
+        assignments: clone(STATE.assignments),
+        routeStatus: clone(STATE.routeStatus),
+        assetStatus: clone(STATE.assetStatus),
+        staffOut: clone(STATE.staffOut),
+        routeNotes: clone(STATE.routeNotes),
+        fieldTripNotes: clone(STATE.fieldTripNotes),
+        statusTimestamps: clone(STATE.statusTimestamps),
+        currentView: STATE.currentView,
+        lastSaved: new Date().toISOString()
+    };
+}
+
 // =============================
 // ASSET DATA MANAGEMENT
 // =============================
@@ -236,7 +279,7 @@ function loadData() {
         const embeddedData = getEmbeddedData();
         
         // Try to load saved configuration from localStorage
-        const savedConfig = localStorage.getItem('dispatchConfig');
+    const savedConfig = hasWindow ? localStorage.getItem('dispatchConfig') : null;
         
         if (savedConfig) {
             const config = JSON.parse(savedConfig);
@@ -273,30 +316,173 @@ function loadData() {
         STATE.data = embeddedData;
     }
     
+    const persistencePayload = buildPersistencePayload();
+    initializeRemoteSync(persistencePayload).catch(error => {
+        console.warn('⚠️ Firebase sync unavailable, continuing with local data only:', error?.message || error);
+    });
+
     console.log('✅ Data loaded successfully');
     return STATE.data;
 }
 
-function saveToLocalStorage() {
+async function initializeRemoteSync(initialPayload) {
+    if (!hasWindow) return null;
+    const firebaseConfig = getFirebaseConfig();
+    if (!firebaseConfig) {
+        console.info('ℹ️ Firebase config not provided. Running in local-only mode.');
+        return null;
+    }
+
+    if (REMOTE_SYNC.enabled) {
+        return REMOTE_SYNC.initPromise;
+    }
+
+    if (REMOTE_SYNC.initializing && REMOTE_SYNC.initPromise) {
+        return REMOTE_SYNC.initPromise;
+    }
+
+    REMOTE_SYNC.initializing = true;
+    REMOTE_SYNC.initPromise = (async () => {
+        try {
+            const { db, modules } = await initFirebase(firebaseConfig);
+            REMOTE_SYNC.db = db;
+            REMOTE_SYNC.modules = modules;
+
+            const { doc, getDoc, setDoc, onSnapshot, serverTimestamp } = modules;
+            const docRef = doc(db, REMOTE_COLLECTION, REMOTE_DOC_ID);
+            REMOTE_SYNC.docRef = docRef;
+
+            const snapshot = await getDoc(docRef);
+            if (snapshot.exists()) {
+                const remoteState = snapshot.data()?.state;
+                if (remoteState) {
+                    applyRemoteState(remoteState, { skipRemoteSave: true });
+                }
+            } else {
+                const payload = initialPayload || buildPersistencePayload();
+                await setDoc(docRef, {
+                    state: payload,
+                    updatedAt: serverTimestamp ? serverTimestamp() : new Date().toISOString()
+                });
+            }
+
+            REMOTE_SYNC.unsubscribe = onSnapshot(docRef, snap => {
+                if (!snap.exists()) return;
+                if (snap.metadata?.hasPendingWrites) return;
+                const remoteState = snap.data()?.state;
+                if (remoteState) {
+                    applyRemoteState(remoteState, { skipRemoteSave: true });
+                }
+            });
+
+            REMOTE_SYNC.enabled = true;
+            console.log('✅ Firebase real-time sync enabled');
+        } catch (error) {
+            REMOTE_SYNC.enabled = false;
+            console.error('❌ Firebase sync initialization failed:', error);
+            throw error;
+        } finally {
+            REMOTE_SYNC.initializing = false;
+        }
+    })();
+
+    return REMOTE_SYNC.initPromise;
+}
+
+function applyRemoteState(remoteConfig, options = {}) {
+    if (!remoteConfig) return;
     try {
-        const config = {
-            data: STATE.data,
-            assignments: STATE.assignments,
-            routeStatus: STATE.routeStatus,
-            assetStatus: STATE.assetStatus,
-            staffOut: STATE.staffOut,
-            routeNotes: STATE.routeNotes,
-            fieldTripNotes: STATE.fieldTripNotes,
-            statusTimestamps: STATE.statusTimestamps,
-            currentView: STATE.currentView,
-            lastSaved: new Date().toISOString()
+        const embedded = getEmbeddedData();
+        const data = remoteConfig.data || {};
+        STATE.data = {
+            ...embedded,
+            ...data,
+            routes: Array.isArray(data.routes) ? data.routes : embedded.routes,
+            staff: Array.isArray(data.staff) ? data.staff : embedded.staff,
+            assets: Array.isArray(data.assets) ? data.assets : embedded.assets,
+            fieldTrips: Array.isArray(data.fieldTrips) ? data.fieldTrips : embedded.fieldTrips
         };
-        
-        localStorage.setItem('dispatchConfig', JSON.stringify(config));
+
+        STATE.assignments = remoteConfig.assignments || {};
+        STATE.routeStatus = remoteConfig.routeStatus || {};
+        STATE.assetStatus = remoteConfig.assetStatus || {};
+        STATE.staffOut = remoteConfig.staffOut || [];
+        STATE.routeNotes = remoteConfig.routeNotes || {};
+        STATE.fieldTripNotes = remoteConfig.fieldTripNotes || {};
+        STATE.statusTimestamps = remoteConfig.statusTimestamps || {};
+        STATE.currentView = remoteConfig.currentView || STATE.currentView;
+        STATE.isDirty = false;
+
+        if (REMOTE_SYNC.saveTimeout) {
+            clearTimeout(REMOTE_SYNC.saveTimeout);
+            REMOTE_SYNC.saveTimeout = null;
+        }
+
+        const payload = { ...remoteConfig };
+        if (!payload.lastSaved) {
+            payload.lastSaved = new Date().toISOString();
+        }
+        saveToLocalStorage({ skipRemote: true, overridePayload: payload });
+
+        if (hasWindow && window.eventBus) {
+            window.eventBus.emit('state:remoteUpdate', { source: 'firebase' });
+            window.eventBus.emit('routes:dataChanged', { source: 'firebase' });
+            window.eventBus.emit('assets:dataChanged', { source: 'firebase' });
+            window.eventBus.emit('staff:dataChanged', { source: 'firebase' });
+            window.eventBus.emit('fieldTrips:dataChanged', { source: 'firebase' });
+        }
+    } catch (error) {
+        console.error('❌ Error applying remote state:', error);
+    }
+}
+
+function scheduleRemoteSave(payload) {
+    if (!REMOTE_SYNC.enabled || !REMOTE_SYNC.modules || !REMOTE_SYNC.docRef) {
+        return;
+    }
+
+    REMOTE_SYNC.pendingConfig = payload;
+    if (REMOTE_SYNC.saveTimeout) {
+        clearTimeout(REMOTE_SYNC.saveTimeout);
+    }
+
+    REMOTE_SYNC.saveTimeout = setTimeout(async () => {
+        const configToSave = REMOTE_SYNC.pendingConfig;
+        REMOTE_SYNC.pendingConfig = null;
+        try {
+            const { setDoc, serverTimestamp } = REMOTE_SYNC.modules;
+            await setDoc(REMOTE_SYNC.docRef, {
+                state: configToSave,
+                updatedAt: serverTimestamp ? serverTimestamp() : new Date().toISOString()
+            }, { merge: true });
+        } catch (error) {
+            console.error('❌ Failed to sync state to Firebase:', error);
+        } finally {
+            if (REMOTE_SYNC.saveTimeout) {
+                clearTimeout(REMOTE_SYNC.saveTimeout);
+                REMOTE_SYNC.saveTimeout = null;
+            }
+        }
+    }, 800);
+}
+
+function saveToLocalStorage(options = {}) {
+    try {
+        const { skipRemote = false, overridePayload = null } = options;
+        const payload = overridePayload ? JSON.parse(JSON.stringify(overridePayload)) : buildPersistencePayload();
+        if (hasWindow) {
+            localStorage.setItem('dispatchConfig', JSON.stringify(payload));
+        }
         STATE.lastSaveTime = Date.now();
         STATE.isDirty = false;
         
-        console.log('💾 State saved to localStorage');
+        if (REMOTE_SYNC.enabled && !skipRemote) {
+            scheduleRemoteSave(payload);
+        }
+        
+        if (!skipRemote) {
+            console.log('💾 State saved to localStorage');
+        }
         return true;
         
     } catch (error) {

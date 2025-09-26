@@ -41,12 +41,24 @@
    }
    ```
 
+3. **Update `firebase-config.js`** so the dashboard can initialize Firestore. Replace the placeholder values in that file with your project credentials (apiKey, authDomain, etc.). Consider generating the file during your deployment pipeline to avoid committing secrets.
+
+4. **Enable required Firebase products**:
+   - In the Firebase console, enable **Cloud Firestore** in *Native mode*.
+   - Enable **Anonymous Authentication** under *Build → Authentication → Sign-in method*. The app signs in anonymously so the Firestore rules can require an authenticated context without a full login flow.
+
+5. **Review Firestore rules**:
+   - This repo now includes `firestore.rules`, which restricts access to the `dispatch/sharedState` document to authenticated users.
+   - Update the rules if you change the collection/document names in `src/modules/core/state.js`.
+
 ## Deployment
 
 1. **Deploy to Firebase**:
    ```bash
-   firebase deploy
+   firebase deploy --only hosting,firestore:rules
    ```
+
+   The `--only` flag ensures both Hosting and Firestore security rules stay in sync during each release. Omit it if you also manage other Firebase products in this project.
 
 2. **View your deployed app**:
    Your app will be available at: `https://your-project-id.web.app`
