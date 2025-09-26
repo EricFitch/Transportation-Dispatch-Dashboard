@@ -2651,7 +2651,7 @@ function confirmRouteCombination(sourceRouteId, sourceRouteNumber) {
     }
     
     // Save state and refresh display
-    saveState();
+    saveToLocalStorage();
     renderRouteCards();
     
     closeRouteCombineModal();
