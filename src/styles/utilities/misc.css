@@ -80,7 +80,7 @@
 .sidebar-toggle {
   position: absolute !important;
   top: 20px !important;
-  right: -20px !important;
+  right: -8px !important;
   width: 32px !important;
   height: 64px !important;
   background: #3b82f6 !important;
@@ -112,7 +112,7 @@
   background: #ef4444 !important;
   right: -32px !important;
   width: 36px !important;
-  height: 72px !important;
+  height: 20px !important;
   font-size: 18px !important;
   border-radius: 0 20px 20px 0 !important;
   box-shadow: 6px 0 20px rgba(239, 68, 68, 0.4) !important;
