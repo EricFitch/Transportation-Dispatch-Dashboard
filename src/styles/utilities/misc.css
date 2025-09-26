@@ -10,6 +10,25 @@
    RESPONSIVE LAYOUT COMPONENTS
    ========================================================================== */
 
+/* Route combination button styling */
+.combine-route-btn {
+  padding: 4px !important;
+  border-radius: 6px !important;
+  background-color: rgba(34, 197, 94, 0.1) !important;
+  border: 1px solid rgba(34, 197, 94, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.combine-route-btn:hover {
+  background-color: rgba(34, 197, 94, 0.2) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  transform: scale(1.05) !important;
+}
+
+.combine-route-btn:active {
+  transform: scale(0.95) !important;
+}
+
 /* Dashboard layout container adjustments */
 #main-dashboard-layout {
   display: flex !important;

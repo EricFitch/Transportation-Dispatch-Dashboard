@@ -700,8 +700,10 @@ function generateRouteCardHtml(route) {
                         <button class="combine-route-btn text-green-500 hover:text-green-700 transition-colors" 
                                 onclick="handleCombineRoute('${route.id}', '${route.routeNumber}')"
                                 title="Combine Routes">
-                            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-                                <path d="M8 4a.5.5 0 01.5.5v3h3a.5.5 0 010 1h-3v3a.5.5 0 01-1 0v-3h-3a.5.5 0 010-1h3v-3A.5.5 0 018 4z"/>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M3 7h6l-2-2m2 2l-2 2m6-2h4m-4 0l2-2m-2 2l2 2" 
+                                      stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                                <path d="M10 11v6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
                             </svg>
                         </button>
                     ` : ''}
