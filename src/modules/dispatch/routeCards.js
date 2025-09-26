@@ -694,7 +694,18 @@ function generateRouteCardHtml(route) {
             
             <!-- Route Header -->
             <div class="route-header flex items-center justify-between mb-4">
-                <h3 class="font-bold text-lg text-gray-800">${route.name || 'Unnamed Route'}</h3>
+                <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-lg text-gray-800">${route.name || 'Unnamed Route'}</h3>
+                    ${!isFieldTrip ? `
+                        <button class="combine-route-btn text-green-500 hover:text-green-700 transition-colors" 
+                                onclick="handleCombineRoute('${route.id}', '${route.routeNumber}')"
+                                title="Combine Routes">
+                            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M8 4a.5.5 0 01.5.5v3h3a.5.5 0 010 1h-3v3a.5.5 0 01-1 0v-3h-3a.5.5 0 010-1h3v-3A.5.5 0 018 4z"/>
+                            </svg>
+                        </button>
+                    ` : ''}
+                </div>
                 <div class="flex items-center gap-2">
                     ${isFieldTrip ? `
                         <button class="delete-field-trip-btn text-red-400 hover:text-red-600 transition-colors" 
@@ -2529,3 +2540,148 @@ export {
     checkFieldTripNumbering,
     cleanupSampleFieldTrips
 };
+
+// Route combining functionality
+function handleCombineRoute(routeId, routeNumber) {
+    console.log(`🔀 Initiating route combination for Route ${routeNumber}`);
+    
+    // Get all available routes for combining (excluding the current route)
+    const availableRoutes = STATE.data.routes.filter(route => 
+        route.id !== routeId && 
+        route.type !== 'field-trips' && 
+        route.routeNumber !== routeNumber
+    );
+    
+    if (availableRoutes.length === 0) {
+        alert('No other routes available for combining.');
+        return;
+    }
+    
+    // Create and show route selection modal
+    showRouteCombineModal(routeId, routeNumber, availableRoutes);
+}
+
+function showRouteCombineModal(sourceRouteId, sourceRouteNumber, availableRoutes) {
+    const modal = document.createElement('div');
+    modal.id = 'route-combine-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-96 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Combine Route ${sourceRouteNumber}</h3>
+                <p class="text-sm text-gray-600 mt-1">Select a route to combine with Route ${sourceRouteNumber}</p>
+            </div>
+            
+            <div class="px-6 py-4 max-h-64 overflow-y-auto">
+                <div class="space-y-2">
+                    ${availableRoutes.map(route => `
+                        <label class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <input type="radio" name="target-route" value="${route.id}" class="mr-3">
+                            <div class="flex-1">
+                                <div class="font-medium">Route ${route.routeNumber}</div>
+                                <div class="text-sm text-gray-600">${route.name || 'Unnamed Route'}</div>
+                                ${route.driver ? `<div class="text-xs text-gray-500">Driver: ${route.driver.name}</div>` : ''}
+                            </div>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button type="button" onclick="closeRouteCombineModal()" 
+                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmRouteCombination('${sourceRouteId}', '${sourceRouteNumber}')" 
+                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <span class="mr-2">🔀</span>Combine Routes
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function confirmRouteCombination(sourceRouteId, sourceRouteNumber) {
+    const selectedTarget = document.querySelector('input[name="target-route"]:checked');
+    
+    if (!selectedTarget) {
+        alert('Please select a route to combine with.');
+        return;
+    }
+    
+    const targetRouteId = selectedTarget.value;
+    const targetRoute = STATE.data.routes.find(r => r.id === targetRouteId);
+    const sourceRoute = STATE.data.routes.find(r => r.id === sourceRouteId);
+    
+    if (!targetRoute || !sourceRoute) {
+        alert('Error: Could not find selected routes.');
+        return;
+    }
+    
+    // Create combined route name
+    const combinedName = `Route ${sourceRouteNumber} + ${targetRoute.routeNumber}`;
+    
+    // Update source route with combined information
+    sourceRoute.name = combinedName;
+    sourceRoute.combinedWith = targetRoute.routeNumber;
+    
+    // Add a note about the combination
+    const combinationNote = `Combined with Route ${targetRoute.routeNumber} on ${new Date().toLocaleDateString()}`;
+    if (sourceRoute.notes) {
+        sourceRoute.notes += `\n${combinationNote}`;
+    } else {
+        sourceRoute.notes = combinationNote;
+    }
+    
+    // If target route had assignments, merge them
+    if (targetRoute.driver && !sourceRoute.driver) {
+        sourceRoute.driver = targetRoute.driver;
+    }
+    if (targetRoute.asset && !sourceRoute.asset) {
+        sourceRoute.asset = targetRoute.asset;
+    }
+    
+    // Remove the target route from active routes (or mark it as combined)
+    const targetIndex = STATE.data.routes.findIndex(r => r.id === targetRouteId);
+    if (targetIndex !== -1) {
+        STATE.data.routes.splice(targetIndex, 1);
+    }
+    
+    // Save state and refresh display
+    saveState();
+    renderRouteCards();
+    
+    closeRouteCombineModal();
+    
+    console.log(`✅ Combined Route ${sourceRouteNumber} with Route ${targetRoute.routeNumber}`);
+    
+    // Show success message
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <span class="mr-2">✅</span>
+            Successfully combined Route ${sourceRouteNumber} with Route ${targetRoute.routeNumber}
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+function closeRouteCombineModal() {
+    const modal = document.getElementById('route-combine-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Make functions globally available for onclick handlers
+window.handleCombineRoute = handleCombineRoute;
+window.confirmRouteCombination = confirmRouteCombination;
+window.closeRouteCombineModal = closeRouteCombineModal;
