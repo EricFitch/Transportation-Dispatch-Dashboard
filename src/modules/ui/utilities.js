@@ -1213,10 +1213,14 @@ class UIUtilities {
       return;
     }
 
+    // Update body class for layout adjustments
+    document.body.classList.remove('sidebar-collapsed', 'sidebar-expanded');
+
     if (enabled) {
       sidebar.classList.add('auto-hide-enabled');
       toggleIcon.textContent = '▶';
       toggleIcon.parentElement.title = 'Expand Resource Monitor';
+      document.body.classList.add('sidebar-collapsed');
       console.log('✅ Auto-hide enabled, sidebar classes:', sidebar.className);
       
       // Update indicators after a brief delay
@@ -1225,6 +1229,7 @@ class UIUtilities {
       sidebar.classList.remove('auto-hide-enabled');
       toggleIcon.textContent = '◀';
       toggleIcon.parentElement.title = 'Auto-hide Resource Monitor';
+      document.body.classList.add('sidebar-expanded');
       console.log('✅ Auto-hide disabled, sidebar classes:', sidebar.className);
     }
   }

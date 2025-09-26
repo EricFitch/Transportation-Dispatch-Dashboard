@@ -16,22 +16,24 @@
   width: var(--sidebar-width, clamp(280px, 20vw, 400px));
   min-width: 240px;
   max-width: 100%;
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), flex 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 10;
 }
 
 /* Auto-hide collapsed state */
 .responsive-sidebar.auto-hide-enabled {
+  flex: 0 0 60px;
   width: 60px;
   min-width: 60px;
   overflow: hidden;
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), flex 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Expand on hover/focus */
 .responsive-sidebar.auto-hide-enabled:hover,
 .responsive-sidebar.auto-hide-enabled:focus-within {
+  flex: 0 0 var(--sidebar-width, clamp(320px, 25vw, 450px));
   width: var(--sidebar-width, clamp(320px, 25vw, 450px));
   min-width: 320px;
   overflow-y: auto;
