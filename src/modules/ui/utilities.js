@@ -1203,14 +1203,6 @@ class UIUtilities {
     const toggleIcon = document.getElementById('sidebar-toggle-icon');
     const mainContent = document.getElementById('route-cards-container');
     const dashboardLayout = document.getElementById('main-dashboard-layout');
-    
-    console.log('🔍 Elements for setSidebarAutoHide:', {
-      sidebar: !!sidebar,
-      toggleIcon: !!toggleIcon,
-      mainContent: !!mainContent,
-      dashboardLayout: !!dashboardLayout,
-      sidebarClasses: sidebar?.className
-    });
 
     if (!sidebar || !toggleIcon) {
       console.warn('⚠️ Elements not found in setSidebarAutoHide');
@@ -1226,18 +1218,14 @@ class UIUtilities {
       toggleIcon.parentElement.title = 'Expand Resource Monitor';
       document.body.classList.add('sidebar-collapsed');
       
-      // Force layout recalculation
-      if (mainContent) {
-        console.log('🔍 Main content before:', getComputedStyle(mainContent).flex, getComputedStyle(mainContent).width);
-        mainContent.style.display = 'none';
-        mainContent.offsetHeight; // Trigger reflow
-        mainContent.style.display = '';
-        setTimeout(() => {
-          console.log('🔍 Main content after:', getComputedStyle(mainContent).flex, getComputedStyle(mainContent).width);
-        }, 500);
+      // Force layout recalculation by triggering reflow
+      if (dashboardLayout) {
+        dashboardLayout.style.display = 'none';
+        dashboardLayout.offsetHeight; // Force reflow
+        dashboardLayout.style.display = 'flex';
       }
       
-      console.log('✅ Auto-hide enabled, sidebar classes:', sidebar.className);
+      console.log('✅ Auto-hide enabled - Route cards should expand now!');
       
       // Update indicators after a brief delay
       setTimeout(() => this.updateSidebarIndicators(), 500);
@@ -1247,18 +1235,14 @@ class UIUtilities {
       toggleIcon.parentElement.title = 'Auto-hide Resource Monitor';
       document.body.classList.add('sidebar-expanded');
       
-      // Force layout recalculation
-      if (mainContent) {
-        console.log('🔍 Main content before:', getComputedStyle(mainContent).flex, getComputedStyle(mainContent).width);
-        mainContent.style.display = 'none';
-        mainContent.offsetHeight; // Trigger reflow
-        mainContent.style.display = '';
-        setTimeout(() => {
-          console.log('🔍 Main content after:', getComputedStyle(mainContent).flex, getComputedStyle(mainContent).width);
-        }, 500);
+      // Force layout recalculation by triggering reflow
+      if (dashboardLayout) {
+        dashboardLayout.style.display = 'none';
+        dashboardLayout.offsetHeight; // Force reflow
+        dashboardLayout.style.display = 'flex';
       }
       
-      console.log('✅ Auto-hide disabled, sidebar classes:', sidebar.className);
+      console.log('✅ Auto-hide disabled - Route cards back to normal');
     }
   }
 

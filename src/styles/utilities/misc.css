@@ -10,6 +10,23 @@
    RESPONSIVE LAYOUT COMPONENTS
    ========================================================================== */
 
+/* Dashboard layout container adjustments */
+#main-dashboard-layout {
+  display: flex !important;
+  flex-direction: row !important;
+  overflow: hidden !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Force main content to recalculate when sidebar changes */
+.sidebar-collapsed #main-dashboard-layout {
+  display: flex !important;
+}
+
+.sidebar-expanded #main-dashboard-layout {
+  display: flex !important;
+}
+
 /* Responsive sidebar with auto-hide functionality */
 .responsive-sidebar {
   flex: 0 0 var(--sidebar-width, clamp(280px, 20vw, 400px));
@@ -48,6 +65,8 @@
   flex: 1 1 0% !important;
   min-width: 0 !important;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
 }
 
 /* Toggle button for auto-hide - always visible */
