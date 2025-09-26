@@ -73,38 +73,78 @@
 .sidebar-toggle {
   position: absolute !important;
   top: 20px !important;
-  right: -16px !important;
-  width: 28px !important;
-  height: 56px !important;
+  right: -20px !important;
+  width: 32px !important;
+  height: 64px !important;
   background: #3b82f6 !important;
   border: none !important;
-  border-radius: 0 12px 12px 0 !important;
+  border-radius: 0 16px 16px 0 !important;
   color: white !important;
   cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 14px !important;
-  z-index: 25 !important;
+  font-size: 16px !important;
+  z-index: 1500 !important;
   transition: all 0.3s ease !important;
-  box-shadow: 3px 0 12px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.2) !important;
   font-weight: bold !important;
   opacity: 1 !important;
   visibility: visible !important;
 }
 
 .sidebar-toggle:hover {
-  background: #2563eb;
-  transform: translateX(3px);
-  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.25);
+  background: #2563eb !important;
+  transform: translateX(4px) !important;
+  box-shadow: 6px 0 20px rgba(0, 0, 0, 0.3) !important;
+  width: 36px !important;
 }
 
-.sidebar-toggle.collapsed {
-  right: -16px;
+/* When sidebar is collapsed, make toggle more prominent */
+.responsive-sidebar.auto-hide-enabled .sidebar-toggle {
+  background: #ef4444 !important;
+  right: -24px !important;
+  width: 36px !important;
+  height: 72px !important;
+  font-size: 18px !important;
+  border-radius: 0 20px 20px 0 !important;
+  box-shadow: 6px 0 20px rgba(239, 68, 68, 0.4) !important;
+  flex-direction: column !important;
+  gap: 4px !important;
 }
 
-.sidebar-toggle.expanded {
-  right: -16px;
+.responsive-sidebar.auto-hide-enabled .sidebar-toggle:hover {
+  background: #dc2626 !important;
+  transform: translateX(6px) !important;
+  box-shadow: 8px 0 24px rgba(239, 68, 68, 0.5) !important;
+  width: 40px !important;
+}
+
+/* Toggle button label */
+.sidebar-toggle-label {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: all 0.3s ease !important;
+  writing-mode: vertical-rl !important;
+  text-orientation: mixed !important;
+  white-space: nowrap !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Show label when sidebar is collapsed */
+.responsive-sidebar.auto-hide-enabled .sidebar-toggle-label {
+  opacity: 1 !important;
+  visibility: visible !important;
+  max-height: 40px !important;
+}
+
+/* Enhanced hover effect for collapsed state */
+.responsive-sidebar.auto-hide-enabled .sidebar-toggle:hover .sidebar-toggle-label {
+  opacity: 1 !important;
+  transform: scale(1.1) !important;
 }
 
 /* Sidebar content modifications for auto-hide */
