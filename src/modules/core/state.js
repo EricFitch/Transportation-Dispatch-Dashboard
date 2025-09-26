@@ -24,7 +24,9 @@ const REMOTE_SYNC = {
     docRef: null,
     unsubscribe: null,
     pendingConfig: null,
-    saveTimeout: null
+    saveTimeout: null,
+    degraded: false,
+    pollIntervalId: null
 };
 
 const hasWindow = typeof window !== 'undefined';
@@ -378,15 +380,37 @@ async function initializeRemoteSync(initialPayload) {
                 },
                 error => {
                     // Handle Firestore listen stream errors (e.g., 400 Bad Request)
-                    console.warn('⚠️ Firebase onSnapshot listener error; switching to local-only mode:', error?.message || error);
+                    console.warn('⚠️ Firebase onSnapshot listener error; entering degraded polling mode:', error?.message || error);
                     try {
-                        REMOTE_SYNC.enabled = false;
+                        // Keep writes enabled but switch reads to periodic polling
+                        REMOTE_SYNC.degraded = true;
                         if (REMOTE_SYNC.unsubscribe) {
                             REMOTE_SYNC.unsubscribe();
                             REMOTE_SYNC.unsubscribe = null;
                         }
+                        // Start polling for document changes every 15s
+                        if (REMOTE_SYNC.pollIntervalId) {
+                            clearInterval(REMOTE_SYNC.pollIntervalId);
+                            REMOTE_SYNC.pollIntervalId = null;
+                        }
+                        const { getDoc } = REMOTE_SYNC.modules;
+                        REMOTE_SYNC.pollIntervalId = setInterval(async () => {
+                            try {
+                                const snapNow = await getDoc(REMOTE_SYNC.docRef);
+                                if (snapNow.exists()) {
+                                    const remoteStateNow = snapNow.data()?.state;
+                                    if (remoteStateNow) {
+                                        applyRemoteState(remoteStateNow, { skipRemoteSave: true });
+                                    }
+                                }
+                            } catch (e) {
+                                // If polling also fails repeatedly, eventually disable sync
+                                console.warn('⚠️ Firebase polling read failed:', e?.message || e);
+                            }
+                        }, 15000);
                         if (typeof window !== 'undefined') {
-                            window.dispatchEvent(new CustomEvent('firebase:syncDisabled'));
+                            // Still considered enabled (degraded)
+                            window.dispatchEvent(new CustomEvent('firebase:syncEnabled'));
                         }
                     } catch (_) {}
                 }
