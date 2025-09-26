@@ -12,7 +12,7 @@
 
 /* Route combination button styling */
 .combine-route-btn {
-  padding: 2px !important;
+  padding: 3px !important;
   border-radius: 4px !important;
   background-color: transparent !important;
   border: none !important;
@@ -32,8 +32,8 @@
   transform: scale(0.95) !important;
 }
 
-/* Auto-fitting merge button icon */
-.merge-button-icon {
+/* Auto-fitting combine route button icon */
+.combine-route-icon {
   width: 24px !important;
   height: 24px !important;
   object-fit: contain !important;

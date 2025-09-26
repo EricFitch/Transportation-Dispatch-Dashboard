@@ -366,14 +366,28 @@ async function initializeRemoteSync(initialPayload) {
                 });
             }
 
-            REMOTE_SYNC.unsubscribe = onSnapshot(docRef, snap => {
-                if (!snap.exists()) return;
-                if (snap.metadata?.hasPendingWrites) return;
-                const remoteState = snap.data()?.state;
-                if (remoteState) {
-                    applyRemoteState(remoteState, { skipRemoteSave: true });
+            REMOTE_SYNC.unsubscribe = onSnapshot(
+                docRef,
+                snap => {
+                    if (!snap.exists()) return;
+                    if (snap.metadata?.hasPendingWrites) return;
+                    const remoteState = snap.data()?.state;
+                    if (remoteState) {
+                        applyRemoteState(remoteState, { skipRemoteSave: true });
+                    }
+                },
+                error => {
+                    // Handle Firestore listen stream errors (e.g., 400 Bad Request)
+                    console.warn('⚠️ Firebase onSnapshot listener error; switching to local-only mode:', error?.message || error);
+                    try {
+                        REMOTE_SYNC.enabled = false;
+                        if (REMOTE_SYNC.unsubscribe) {
+                            REMOTE_SYNC.unsubscribe();
+                            REMOTE_SYNC.unsubscribe = null;
+                        }
+                    } catch (_) {}
                 }
-            });
+            );
 
             REMOTE_SYNC.enabled = true;
             console.log('✅ Firebase real-time sync enabled');

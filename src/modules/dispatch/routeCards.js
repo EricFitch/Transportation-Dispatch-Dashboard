@@ -699,8 +699,13 @@ function generateRouteCardHtml(route) {
                     ${!isFieldTrip ? `
                         <button class="combine-route-btn" 
                                 onclick="handleCombineRoute('${route.id}', '${route.routeNumber}')"
-                                title="Combine Routes">
-                            <img src="assets/icons/MergeButton.png" alt="Merge Routes" class="merge-button-icon">
+                                title="Combine Routes" aria-label="Combine Routes">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" class="merge-button-icon" aria-hidden="true" focusable="false" role="img">
+                                <!-- Merge/traffic-fork icon -->
+                                <path d="M7 3v4a6 6 0 006 6h4" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M17 13l3-3m-3 3l-3-3" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M7 7L4 10" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
                         </button>
                     ` : ''}
                 </div>
