@@ -23,9 +23,10 @@
 
 /* Auto-hide collapsed state */
 .responsive-sidebar.auto-hide-enabled {
-  flex: 0 0 60px;
-  width: 60px;
-  min-width: 60px;
+  flex: 0 0 60px !important;
+  width: 60px !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
   overflow: hidden;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), flex 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -33,11 +34,20 @@
 /* Expand on hover/focus */
 .responsive-sidebar.auto-hide-enabled:hover,
 .responsive-sidebar.auto-hide-enabled:focus-within {
-  flex: 0 0 var(--sidebar-width, clamp(320px, 25vw, 450px));
-  width: var(--sidebar-width, clamp(320px, 25vw, 450px));
-  min-width: 320px;
+  flex: 0 0 var(--sidebar-width, clamp(320px, 25vw, 450px)) !important;
+  width: var(--sidebar-width, clamp(320px, 25vw, 450px)) !important;
+  min-width: 320px !important;
+  max-width: 450px !important;
   overflow-y: auto;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+/* Ensure main content expands properly */
+#route-cards-container {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Toggle button for auto-hide - always visible */

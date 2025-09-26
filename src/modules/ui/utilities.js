@@ -1201,10 +1201,14 @@ class UIUtilities {
     
     const sidebar = document.getElementById('resource-sidebar');
     const toggleIcon = document.getElementById('sidebar-toggle-icon');
+    const mainContent = document.getElementById('route-cards-container');
+    const dashboardLayout = document.getElementById('main-dashboard-layout');
     
     console.log('🔍 Elements for setSidebarAutoHide:', {
       sidebar: !!sidebar,
       toggleIcon: !!toggleIcon,
+      mainContent: !!mainContent,
+      dashboardLayout: !!dashboardLayout,
       sidebarClasses: sidebar?.className
     });
 
@@ -1221,6 +1225,18 @@ class UIUtilities {
       toggleIcon.textContent = '▶';
       toggleIcon.parentElement.title = 'Expand Resource Monitor';
       document.body.classList.add('sidebar-collapsed');
+      
+      // Force layout recalculation
+      if (mainContent) {
+        console.log('🔍 Main content before:', getComputedStyle(mainContent).flex, getComputedStyle(mainContent).width);
+        mainContent.style.display = 'none';
+        mainContent.offsetHeight; // Trigger reflow
+        mainContent.style.display = '';
+        setTimeout(() => {
+          console.log('🔍 Main content after:', getComputedStyle(mainContent).flex, getComputedStyle(mainContent).width);
+        }, 500);
+      }
+      
       console.log('✅ Auto-hide enabled, sidebar classes:', sidebar.className);
       
       // Update indicators after a brief delay
@@ -1230,6 +1246,18 @@ class UIUtilities {
       toggleIcon.textContent = '◀';
       toggleIcon.parentElement.title = 'Auto-hide Resource Monitor';
       document.body.classList.add('sidebar-expanded');
+      
+      // Force layout recalculation
+      if (mainContent) {
+        console.log('🔍 Main content before:', getComputedStyle(mainContent).flex, getComputedStyle(mainContent).width);
+        mainContent.style.display = 'none';
+        mainContent.offsetHeight; // Trigger reflow
+        mainContent.style.display = '';
+        setTimeout(() => {
+          console.log('🔍 Main content after:', getComputedStyle(mainContent).flex, getComputedStyle(mainContent).width);
+        }, 500);
+      }
+      
       console.log('✅ Auto-hide disabled, sidebar classes:', sidebar.className);
     }
   }
