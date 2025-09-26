@@ -19,6 +19,12 @@ jobs:
         run: npm install
       - name: Build CSS (if needed)
         run: npm run build:css || echo "CSS build not required"
+      - name: Deploy Firestore security rules
+        uses: w9jds/firebase-action@v13.25.0
+        with:
+          args: deploy --only firestore:rules --project dispatch-board-12bb8
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DISPATCH_BOARD_12BB8 }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
