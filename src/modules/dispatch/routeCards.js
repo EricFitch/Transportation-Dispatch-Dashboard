@@ -697,22 +697,10 @@ function generateRouteCardHtml(route) {
                 <div class="flex items-center gap-2">
                     <h3 class="font-bold text-lg text-gray-800">${route.name || 'Unnamed Route'}</h3>
                     ${!isFieldTrip ? `
-                        <button class="combine-route-btn text-gray-800 hover:text-gray-900 transition-colors" 
+                        <button class="combine-route-btn" 
                                 onclick="handleCombineRoute('${route.id}', '${route.routeNumber}')"
                                 title="Combine Routes">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <!-- Yellow diamond background with border -->
-                                <path d="M12 2l9 9-9 9-9-9z" fill="#FFEB3B" stroke="#424242" stroke-width="1.5"/>
-                                <!-- Black merge symbol -->
-                                <g stroke="#1A1A1A" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <!-- Main straight arrow -->
-                                    <path d="M12 7v8"/>
-                                    <path d="M10 9l2-2 2 2"/>
-                                    <!-- Side merging arrow -->
-                                    <path d="M7 14l5-5"/>
-                                    <path d="M10 11.5l1.5 1.5"/>
-                                </g>
-                            </svg>
+                            <img src="assets/icons/MergeButton.png" alt="Merge Routes" class="merge-button-icon">
                         </button>
                     ` : ''}
                 </div>

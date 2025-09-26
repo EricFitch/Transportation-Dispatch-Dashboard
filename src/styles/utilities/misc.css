@@ -12,12 +12,15 @@
 
 /* Route combination button styling */
 .combine-route-btn {
-  padding: 3px !important;
+  padding: 2px !important;
   border-radius: 4px !important;
   background-color: transparent !important;
   border: none !important;
   transition: all 0.2s ease !important;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .combine-route-btn:hover {
@@ -27,6 +30,16 @@
 
 .combine-route-btn:active {
   transform: scale(0.95) !important;
+}
+
+/* Auto-fitting merge button icon */
+.merge-button-icon {
+  width: 24px !important;
+  height: 24px !important;
+  object-fit: contain !important;
+  display: block !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
 }
 
 /* Dashboard layout container adjustments */
