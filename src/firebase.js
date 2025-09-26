@@ -19,6 +19,8 @@ async function loadFirebaseModules() {
     initializeApp: appModule.initializeApp,
     getApps: appModule.getApps,
     getApp: appModule.getApp,
+    // Prefer initializeFirestore so we can pass settings (long polling fallback)
+    initializeFirestore: firestoreModule.initializeFirestore,
     getFirestore: firestoreModule.getFirestore,
     getAuth: authModule.getAuth,
     enableIndexedDbPersistence: firestoreModule.enableIndexedDbPersistence,
@@ -55,7 +57,20 @@ export async function initFirebase(config) {
     }
 
     if (!firestoreDb) {
-      firestoreDb = modules.getFirestore(firebaseApp);
+      // Use initializeFirestore when available to pass transport settings that work behind proxies/VPNs
+      if (modules.initializeFirestore) {
+        try {
+          firestoreDb = modules.initializeFirestore(firebaseApp, {
+            experimentalAutoDetectLongPolling: true,
+            useFetchStreams: false
+          });
+        } catch (e) {
+          console.warn('⚠️ initializeFirestore failed, falling back to getFirestore:', e?.message || e);
+          firestoreDb = modules.getFirestore(firebaseApp);
+        }
+      } else {
+        firestoreDb = modules.getFirestore(firebaseApp);
+      }
       if (modules.enableIndexedDbPersistence) {
         try {
           await modules.enableIndexedDbPersistence(firestoreDb);
