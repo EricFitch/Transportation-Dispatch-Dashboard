@@ -57,11 +57,13 @@ export async function initFirebase(config) {
     }
 
     if (!firestoreDb) {
-      // Use initializeFirestore when available to pass transport settings that work behind proxies/VPNs
+      // Use initializeFirestore and FORCE long polling to avoid WebChannel issues (proxy/VPN/firewall)
       if (modules.initializeFirestore) {
         try {
           firestoreDb = modules.initializeFirestore(firebaseApp, {
-            experimentalAutoDetectLongPolling: true,
+            // Force long polling to eliminate 400 errors from WebChannel Listen
+            experimentalForceLongPolling: true,
+            // Ensure Fetch streams are disabled for maximum compatibility
             useFetchStreams: false
           });
         } catch (e) {

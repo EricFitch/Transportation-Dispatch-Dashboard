@@ -394,6 +394,9 @@ async function initializeRemoteSync(initialPayload) {
 
             REMOTE_SYNC.enabled = true;
             console.log('✅ Firebase real-time sync enabled');
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('firebase:syncEnabled'));
+            }
         } catch (error) {
             REMOTE_SYNC.enabled = false;
             console.error('❌ Firebase sync initialization failed:', error);
