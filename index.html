@@ -743,6 +743,11 @@
                     <h1 class="text-xl font-bold text-gray-800">Interactive Dispatch Dashboard</h1>
                 </div>
                 <div class="flex items-center space-x-2">
+                     <!-- Sync Status Indicator -->
+                     <div id="sync-status" class="flex items-center px-2 py-1 rounded text-xs font-semibold hidden" title="Sync status">
+                         <span id="sync-dot" class="inline-block w-2 h-2 rounded-full mr-2"></span>
+                         <span id="sync-text">Local-only</span>
+                     </div>
                      <button id="search-toggle-btn" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm" title="Search Dashboard (Ctrl+F)">
                          🔍
                      </button>

@@ -1175,6 +1175,9 @@ class UIUtilities {
     }
 
     console.log('📱 Sidebar auto-hide initialized');
+
+    // Initialize sync status indicator after sidebar setup
+    this.initializeSyncStatusIndicator();
   }
 
   /**
@@ -1244,6 +1247,39 @@ class UIUtilities {
       
       console.log('✅ Auto-hide disabled - Route cards back to normal');
     }
+  }
+
+  /**
+   * Initialize the small sync status indicator in the header
+   */
+  initializeSyncStatusIndicator() {
+    const statusEl = document.getElementById('sync-status');
+    const textEl = document.getElementById('sync-text');
+    const dotEl = document.getElementById('sync-dot');
+    if (!statusEl || !textEl || !dotEl) return;
+
+    const applyState = (live) => {
+      statusEl.classList.remove('hidden', 'live', 'local');
+      statusEl.classList.add(live ? 'live' : 'local');
+      textEl.textContent = live ? 'Live sync' : 'Local-only';
+    };
+
+    // Default state on load
+    try {
+      // We can infer from window.REMOTE_SYNC if exposed or from events below
+      applyState(Boolean(window?.REMOTE_SYNC?.enabled));
+    } catch (_) {
+      applyState(false);
+    }
+
+    // Listen for state changes
+    if (window.eventBus) {
+      window.eventBus.on('state:remoteUpdate', () => applyState(true));
+    }
+
+    // Also listen to a custom event if core emits one on enable/disable
+    window.addEventListener('firebase:syncEnabled', () => applyState(true));
+    window.addEventListener('firebase:syncDisabled', () => applyState(false));
   }
 
   /**

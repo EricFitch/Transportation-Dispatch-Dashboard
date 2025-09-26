@@ -70,6 +70,15 @@
   z-index: 10;
 }
 
+/* Sync status indicator */
+#sync-status { border: 1px solid #e5e7eb; background: #f9fafb; color: #374151; }
+#sync-status.live { border-color: #34d399; background: #ecfdf5; color: #065f46; }
+#sync-status.local { border-color: #fbbf24; background: #fffbeb; color: #92400e; }
+#sync-status.hidden { display: none !important; }
+#sync-dot { background: #9ca3af; }
+#sync-status.live #sync-dot { background: #10b981; }
+#sync-status.local #sync-dot { background: #f59e0b; }
+
 /* Auto-hide collapsed state */
 .responsive-sidebar.auto-hide-enabled {
   flex: 0 0 60px !important;

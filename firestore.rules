@@ -1,12 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /dispatch/{documentId} {
-      allow read, write: if documentId == "sharedState" && request.auth != null;
-    }
-
+    // Lock down everything by default
     match /{document=**} {
       allow read, write: if false;
+    }
+
+    // Explicitly scope rules to a single document: dispatch/sharedState
+    match /dispatch/sharedState {
+      // Read requires authentication (anonymous auth is fine)
+      allow get: if request.auth != null;
+      // Disable collection listing
+      allow list: if false;
+
+      // Create only with allowed fields
+      allow create: if request.auth != null &&
+        request.resource.data.keys().hasOnly(["state", "updatedAt"]) &&
+        request.resource.data.state is map &&
+        (request.resource.data.updatedAt is timestamp || request.resource.data.updatedAt is string);
+
+      // Update only allows changing these fields and keeps types stable
+      allow update: if request.auth != null &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(["state", "updatedAt"]) &&
+        request.resource.data.state is map && resource.data.state is map &&
+        (request.resource.data.updatedAt is timestamp || request.resource.data.updatedAt is string);
+
+      // Do not allow deletes
+      allow delete: if false;
     }
   }
 }

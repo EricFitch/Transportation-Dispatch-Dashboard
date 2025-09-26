@@ -385,6 +385,9 @@ async function initializeRemoteSync(initialPayload) {
                             REMOTE_SYNC.unsubscribe();
                             REMOTE_SYNC.unsubscribe = null;
                         }
+                        if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('firebase:syncDisabled'));
+                        }
                     } catch (_) {}
                 }
             );
