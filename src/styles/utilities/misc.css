@@ -67,6 +67,13 @@
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-x: hidden !important;
   overflow-y: auto !important;
+  padding-left: 16px !important;
+  margin-left: 0 !important;
+}
+
+/* Ensure no overlap with toggle button when sidebar is collapsed */
+.sidebar-collapsed #route-cards-container {
+  padding-left: 20px !important;
 }
 
 /* Toggle button for auto-hide - always visible */
@@ -85,7 +92,7 @@
   align-items: center !important;
   justify-content: center !important;
   font-size: 16px !important;
-  z-index: 1500 !important;
+  z-index: 100 !important;
   transition: all 0.3s ease !important;
   box-shadow: 4px 0 16px rgba(0, 0, 0, 0.2) !important;
   font-weight: bold !important;
@@ -103,7 +110,7 @@
 /* When sidebar is collapsed, make toggle more prominent */
 .responsive-sidebar.auto-hide-enabled .sidebar-toggle {
   background: #ef4444 !important;
-  right: -24px !important;
+  right: -32px !important;
   width: 36px !important;
   height: 72px !important;
   font-size: 18px !important;
@@ -111,6 +118,7 @@
   box-shadow: 6px 0 20px rgba(239, 68, 68, 0.4) !important;
   flex-direction: column !important;
   gap: 4px !important;
+  z-index: 50 !important;
 }
 
 .responsive-sidebar.auto-hide-enabled .sidebar-toggle:hover {
