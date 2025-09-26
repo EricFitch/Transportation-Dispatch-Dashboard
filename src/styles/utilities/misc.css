@@ -12,17 +12,17 @@
 
 /* Route combination button styling */
 .combine-route-btn {
-  padding: 4px !important;
-  border-radius: 6px !important;
-  background-color: rgba(34, 197, 94, 0.1) !important;
-  border: 1px solid rgba(34, 197, 94, 0.2) !important;
+  padding: 3px !important;
+  border-radius: 4px !important;
+  background-color: transparent !important;
+  border: none !important;
   transition: all 0.2s ease !important;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
 
 .combine-route-btn:hover {
-  background-color: rgba(34, 197, 94, 0.2) !important;
-  border-color: rgba(34, 197, 94, 0.4) !important;
-  transform: scale(1.05) !important;
+  transform: scale(1.1) !important;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
 }
 
 .combine-route-btn:active {
