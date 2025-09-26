@@ -1125,6 +1125,211 @@ class UIUtilities {
     const { target, filter, value } = data;
     this.applyFilter(target, filter, value);
   }
+
+  // ===== SIDEBAR AUTO-HIDE FUNCTIONALITY =====
+
+  /**
+   * Initialize sidebar auto-hide functionality
+   */
+  initializeSidebarAutoHide() {
+    console.log('🔍 Starting sidebar auto-hide initialization...');
+    
+    const sidebar = document.getElementById('resource-sidebar');
+    const toggleButton = document.getElementById('sidebar-toggle');
+    const toggleIcon = document.getElementById('sidebar-toggle-icon');
+    
+    console.log('🔍 Sidebar elements found:', {
+      sidebar: !!sidebar,
+      toggleButton: !!toggleButton,
+      toggleIcon: !!toggleIcon
+    });
+    
+    if (!sidebar || !toggleButton) {
+      console.warn('⚠️ Sidebar elements not found');
+      return;
+    }
+
+    // Load saved state - default to disabled for first-time users
+    const isAutoHideEnabled = localStorage.getItem('sidebar-auto-hide') === 'true';
+    console.log('🔍 Auto-hide enabled from storage:', isAutoHideEnabled);
+    
+    // Apply initial state
+    this.setSidebarAutoHide(isAutoHideEnabled);
+    
+    // Toggle button click handler
+    toggleButton.addEventListener('click', (e) => {
+      console.log('🔍 Toggle button clicked');
+      e.preventDefault();
+      e.stopPropagation();
+      this.toggleSidebarAutoHide();
+    });
+
+    // Update indicators when data changes
+    eventBus.on('staff:dataUpdated', () => this.updateSidebarIndicators());
+    eventBus.on('assets:dataUpdated', () => this.updateSidebarIndicators());
+    eventBus.on('fleet:dataUpdated', () => this.updateSidebarIndicators());
+
+    // Mobile touch support
+    if ('ontouchstart' in window) {
+      this.setupMobileSidebarGestures(sidebar);
+    }
+
+    console.log('📱 Sidebar auto-hide initialized');
+  }
+
+  /**
+   * Toggle sidebar auto-hide functionality
+   */
+  toggleSidebarAutoHide() {
+    const sidebar = document.getElementById('resource-sidebar');
+    const isCurrentlyEnabled = sidebar.classList.contains('auto-hide-enabled');
+    
+    this.setSidebarAutoHide(!isCurrentlyEnabled);
+    
+    // Save preference
+    localStorage.setItem('sidebar-auto-hide', !isCurrentlyEnabled);
+    
+    // Emit event
+    eventBus.emit('sidebar:autoHideToggled', { enabled: !isCurrentlyEnabled });
+  }
+
+  /**
+   * Set sidebar auto-hide state
+   */
+  setSidebarAutoHide(enabled) {
+    console.log('🔍 Setting sidebar auto-hide:', enabled);
+    
+    const sidebar = document.getElementById('resource-sidebar');
+    const toggleIcon = document.getElementById('sidebar-toggle-icon');
+    
+    console.log('🔍 Elements for setSidebarAutoHide:', {
+      sidebar: !!sidebar,
+      toggleIcon: !!toggleIcon,
+      sidebarClasses: sidebar?.className
+    });
+
+    if (!sidebar || !toggleIcon) {
+      console.warn('⚠️ Elements not found in setSidebarAutoHide');
+      return;
+    }
+
+    if (enabled) {
+      sidebar.classList.add('auto-hide-enabled');
+      toggleIcon.textContent = '▶';
+      toggleIcon.parentElement.title = 'Expand Resource Monitor';
+      console.log('✅ Auto-hide enabled, sidebar classes:', sidebar.className);
+      
+      // Update indicators after a brief delay
+      setTimeout(() => this.updateSidebarIndicators(), 500);
+    } else {
+      sidebar.classList.remove('auto-hide-enabled');
+      toggleIcon.textContent = '◀';
+      toggleIcon.parentElement.title = 'Auto-hide Resource Monitor';
+      console.log('✅ Auto-hide disabled, sidebar classes:', sidebar.className);
+    }
+  }
+
+  /**
+   * Update sidebar indicators with current status
+   */
+  updateSidebarIndicators() {
+    const staffIndicator = document.getElementById('staff-indicator');
+    const fleetIndicator = document.getElementById('fleet-indicator');
+    const serviceIndicator = document.getElementById('service-indicator');
+    
+    if (!staffIndicator || !fleetIndicator || !serviceIndicator) return;
+
+    // Staff indicator
+    const staffOut = STATE.staffOut?.length || 0;
+    const staffAvailable = (STATE.data?.staff?.length || 0) - staffOut;
+    
+    if (staffOut > 0) {
+      staffIndicator.classList.add('has-alerts');
+      staffIndicator.title = `Personnel Status - ${staffOut} out of service, ${staffAvailable} available`;
+    } else {
+      staffIndicator.classList.remove('has-alerts');
+      staffIndicator.title = `Personnel Status - ${staffAvailable} available`;
+    }
+
+    // Fleet indicator  
+    const assetsDown = STATE.data?.assets?.filter(a => a.status === 'down')?.length || 0;
+    const assetsAvailable = STATE.data?.assets?.filter(a => a.status === 'active')?.length || 0;
+    
+    if (assetsDown > 0) {
+      fleetIndicator.classList.add('has-alerts');
+      fleetIndicator.title = `Fleet Status - ${assetsDown} down, ${assetsAvailable} available`;
+    } else {
+      fleetIndicator.classList.remove('has-alerts');
+      fleetIndicator.title = `Fleet Status - ${assetsAvailable} available`;
+    }
+
+    // Service indicator (check for maintenance items)
+    const maintenance = STATE.data?.assets?.filter(a => a.status === 'maintenance')?.length || 0;
+    
+    if (maintenance > 0) {
+      serviceIndicator.classList.add('has-alerts');
+      serviceIndicator.title = `Fleet Service - ${maintenance} in maintenance`;
+    } else {
+      serviceIndicator.classList.remove('has-alerts');
+      serviceIndicator.title = 'Fleet Service - All clear';
+    }
+  }
+
+  /**
+   * Setup mobile sidebar gestures
+   */
+  setupMobileSidebarGestures(sidebar) {
+    let startX = 0;
+    let startY = 0;
+    let isDragging = false;
+
+    const toggleButton = document.getElementById('sidebar-toggle');
+    
+    toggleButton.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isDragging = true;
+    }, { passive: true });
+
+    toggleButton.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const deltaX = currentX - startX;
+      const deltaY = currentY - startY;
+      
+      // If horizontal swipe is significant
+      if (Math.abs(deltaX) > 30 && Math.abs(deltaY) < 30) {
+        e.preventDefault();
+        
+        if (deltaX > 0) {
+          // Swipe right - expand
+          sidebar.classList.add('mobile-expanded');
+        } else {
+          // Swipe left - collapse
+          sidebar.classList.remove('mobile-expanded');
+        }
+        
+        isDragging = false;
+      }
+    }, { passive: false });
+
+    toggleButton.addEventListener('touchend', () => {
+      isDragging = false;
+    }, { passive: true });
+  }
+
+  /**
+   * Get sidebar visibility state
+   */
+  getSidebarState() {
+    const sidebar = document.getElementById('resource-sidebar');
+    return {
+      isAutoHideEnabled: sidebar?.classList.contains('auto-hide-enabled') || false,
+      isExpanded: !sidebar?.classList.contains('auto-hide-enabled') || false
+    };
+  }
 }
 
 // Create and export singleton instance

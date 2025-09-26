@@ -665,6 +665,16 @@ class ModularDispatchApp {
     // Setup header button event listeners
     this.setupHeaderButtons();
     
+    // Initialize sidebar auto-hide functionality
+    setTimeout(() => {
+      console.log('📱 Initializing Sidebar Auto-hide...');
+      if (this.getModule('UIUtilities')?.initializeSidebarAutoHide) {
+        this.getModule('UIUtilities').initializeSidebarAutoHide();
+      } else {
+        console.warn('⚠️ UIUtilities module or initializeSidebarAutoHide method not available');
+      }
+    }, 200);
+    
     console.log('✅ Application setup finalized');
   }
 
