@@ -31,6 +31,23 @@ const REMOTE_SYNC = {
 
 const hasWindow = typeof window !== 'undefined';
 
+// Feature flag: remote sync (Firestore) is OFF by default. Enable by setting
+// localStorage.setItem('dispatch.remoteSync.enabled', 'true') and reloading.
+function isRemoteSyncFeatureEnabled() {
+    if (!hasWindow) return false;
+    try {
+        // Optional hard override via global flag
+        if (typeof window.__DISPATCH_REMOTE_SYNC__ === 'boolean') {
+            return window.__DISPATCH_REMOTE_SYNC__;
+        }
+        const v = localStorage.getItem('dispatch.remoteSync.enabled');
+        if (v === null) return false; // default OFF
+        return v === 'true';
+    } catch (_) {
+        return false;
+    }
+}
+
 function getFirebaseConfig() {
     if (!hasWindow) return null;
     const cfg = window.__FIREBASE_CONFIG__ || null;
@@ -319,9 +336,15 @@ function loadData() {
     }
     
     const persistencePayload = buildPersistencePayload();
-    initializeRemoteSync(persistencePayload).catch(error => {
-        console.warn('⚠️ Firebase sync unavailable, continuing with local data only:', error?.message || error);
-    });
+    if (isRemoteSyncFeatureEnabled()) {
+        initializeRemoteSync(persistencePayload).catch(error => {
+            console.warn('⚠️ Firebase sync unavailable, continuing with local data only:', error?.message || error);
+            if (hasWindow) window.dispatchEvent(new CustomEvent('firebase:syncDisabled'));
+        });
+    } else {
+        console.info('ℹ️ Remote sync is disabled by feature flag. Running local-only.');
+        if (hasWindow) window.dispatchEvent(new CustomEvent('firebase:syncDisabled'));
+    }
 
     console.log('✅ Data loaded successfully');
     return STATE.data;

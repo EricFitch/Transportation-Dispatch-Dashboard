@@ -1256,6 +1256,7 @@ class UIUtilities {
     const statusEl = document.getElementById('sync-status');
     const textEl = document.getElementById('sync-text');
     const dotEl = document.getElementById('sync-dot');
+    const toggleBtn = document.getElementById('toggle-remote-sync');
     if (!statusEl || !textEl || !dotEl) return;
 
     const applyState = (live) => {
@@ -1280,6 +1281,29 @@ class UIUtilities {
     // Also listen to a custom event if core emits one on enable/disable
     window.addEventListener('firebase:syncEnabled', () => applyState(true));
     window.addEventListener('firebase:syncDisabled', () => applyState(false));
+
+    // Wire the toggle button for feature flag control (optional)
+    if (toggleBtn) {
+      const getFlag = () => {
+        try { return localStorage.getItem('dispatch.remoteSync.enabled') === 'true'; } catch { return false; }
+      };
+      const setFlag = (v) => {
+        try { localStorage.setItem('dispatch.remoteSync.enabled', v ? 'true' : 'false'); } catch {}
+      };
+      // Reflect current state in the button label
+      const reflect = () => {
+        const on = getFlag();
+        toggleBtn.textContent = on ? 'Disable Sync' : 'Enable Sync';
+        toggleBtn.title = on ? 'Disable cloud sync' : 'Enable cloud sync';
+      };
+      reflect();
+      toggleBtn.addEventListener('click', () => {
+        const current = getFlag();
+        setFlag(!current);
+        // Reload so core picks up the new flag cleanly
+        location.reload();
+      });
+    }
   }
 
   /**
