@@ -155,6 +155,32 @@
   margin-bottom: var(--spacing-3);
 }
 
+.route-card .combine-route-btn,
+.route-card .collapse-card-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.route-card .header-action-icon {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 24px;
+  max-height: 24px;
+  object-fit: contain;
+}
+
+.route-card .collapse-card-btn .collapse-icon {
+  max-width: 26px;
+  max-height: 26px;
+}
+
 .route-title {
   font-size: var(--text-lg);
   font-weight: 600;

@@ -551,7 +551,7 @@ class FleetServiceManager {
     
     const fleetServiceContainer = document.getElementById('fleet-service');
     if (!fleetServiceContainer) {
-      console.error('❌ Fleet service element not found');
+      console.info('ℹ️ Fleet service dashboard widget disabled; skipping render.');
       return;
     }
 

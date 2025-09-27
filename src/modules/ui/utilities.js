@@ -1204,10 +1204,11 @@ class UIUtilities {
     
     const sidebar = document.getElementById('resource-sidebar');
     const toggleIcon = document.getElementById('sidebar-toggle-icon');
-    const mainContent = document.getElementById('route-cards-container');
+    const toggleButton = document.getElementById('sidebar-toggle');
     const dashboardLayout = document.getElementById('main-dashboard-layout');
+    const sidebarContent = document.getElementById('sidebar-content');
 
-    if (!sidebar || !toggleIcon) {
+    if (!sidebar || !toggleIcon || !toggleButton) {
       console.warn('⚠️ Elements not found in setSidebarAutoHide');
       return;
     }
@@ -1217,9 +1218,14 @@ class UIUtilities {
 
     if (enabled) {
       sidebar.classList.add('auto-hide-enabled');
-      toggleIcon.textContent = '▶';
-      toggleIcon.parentElement.title = 'Expand Resource Monitor';
+      sidebar.classList.remove('mobile-expanded');
+      toggleButton.dataset.state = 'collapsed';
+      toggleButton.setAttribute('aria-expanded', 'false');
+      toggleButton.setAttribute('aria-label', 'Expand Resource Monitor');
+      toggleButton.title = 'Expand Resource Monitor';
       document.body.classList.add('sidebar-collapsed');
+      sidebarContent?.setAttribute('aria-hidden', 'true');
+      sidebarContent?.setAttribute('inert', '');
       
       // Force layout recalculation by triggering reflow
       if (dashboardLayout) {
@@ -1234,9 +1240,14 @@ class UIUtilities {
       setTimeout(() => this.updateSidebarIndicators(), 500);
     } else {
       sidebar.classList.remove('auto-hide-enabled');
-      toggleIcon.textContent = '◀';
-      toggleIcon.parentElement.title = 'Auto-hide Resource Monitor';
+      sidebar.classList.remove('mobile-expanded');
+      toggleButton.dataset.state = 'expanded';
+      toggleButton.setAttribute('aria-expanded', 'true');
+      toggleButton.setAttribute('aria-label', 'Auto-hide Resource Monitor');
+      toggleButton.title = 'Auto-hide Resource Monitor';
       document.body.classList.add('sidebar-expanded');
+      sidebarContent?.setAttribute('aria-hidden', 'false');
+      sidebarContent?.removeAttribute('inert');
       
       // Force layout recalculation by triggering reflow
       if (dashboardLayout) {
@@ -1312,43 +1323,35 @@ class UIUtilities {
   updateSidebarIndicators() {
     const staffIndicator = document.getElementById('staff-indicator');
     const fleetIndicator = document.getElementById('fleet-indicator');
-    const serviceIndicator = document.getElementById('service-indicator');
     
-    if (!staffIndicator || !fleetIndicator || !serviceIndicator) return;
+    if (!staffIndicator && !fleetIndicator) return;
 
     // Staff indicator
     const staffOut = STATE.staffOut?.length || 0;
     const staffAvailable = (STATE.data?.staff?.length || 0) - staffOut;
     
-    if (staffOut > 0) {
-      staffIndicator.classList.add('has-alerts');
-      staffIndicator.title = `Personnel Status - ${staffOut} out of service, ${staffAvailable} available`;
-    } else {
-      staffIndicator.classList.remove('has-alerts');
-      staffIndicator.title = `Personnel Status - ${staffAvailable} available`;
+    if (staffIndicator) {
+      if (staffOut > 0) {
+        staffIndicator.classList.add('has-alerts');
+        staffIndicator.title = `Personnel Status - ${staffOut} out of service, ${staffAvailable} available`;
+      } else {
+        staffIndicator.classList.remove('has-alerts');
+        staffIndicator.title = `Personnel Status - ${staffAvailable} available`;
+      }
     }
 
     // Fleet indicator  
     const assetsDown = STATE.data?.assets?.filter(a => a.status === 'down')?.length || 0;
     const assetsAvailable = STATE.data?.assets?.filter(a => a.status === 'active')?.length || 0;
     
-    if (assetsDown > 0) {
-      fleetIndicator.classList.add('has-alerts');
-      fleetIndicator.title = `Fleet Status - ${assetsDown} down, ${assetsAvailable} available`;
-    } else {
-      fleetIndicator.classList.remove('has-alerts');
-      fleetIndicator.title = `Fleet Status - ${assetsAvailable} available`;
-    }
-
-    // Service indicator (check for maintenance items)
-    const maintenance = STATE.data?.assets?.filter(a => a.status === 'maintenance')?.length || 0;
-    
-    if (maintenance > 0) {
-      serviceIndicator.classList.add('has-alerts');
-      serviceIndicator.title = `Fleet Service - ${maintenance} in maintenance`;
-    } else {
-      serviceIndicator.classList.remove('has-alerts');
-      serviceIndicator.title = 'Fleet Service - All clear';
+    if (fleetIndicator) {
+      if (assetsDown > 0) {
+        fleetIndicator.classList.add('has-alerts');
+        fleetIndicator.title = `Fleet Status - ${assetsDown} down, ${assetsAvailable} available`;
+      } else {
+        fleetIndicator.classList.remove('has-alerts');
+        fleetIndicator.title = `Fleet Status - ${assetsAvailable} available`;
+      }
     }
   }
 

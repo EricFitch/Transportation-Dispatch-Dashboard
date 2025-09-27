@@ -152,7 +152,8 @@ function renderFleetService() {
     try {
         const fleetService = document.getElementById('fleet-service');
         if (!fleetService) {
-            console.error('❌ Fleet service element not found');
+            PERFORMANCE.isRendering = false;
+            console.info('ℹ️ Fleet service dashboard widget disabled; skipping render.');
             return;
         }
         

@@ -697,10 +697,10 @@ function generateRouteCardHtml(route) {
                 <div class="flex items-center gap-2">
                     <h3 class="font-bold text-lg text-gray-800">${route.name || 'Unnamed Route'}</h3>
                     ${!isFieldTrip ? `
-                        <button class="combine-route-btn" 
+                        <button type="button" class="combine-route-btn" 
                                 onclick="handleCombineRoute('${route.id}', '${route.routeNumber}')"
                                 title="Combine Routes" aria-label="Combine Routes">
-                            <img src="assets/icons/MergeButton.png" width="22" height="22" class="merge-button-icon" alt="" aria-hidden="true" />
+                            <img src="assets/icons/MergeButton.png" class="merge-button-icon header-action-icon" alt="" aria-hidden="true" />
                         </button>
                     ` : ''}
                 </div>
@@ -715,9 +715,9 @@ function generateRouteCardHtml(route) {
                             </svg>
                         </button>
                     ` : ''}
-                    <button class="collapse-card-btn text-gray-400 hover:text-gray-600 transition-colors" 
+                    <button type="button" class="collapse-card-btn text-gray-400 hover:text-gray-600 transition-colors" 
                             onclick="toggleRouteCard('${route.id}')">
-                        <img src="assets/icons/CollapseButton.png" width="16" height="16" class="collapse-icon transition-transform" alt="" aria-hidden="true" />
+                        <img src="assets/icons/CollapseButton.png" class="collapse-icon header-action-icon transition-transform" alt="" aria-hidden="true" />
                     </button>
                 </div>
             </div>

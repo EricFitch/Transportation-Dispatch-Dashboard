@@ -751,7 +751,7 @@
                          Toggle Sync
                      </button>
                      <button id="search-toggle-btn" class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm" title="Search Dashboard (Ctrl+F)">
-                         🔍
+                         🔍 Search
                      </button>
                      <button id="reset-board-btn" class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm">
                          🔄 Reset Board
@@ -822,24 +822,12 @@
                 <!-- Resource Monitor Panel -->
                 <aside class="responsive-sidebar bg-white shadow-lg p-4 overflow-y-auto" id="resource-sidebar">
                     <!-- Auto-hide toggle button -->
-                    <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Resource Monitor" aria-label="Toggle Resource Monitor">
-                        <span id="sidebar-toggle-icon">◀</span>
+                    <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Resource Monitor" aria-label="Toggle Resource Monitor" aria-expanded="true" data-state="expanded">
+                        <img src="assets/icons/SidebarButton.png" id="sidebar-toggle-icon" class="sidebar-toggle-icon" alt="" aria-hidden="true">
                         <span class="sidebar-toggle-label" id="sidebar-toggle-label">Resource Monitor</span>
                     </button>
                     
                     <!-- Collapsed sidebar indicators (shown when auto-hide is active) -->
-                    <div class="sidebar-indicators" id="sidebar-indicators">
-                        <div class="sidebar-indicator" id="staff-indicator" title="Personnel Status">
-                            👥
-                        </div>
-                        <div class="sidebar-indicator" id="fleet-indicator" title="Fleet Status">
-                            🚛
-                        </div>
-                        <div class="sidebar-indicator" id="service-indicator" title="Fleet Service">
-                            🔧
-                        </div>
-                    </div>
-                    
                     <!-- Main sidebar content -->
                     <div class="sidebar-content" id="sidebar-content">
                         <!-- Resource Monitor Header -->
@@ -889,17 +877,7 @@
                         </div>
                     </div>
 
-                    <!-- Fleet Service Section -->
-                    <div class="mb-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-4 border border-gray-200">
-                        <div class="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
-                            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                <span>🔧</span> Fleet Service
-                            </h2>
-                        </div>
-                        <div id="fleet-service" class="space-y-3">
-                            <!-- Fleet service content will be dynamically rendered here -->
-                        </div>
-                    </div>
+
 
                     <!-- Fleet Status Section -->
                     <div class="mb-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-4 border border-gray-200">
