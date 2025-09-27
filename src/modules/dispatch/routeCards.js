@@ -717,9 +717,7 @@ function generateRouteCardHtml(route) {
                     ` : ''}
                     <button class="collapse-card-btn text-gray-400 hover:text-gray-600 transition-colors" 
                             onclick="toggleRouteCard('${route.id}')">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class="collapse-icon transition-transform">
-                            <path d="M1.646 4.646a.5.5 0 01.708 0L8 10.293l5.646-5.647a.5.5 0 01.708.708l-6 6a.5.5 0 01-.708 0l-6-6a.5.5 0 010-.708z"/>
-                        </svg>
+                        <img src="assets/icons/CollapseButton.png" width="16" height="16" class="collapse-icon transition-transform" alt="" aria-hidden="true" />
                     </button>
                 </div>
             </div>
