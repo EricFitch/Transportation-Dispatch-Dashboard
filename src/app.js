@@ -838,12 +838,12 @@ class ModularDispatchApp {
 
     if (currentView === 'AM') {
       // AM is active
-      amToggle.className = 'px-3 py-1 rounded bg-blue-500 text-white text-sm font-semibold';
-      pmToggle.className = 'px-3 py-1 rounded text-gray-700 text-sm font-semibold hover:bg-gray-100';
+      amToggle.className = 'px-3 py-1 rounded bg-blue-500 text-white text-sm font-semibold flex items-center justify-center';
+      pmToggle.className = 'px-3 py-1 rounded text-gray-700 text-sm font-semibold hover:bg-gray-100 flex items-center justify-center';
     } else {
       // PM is active
-      amToggle.className = 'px-3 py-1 rounded text-gray-700 text-sm font-semibold hover:bg-gray-100';
-      pmToggle.className = 'px-3 py-1 rounded bg-blue-500 text-white text-sm font-semibold';
+      amToggle.className = 'px-3 py-1 rounded text-gray-700 text-sm font-semibold hover:bg-gray-100 flex items-center justify-center';
+      pmToggle.className = 'px-3 py-1 rounded bg-blue-500 text-white text-sm font-semibold flex items-center justify-center';
     }
 
     console.log(`🎨 Updated toggle state for ${currentView} view`);
@@ -865,14 +865,22 @@ class ModularDispatchApp {
   }
 
   /**
-   * Toggle the search overlay
+   * Open the unified Advanced Search modal
    */
   toggleSearchModal() {
-    if (window.searchSystem && window.searchSystem.openSearchOverlay) {
-      window.searchSystem.openSearchOverlay();
-      console.log('🔍 Search overlay opened');
-    } else {
-      console.warn('⚠️ Search system not available');
+    try {
+      if (window.advancedSearchSystem && typeof window.advancedSearchSystem.openAdvancedSearchDialog === 'function') {
+        window.advancedSearchSystem.openAdvancedSearchDialog(false);
+        console.log('🔍 Advanced Search modal opened');
+      } else if (this.modules.get('UIAdvancedSearch')?.openAdvancedSearchDialog) {
+        // Fallback: via module map if exposed differently
+        this.modules.get('UIAdvancedSearch').openAdvancedSearchDialog(false);
+        console.log('🔍 Advanced Search modal opened via module');
+      } else {
+        console.warn('⚠️ Advanced Search system not available');
+      }
+    } catch (err) {
+      console.error('❌ Failed to open Advanced Search modal:', err);
     }
   }
 
@@ -1185,7 +1193,20 @@ class ModularDispatchApp {
       'Escape': () => this.modules.get('UISystem')?.closeAllModals(),
       'Ctrl+F': (e) => {
         e.preventDefault();
-        this.modules.get('UIUtilities')?.focusGlobalSearch();
+        try {
+          if (window.advancedSearchSystem && typeof window.advancedSearchSystem.openAdvancedSearchDialog === 'function') {
+            if (!window.advancedSearchSystem.isSearchOpen || !window.advancedSearchSystem.isSearchOpen()) {
+              window.advancedSearchSystem.openAdvancedSearchDialog(false);
+            }
+          } else if (this.modules.get('UIAdvancedSearch')?.openAdvancedSearchDialog) {
+            this.modules.get('UIAdvancedSearch').openAdvancedSearchDialog(false);
+          } else {
+            // Fallback to prior behavior if advanced system isn't available for some reason
+            this.modules.get('UIUtilities')?.focusGlobalSearch();
+          }
+        } catch (err) {
+          console.error('❌ Failed to open Advanced Search via Ctrl+F:', err);
+        }
       }
     };
 
@@ -1419,6 +1440,23 @@ async function bootstrap() {
     
     // Setup development helpers (always enable in browser)
     setupDevelopmentHelpers();
+
+      // Shim legacy search overlay to Advanced Search, if legacy module is loaded elsewhere
+      try {
+        if (window.searchSystem && typeof window.searchSystem.openSearchOverlay === 'function') {
+          const original = window.searchSystem.openSearchOverlay.bind(window.searchSystem);
+          window.searchSystem.openSearchOverlay = function(...args) {
+            if (window.advancedSearchSystem && typeof window.advancedSearchSystem.openAdvancedSearchDialog === 'function') {
+              window.advancedSearchSystem.openAdvancedSearchDialog(false);
+              console.debug('ℹ️ Redirected legacy openSearchOverlay() to Advanced Search modal');
+              return;
+            }
+            return original(...args);
+          };
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to set legacy search overlay shim:', e);
+      }
 
     // === Route Import/Export/Bulk Entry UI ===
     const importExport = app.getModule('DataImportExport');
@@ -2504,37 +2542,19 @@ async function bootstrap() {
       });
     }
     
-    // Advanced Search Dialog Handler
+    // Advanced Search Dialog Handler (sidebar entry) — open Advanced Search modal
     const openSearchDialogBtn = document.getElementById('open-search-dialog');
     if (openSearchDialogBtn) {
       openSearchDialogBtn.addEventListener('click', () => {
         closeSlideout();
-        // Open the advanced search overlay
-        const searchOverlay = document.getElementById('search-overlay');
-        if (searchOverlay) {
-          searchOverlay.classList.remove('hidden');
-        }
-      });
-    }
-    
-    // Advanced Search Close Handler
-    const searchOverlayCloseBtn = document.getElementById('search-overlay-close');
-    if (searchOverlayCloseBtn) {
-      searchOverlayCloseBtn.addEventListener('click', () => {
-        const searchOverlay = document.getElementById('search-overlay');
-        if (searchOverlay) {
-          searchOverlay.classList.add('hidden');
-        }
-      });
-    }
-    
-    // Close search overlay when clicking outside
-    const searchOverlay = document.getElementById('search-overlay');
-    if (searchOverlay) {
-      searchOverlay.addEventListener('click', (e) => {
-        // Only close if clicking the overlay background, not the modal content
-        if (e.target === searchOverlay) {
-          searchOverlay.classList.add('hidden');
+        try {
+          if (window.advancedSearchSystem) {
+            window.advancedSearchSystem.openAdvancedSearchDialog(false);
+          } else if (this.modules.get('UIAdvancedSearch')?.openAdvancedSearchDialog) {
+            this.modules.get('UIAdvancedSearch').openAdvancedSearchDialog(false);
+          }
+        } catch (err) {
+          console.error('❌ Failed to open Advanced Search from sidebar:', err);
         }
       });
     }

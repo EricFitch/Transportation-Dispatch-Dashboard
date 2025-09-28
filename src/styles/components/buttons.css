@@ -204,13 +204,23 @@ button:disabled {
 /* Toggle buttons */
 #am-toggle,
 #pm-toggle {
-  padding: var(--touch-padding) calc(var(--touch-padding) * 2);
+  padding: calc(var(--touch-padding) * 2) calc(var(--touch-padding) * 2);
   font-size: var(--text-lg);
   font-weight: bold;
   border-radius: 12px;
   margin: 0 var(--spacing-2);
   min-height: var(--touch-target);
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.am-pm-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  /* Remove default filter - let the images show normally */
 }
 
 #am-toggle.active,
@@ -218,6 +228,20 @@ button:disabled {
   background-color: #3b82f6;
   color: white;
   border-color: #3b82f6;
+}
+
+/* Show white version on active (blue background) buttons */
+#am-toggle.active .am-pm-icon,
+#am-toggle.bg-blue-500 .am-pm-icon,
+#am-toggle.selected .am-pm-icon {
+  filter: brightness(0) invert(1);
+}
+
+/* Show normal/dark version on inactive buttons */
+#pm-toggle:not(.active) .am-pm-icon,
+#pm-toggle:not(.bg-blue-500) .am-pm-icon,
+#pm-toggle:not(.selected) .am-pm-icon {
+  filter: brightness(0.3);
 }
 
 /* Close buttons */

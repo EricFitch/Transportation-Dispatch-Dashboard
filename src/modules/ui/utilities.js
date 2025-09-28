@@ -733,8 +733,23 @@ class UIUtilities {
   registerDefaultShortcuts() {
     this.registerShortcut({
       key: 'ctrl+f',
-      action: () => this.focusGlobalSearch(),
-      description: 'Focus global search'
+      action: () => {
+        try {
+          if (window.advancedSearchSystem) {
+            window.advancedSearchSystem.openAdvancedSearchDialog(false);
+          } else if (uiSystem && typeof uiSystem.openAdvancedSearchDialog === 'function') {
+            // Fallback to UI System's modal
+            uiSystem.openAdvancedSearchDialog();
+          } else {
+            // Last resort: keep old behavior
+            this.focusGlobalSearch();
+          }
+        } catch (e) {
+          console.error('Failed to open Advanced Search from shortcut:', e);
+          this.focusGlobalSearch();
+        }
+      },
+      description: 'Open Advanced Search'
     });
     
     this.registerShortcut({
@@ -1150,8 +1165,18 @@ class UIUtilities {
     }
 
     // Load saved state - default to disabled for first-time users
-    const isAutoHideEnabled = localStorage.getItem('sidebar-auto-hide') === 'true';
-    console.log('🔍 Auto-hide enabled from storage:', isAutoHideEnabled);
+    const storedPreference = localStorage.getItem('sidebar-auto-hide');
+    const isAutoHideEnabled = storedPreference === null ? true : storedPreference === 'true';
+
+    if (storedPreference === null) {
+      try {
+        localStorage.setItem('sidebar-auto-hide', 'true');
+      } catch (error) {
+        console.warn('⚠️ Unable to persist default sidebar auto-hide preference', error);
+      }
+    }
+
+    console.log('🔍 Auto-hide enabled from storage:', isAutoHideEnabled, '(raw value:', storedPreference, ')');
     
     // Apply initial state
     this.setSidebarAutoHide(isAutoHideEnabled);
@@ -1224,8 +1249,9 @@ class UIUtilities {
       toggleButton.setAttribute('aria-label', 'Expand Resource Monitor');
       toggleButton.title = 'Expand Resource Monitor';
       document.body.classList.add('sidebar-collapsed');
+      // Keep content hidden for accessibility by default while collapsed;
+      // interactivity is unlocked on hover via listeners below.
       sidebarContent?.setAttribute('aria-hidden', 'true');
-      sidebarContent?.setAttribute('inert', '');
       
       // Force layout recalculation by triggering reflow
       if (dashboardLayout) {
@@ -1247,7 +1273,6 @@ class UIUtilities {
       toggleButton.title = 'Auto-hide Resource Monitor';
       document.body.classList.add('sidebar-expanded');
       sidebarContent?.setAttribute('aria-hidden', 'false');
-      sidebarContent?.removeAttribute('inert');
       
       // Force layout recalculation by triggering reflow
       if (dashboardLayout) {
@@ -1257,6 +1282,32 @@ class UIUtilities {
       }
       
       console.log('✅ Auto-hide disabled - Route cards back to normal');
+    }
+
+    // Ensure interactivity matches visual expansion when auto-hide is enabled
+    // Remove inert usage; toggle aria-hidden on hover/focus containment
+    if (enabled && sidebar && sidebarContent) {
+      // Clean up possible previous handlers
+      sidebar.removeEventListener?.('__mouseenter_handler', sidebar.__mouseenter_handler);
+      sidebar.removeEventListener?.('__mouseleave_handler', sidebar.__mouseleave_handler);
+
+      const onEnter = () => {
+        sidebarContent.setAttribute('aria-hidden', 'false');
+      };
+      const onLeave = () => {
+        sidebarContent.setAttribute('aria-hidden', 'true');
+      };
+      // Store refs on element to allow removal later
+      sidebar.__mouseenter_handler = onEnter;
+      sidebar.__mouseleave_handler = onLeave;
+      sidebar.addEventListener('mouseenter', onEnter);
+      sidebar.addEventListener('mouseleave', onLeave);
+    } else if (sidebar) {
+      // If disabling auto-hide, remove transient listeners
+      if (sidebar.__mouseenter_handler) sidebar.removeEventListener('mouseenter', sidebar.__mouseenter_handler);
+      if (sidebar.__mouseleave_handler) sidebar.removeEventListener('mouseleave', sidebar.__mouseleave_handler);
+      delete sidebar.__mouseenter_handler;
+      delete sidebar.__mouseleave_handler;
     }
   }
 

@@ -70,6 +70,7 @@ class AdvancedSearchSystem {
     this.setupEventListeners();
     this.setupKeyboardShortcuts();
     this.connectExistingUI();
+  this.connectSidebarSearch();
     
     this.initialized = true;
     console.log('🔍 Advanced Search System initialized');
@@ -137,13 +138,17 @@ class AdvancedSearchSystem {
       // Ctrl+F or Cmd+F to open search
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
-        this.openAdvancedSearchDialog();
+        if (!this.isSearchOpen || !this.isSearchOpen()) {
+          this.openAdvancedSearchDialog();
+        }
       }
       
       // Ctrl+Shift+F for advanced search
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
         e.preventDefault();
-        this.openAdvancedSearchDialog(true);
+        if (!this.isSearchOpen || !this.isSearchOpen()) {
+          this.openAdvancedSearchDialog(true);
+        }
       }
       
       // Escape to close search
@@ -215,6 +220,20 @@ class AdvancedSearchSystem {
   }
 
   /**
+   * Connect sidebar 'Advanced Search' button explicitly
+   */
+  connectSidebarSearch() {
+    const sidebarBtn = document.getElementById('open-search-dialog');
+    if (sidebarBtn && !sidebarBtn._wired) {
+      sidebarBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openAdvancedSearchDialog();
+      });
+      sidebarBtn._wired = true;
+    }
+  }
+
+  /**
    * Build comprehensive search index
    */
   buildSearchIndex() {
@@ -225,6 +244,13 @@ class AdvancedSearchSystem {
     if (STATE.data && STATE.data.routes) {
       STATE.data.routes.forEach(route => {
         const routeKey = `${route.name}_${route.shift}`;
+        const domId = route.id || routeKey;
+        const domSelectors = [
+          `[data-route-id="${domId}"]`,
+          `[data-route-key="${routeKey}"]`,
+          `#${domId}`
+        ];
+
         const searchData = {
           id: routeKey,
           type: 'route',
@@ -236,7 +262,10 @@ class AdvancedSearchSystem {
           notes: STATE.routeNotes[routeKey] || '',
           timestamps: STATE.statusTimestamps[routeKey] || [],
           searchableText: `${route.name} ${route.type} ${route.shift}`,
-          category: 'routes'
+          category: 'routes',
+          domId,
+          domSelectors,
+          routeKey
         };
         
         // Add assignment info to searchable text
@@ -259,6 +288,12 @@ class AdvancedSearchSystem {
     // Index field trips
     if (STATE.data && STATE.data.fieldTrips) {
       STATE.data.fieldTrips.forEach(ft => {
+        const domId = ft.id;
+        const domSelectors = [
+          `[data-field-trip-id="${domId}"]`,
+          `[data-route-id="${domId}"]`
+        ];
+
         const searchData = {
           id: ft.id,
           type: 'fieldTrip',
@@ -271,7 +306,9 @@ class AdvancedSearchSystem {
           trailer: ft.trailer,
           notes: STATE.fieldTripNotes[ft.id] || '',
           searchableText: `${ft.destination} ${ft.shift} field trip`,
-          category: 'fieldTrips'
+          category: 'fieldTrips',
+          domId,
+          domSelectors
         };
 
         // Add assignments to searchable text
@@ -293,6 +330,10 @@ class AdvancedSearchSystem {
       STATE.data.staff.forEach(staff => {
         const isOut = STATE.staffOut.some(s => s.name === staff.name);
         const assignments = this.getStaffAssignments(staff.name);
+        const domSelectors = [`[data-staff-name="${staff.name}"]`];
+        if (staff.id) {
+          domSelectors.push(`[data-staff-id="${staff.id}"]`, `#${staff.id}`);
+        }
         
         const searchData = {
           id: staff.name,
@@ -302,7 +343,9 @@ class AdvancedSearchSystem {
           status: isOut ? 'out' : 'available',
           assignments: assignments,
           searchableText: `${staff.name} ${staff.role}`,
-          category: 'staff'
+          category: 'staff',
+          domId: staff.id || staff.name,
+          domSelectors
         };
 
         // Add assignment info to searchable text
@@ -319,6 +362,10 @@ class AdvancedSearchSystem {
       STATE.data.assets.forEach(asset => {
         const status = STATE.assetStatus[asset.name] || 'active';
         const assignments = this.getAssetAssignments(asset.name);
+        const domSelectors = [`[data-asset-name="${asset.name}"]`];
+        if (asset.id) {
+          domSelectors.push(`[data-asset-id="${asset.id}"]`, `#${asset.id}`);
+        }
         
         const searchData = {
           id: asset.name,
@@ -328,7 +375,9 @@ class AdvancedSearchSystem {
           status: status,
           assignments: assignments,
           searchableText: `${asset.name} ${asset.type}`,
-          category: 'assets'
+          category: 'assets',
+          domId: asset.id || asset.name,
+          domSelectors
         };
 
         if (this.searchFilters.options.searchAssignments && assignments.length > 0) {
@@ -511,6 +560,7 @@ class AdvancedSearchSystem {
       if (score > 0) {
         results.push({
           ...item,
+          key,
           score: score,
           highlights: this.generateHighlights(query, item)
         });
@@ -760,6 +810,10 @@ class AdvancedSearchSystem {
    * Render individual search result
    */
   renderSearchResult(result) {
+    const focusId = this.escapeAttribute(result.domId || result.id);
+    const focusType = this.escapeAttribute(result.type);
+    const focusKey = this.escapeAttribute(result.key || result.routeKey || '');
+
     const statusClass = this.getStatusClass(result.status);
     const typeIcon = this.getTypeIcon(result.type);
     
@@ -778,7 +832,7 @@ class AdvancedSearchSystem {
           ` : ''}
         </div>
         <div class="search-result-actions">
-          <button class="btn btn-sm btn-primary" onclick="advancedSearchSystem.focusResult('${result.id}', '${result.type}')">
+          <button class="btn btn-sm btn-primary" onclick="advancedSearchSystem.focusResult('${focusId}', '${focusType}', '${focusKey}')">
             View
           </button>
         </div>
@@ -817,15 +871,37 @@ class AdvancedSearchSystem {
   /**
    * Focus on a search result item
    */
-  focusResult(id, type) {
+  focusResult(id, type, key = '') {
     // Close search overlay
     this.closeSearchOverlay();
     
     // Emit event to focus the item
-    eventBus.emit('search:focusResult', { id, type });
-    
-    // Scroll to and highlight the item
-    const element = document.querySelector(`[data-${type}-id="${id}"], [data-route-key="${id}"], [data-staff-name="${id}"], [data-asset-name="${id}"]`);
+    const targetData = (key && this.searchIndex.has(key)) ? this.searchIndex.get(key) : null;
+    eventBus.emit('search:focusResult', { id, type, key, target: targetData });
+
+    const selectors = this.buildTargetSelectors(id, type, targetData);
+    let element = null;
+
+    for (const selector of selectors) {
+      if (!selector) continue;
+      try {
+        const found = document.querySelector(selector);
+        if (found) {
+          element = found;
+          break;
+        }
+      } catch (error) {
+        console.warn('Invalid selector while focusing search result', selector, error);
+      }
+    }
+
+    if (!element && targetData && targetData.routeKey) {
+      const fallbackSelector = this.buildAttributeSelector('data-route-key', targetData.routeKey);
+      if (fallbackSelector) {
+        element = document.querySelector(fallbackSelector);
+      }
+    }
+
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       element.classList.add('search-focused');
@@ -833,15 +909,94 @@ class AdvancedSearchSystem {
       setTimeout(() => {
         element.classList.remove('search-focused');
       }, 3000);
+
+      console.log(`🔍 Focused result: ${type} ${id}`);
+      return;
     }
-    
-    console.log(`🔍 Focused result: ${type} ${id}`);
+
+    console.warn(`⚠️ Unable to locate element for search result: ${type} ${id}`);
+  }
+
+  buildTargetSelectors(id, type, targetData) {
+    const selectors = [];
+    const normalizedId = id || targetData?.domId || null;
+
+    if (targetData?.domSelectors?.length) {
+      selectors.push(...targetData.domSelectors);
+    }
+
+    if (targetData?.domId) {
+      const idSelector = this.buildIdSelector(targetData.domId);
+      if (idSelector) selectors.push(idSelector);
+      if (type === 'route' || type === 'fieldTrip') {
+        selectors.push(this.buildAttributeSelector('data-route-id', targetData.domId));
+        selectors.push(this.buildAttributeSelector('data-field-trip-id', targetData.domId));
+      }
+      if (type === 'staff') {
+        selectors.push(this.buildAttributeSelector('data-staff-name', targetData.domId));
+        selectors.push(this.buildAttributeSelector('data-staff-id', targetData.domId));
+      }
+      if (type === 'asset') {
+        selectors.push(this.buildAttributeSelector('data-asset-name', targetData.domId));
+        selectors.push(this.buildAttributeSelector('data-asset-id', targetData.domId));
+      }
+    }
+
+    if (normalizedId) {
+      if (type === 'staff') {
+        selectors.push(this.buildAttributeSelector('data-staff-name', normalizedId));
+      }
+      if (type === 'asset') {
+        selectors.push(this.buildAttributeSelector('data-asset-name', normalizedId));
+      }
+      if (type === 'route' || type === 'fieldTrip') {
+        selectors.push(this.buildAttributeSelector('data-route-id', normalizedId));
+        selectors.push(this.buildAttributeSelector('data-field-trip-id', normalizedId));
+      }
+    }
+
+    if (targetData?.routeKey) {
+      selectors.push(this.buildAttributeSelector('data-route-key', targetData.routeKey));
+    }
+
+    if (!targetData && (type === 'route' || type === 'fieldTrip')) {
+      selectors.push(this.buildAttributeSelector('data-route-key', id));
+    }
+
+    return [...new Set(selectors.filter(Boolean))];
+  }
+
+  buildAttributeSelector(attribute, value) {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+    const stringValue = String(value);
+    const escaped = stringValue
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\]/g, '\\]');
+    return `[${attribute}="${escaped}"]`;
+  }
+
+  buildIdSelector(value) {
+    if (!value && value !== 0) {
+      return null;
+    }
+    const stringValue = String(value);
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+      return `#${CSS.escape(stringValue)}`;
+    }
+    return `#${stringValue.replace(/([^a-zA-Z0-9_-])/g, '\\$1')}`;
   }
 
   /**
    * Open advanced search dialog
    */
   openAdvancedSearchDialog(advanced = false) {
+    // Avoid recreating the modal if already open
+    if (this.isSearchOpen && this.isSearchOpen()) {
+      return;
+    }
     const modal = uiSystem.createModal('advanced-search-modal', 'Advanced Search', this.createAdvancedSearchContent(advanced));
     uiSystem.openModal(modal.id);
     
@@ -1338,30 +1493,22 @@ class AdvancedSearchSystem {
    * Find elements in main view that correspond to search result
    */
   findElementsInMainView(result) {
+    const targetData = (result.key && this.searchIndex.has(result.key)) ? this.searchIndex.get(result.key) : result;
+    const selectors = this.buildTargetSelectors(result.domId || result.id, result.type, targetData);
     const elements = [];
-    
-    // Find elements based on result type and ID
-    switch (result.type) {
-      case 'route':
-      case 'fieldTrip':
-        // Look for route cards
-        const routeElements = document.querySelectorAll(`[data-route-key="${result.id}"], [data-field-trip-id="${result.id}"]`);
-        elements.push(...routeElements);
-        break;
-        
-      case 'staff':
-        // Look for staff elements
-        const staffElements = document.querySelectorAll(`[data-staff-name="${result.id}"]`);
-        elements.push(...staffElements);
-        break;
-        
-      case 'asset':
-        // Look for asset elements
-        const assetElements = document.querySelectorAll(`[data-asset-name="${result.id}"]`);
-        elements.push(...assetElements);
-        break;
-    }
-    
+
+    selectors.forEach(selector => {
+      if (!selector) return;
+      try {
+        const matches = document.querySelectorAll(selector);
+        if (matches.length) {
+          elements.push(...matches);
+        }
+      } catch (error) {
+        console.warn('Invalid selector while gathering search highlights', selector, error);
+      }
+    });
+
     return elements;
   }
 
@@ -1394,6 +1541,13 @@ class AdvancedSearchSystem {
       indicator.remove();
     }
   }
+
+  /**
+   * Escape single quotes and backslashes for inline attribute usage
+   */
+  escapeAttribute(value) {
+    return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  }
 }
 
 // Create and export singleton instance
@@ -1403,5 +1557,17 @@ const advancedSearchSystem = new AdvancedSearchSystem();
 window.advancedSearchSystem = advancedSearchSystem;
 window.openQuickSearchDialog = () => advancedSearchSystem.openAdvancedSearchDialog();
 window.openAdvancedSearchDialog = (advanced) => advancedSearchSystem.openAdvancedSearchDialog(advanced);
+
+// Hook up header search button if present
+document.addEventListener('DOMContentLoaded', () => {
+  const headerSearchBtn = document.getElementById('search-toggle-btn');
+  if (headerSearchBtn && !headerSearchBtn._wired) {
+    headerSearchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      advancedSearchSystem.openAdvancedSearchDialog(false);
+    });
+    headerSearchBtn._wired = true;
+  }
+});
 
 export { advancedSearchSystem };

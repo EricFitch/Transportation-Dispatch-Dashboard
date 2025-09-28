@@ -6,8 +6,8 @@
         <title>Transportation Dispatch Dashboard - 75" Touch Optimized</title>
         <!-- PWA manifest -->
     <link rel="manifest" href="/manifest.json">
-    <!-- theme-color provides address bar tint in supporting browsers (progressive enhancement) -->
-    <meta name="theme-color" content="#1e40af">
+    <!-- iOS home screen icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/Logo.png">
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/assets/icons/Logo.png">
        <!-- Tailwind and project styles compiled locally -->
@@ -248,7 +248,7 @@
                 --touch-target: 36px;
                 --touch-padding: 6px;
                 /* Panel and container dimensions */
-                --sidebar-width: 650px;
+                --sidebar-width: 420px;
                 --card-min-width: 260px;
                 --modal-width: 400px;
                 /* Grid system for different screen sizes */
@@ -318,8 +318,8 @@
             }
             .responsive-sidebar {
                 width: 25vw !important;
-                min-width: 320px !important;
-                max-width: 450px !important;
+                min-width: 120px !important;
+                max-width: 350px !important;
                 background: #fff !important;
                 border-left: 1.5px solid #e5e7eb !important;
                 box-shadow: 2px 0 8px 0 rgba(0,0,0,0.04) !important;
@@ -761,8 +761,12 @@
                      </button>
                      <!-- AM/PM Toggle -->
                      <div class="flex bg-gray-200 rounded-lg p-1">
-                         <button id="am-toggle" class="px-3 py-1 rounded bg-blue-500 text-white text-sm font-semibold">AM</button>
-                         <button id="pm-toggle" class="px-3 py-1 rounded text-gray-700 text-sm font-semibold">PM</button>
+                         <button id="am-toggle" class="px-3 py-1 rounded bg-blue-500 text-white text-sm font-semibold flex items-center justify-center">
+                             <img src="assets/icons/AMButton.png" alt="AM" class="am-pm-icon" />
+                         </button>
+                         <button id="pm-toggle" class="px-3 py-1 rounded text-gray-700 text-sm font-semibold flex items-center justify-center">
+                             <img src="assets/icons/PMButton.png" alt="PM" class="am-pm-icon" />
+                         </button>
                      </div>
                 </div>
             </header>
@@ -1522,6 +1526,6 @@
         <!-- Accessibility live region -->
         <div id="screen-reader-announcer" aria-live="polite" class="sr-only"></div>
         <!-- Scripts -->
-        <script type="module" src="./src/modules/ui/search-debug.js"></script>
+        
     </body>
 </html>

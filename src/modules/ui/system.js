@@ -1367,7 +1367,18 @@ class UISystem {
         switch (e.key) {
           case 'f':
             e.preventDefault();
-            this.openAdvancedSearchDialog();
+            try {
+              if (window.advancedSearchSystem && typeof window.advancedSearchSystem.openAdvancedSearchDialog === 'function') {
+                if (!window.advancedSearchSystem.isSearchOpen || !window.advancedSearchSystem.isSearchOpen()) {
+                  window.advancedSearchSystem.openAdvancedSearchDialog(false);
+                }
+              } else {
+                this.openAdvancedSearchDialog();
+              }
+            } catch (err) {
+              console.error('Failed to open search dialog from UI System:', err);
+              this.openAdvancedSearchDialog();
+            }
             break;
           case ',':
             e.preventDefault();

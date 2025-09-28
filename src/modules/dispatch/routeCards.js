@@ -22,7 +22,8 @@ const ROUTE_TYPES = {
         id: 'general-education',
         label: 'General Education',
         color: '#3b82f6', // blue
-        icon: '🎒'
+        icon: '🎒',
+        iconImage: 'assets/icons/GenED.png'
     },
     SPECIAL_ED: {
         id: 'special-education', 
@@ -73,6 +74,60 @@ const ROUTE_SCHEDULES = {
         icon: '⏸️'
     }
 };
+
+function renderRouteTypeIcon(type) {
+    if (!type) return '';
+
+    const label = type.label || 'Route';
+    const imagePath = type.iconImage || (typeof type.icon === 'string' && /\.(png|jpe?g|svg|webp)$/i.test(type.icon) ? type.icon : null);
+
+    if (imagePath) {
+        return `<img src="${imagePath}" class="route-type-icon" alt="${label} icon" loading="lazy">`;
+    }
+
+    if (type.icon) {
+        return `<span class="route-type-emoji" style="color: ${type.color || '#111827'}">${type.icon}</span>`;
+    }
+
+    return '';
+}
+
+const STATUS_SEGMENTS = [
+    {
+        code: '10-8',
+        shortLabel: '10-8',
+        label: 'In Service',
+        description: 'Active / In Service',
+        toneClass: 'status-10-8'
+    },
+    {
+        code: '10-7',
+        shortLabel: '10-7',
+        label: 'Out of Service',
+        description: 'Down / Out of Service',
+        toneClass: 'status-10-7'
+    },
+    {
+        code: '10-11',
+        shortLabel: '10-11',
+        label: 'Delayed',
+        description: 'On Hold / Delayed',
+        toneClass: 'status-10-11'
+    }
+];
+
+const STATUS_CODES = STATUS_SEGMENTS.map(segment => segment.code);
+
+function getStatusPillContainerClass(status) {
+    if (!status || !STATUS_CODES.includes(status)) {
+        return 'status-pill-neutral';
+    }
+    return `status-pill-${status}`;
+}
+
+function getAllStatusPillContainerClasses() {
+    return ['status-pill-neutral', ...STATUS_CODES.map(code => `status-pill-${code}`)];
+}
 
 // Route card data structure template
 function createRouteTemplate(routeNumber, routeType, schedule = 'none') {
@@ -164,6 +219,50 @@ function computeContrastColors(hex) {
         };
     } catch (e) {
         return { textColor: '#111827', panelBg: 'rgba(0,0,0,0.06)', panelBorder: 'rgba(0,0,0,0.12)' };
+    }
+}
+
+function renderStatusSegments(route) {
+    return STATUS_SEGMENTS.map(segment => renderStatusSegment(route, segment)).join('');
+}
+
+function getStatusMetadata(code) {
+    return STATUS_SEGMENTS.find(segment => segment.code === code) || null;
+}
+
+function renderStatusSegment(route, segment) {
+    const isActive = route.status === segment.code;
+    const classes = ['status-pill-button', segment.toneClass, isActive ? 'is-active' : ''];
+
+    return `
+    <button type="button"
+        class="${classes.filter(Boolean).join(' ')}"
+        aria-pressed="${isActive}"
+        aria-label="${segment.description}"
+        data-status-code="${segment.code}"
+                onclick="updateRouteStatus('${route.id}', '${segment.code}')">
+            <span class="status-code">${segment.shortLabel}</span>
+            <span class="status-label">${segment.label}</span>
+        </button>
+    `;
+}
+
+function updateStatusPillUI(routeId, status) {
+    const card = document.querySelector(`[data-route-id="${routeId}"]`);
+    if (!card) return;
+
+    const buttons = card.querySelectorAll('.status-pill-button');
+    buttons.forEach(button => {
+        const code = button.getAttribute('data-status-code');
+        const isSelected = code === status;
+        button.setAttribute('aria-pressed', String(isSelected));
+        button.classList.toggle('is-active', isSelected);
+    });
+
+    const pill = card.querySelector('.status-pill');
+    if (pill) {
+        pill.classList.remove(...getAllStatusPillContainerClasses());
+        pill.classList.add(getStatusPillContainerClass(status));
     }
 }
 
@@ -386,14 +485,17 @@ function assignDriver(routeId, driverInfo) {
         return false;
     }
     
-    // Remove driver from any other routes first
+    // Validation: staff cannot be assigned if out-of-service or already assigned in any role
     if (driverInfo) {
-        STATE.data.routes.forEach(r => {
-            if (r.driver && r.driver.name === driverInfo.name) {
-                r.driver = null;
-                r.updatedAt = new Date().toISOString();
-            }
-        });
+        if (STATE.staffOut && STATE.staffOut.some(out => out && out.name === driverInfo.name)) {
+            notify(`Cannot assign ${driverInfo.name}: marked Out of Service.`, 'warning');
+            return false;
+        }
+        const active = findStaffActiveAssignment(driverInfo.name, route.id);
+        if (active) {
+            notify(`${driverInfo.name} is already assigned as ${active.role} on ${active.route.name || active.route.id}. Unassign them first.`, 'warning');
+            return false;
+        }
     }
     
     route.driver = driverInfo;
@@ -413,14 +515,17 @@ function assignAsset(routeId, assetInfo) {
         return false;
     }
     
-    // Remove asset from any other routes first
+    // Validation: asset cannot be assigned if down or already assigned elsewhere
     if (assetInfo) {
-        STATE.data.routes.forEach(r => {
-            if (r.asset && r.asset.number === assetInfo.number) {
-                r.asset = null;
-                r.updatedAt = new Date().toISOString();
-            }
-        });
+        if (isAssetDownByName(assetInfo.name)) {
+            notify(`Cannot assign ${assetInfo.name}: asset is marked Down.`, 'warning');
+            return false;
+        }
+        const active = findAssetActiveAssignment(assetInfo.name, route.id);
+        if (active) {
+            notify(`${assetInfo.name} is already assigned to ${active.route.name || active.route.id}. Unassign it first.`, 'warning');
+            return false;
+        }
     }
     
     route.asset = assetInfo;
@@ -440,14 +545,18 @@ function assignTrailer(routeId, trailerInfo) {
         return false;
     }
     
-    // Remove trailer from any other routes first
+    // Validation: trailer cannot be assigned if down or already assigned elsewhere
     if (trailerInfo) {
-        STATE.data.routes.forEach(r => {
-            if (r.trailer && r.trailer.number === trailerInfo.number) {
-                r.trailer = null;
-                r.updatedAt = new Date().toISOString();
-            }
-        });
+        if (isAssetDownByName(trailerInfo.name)) {
+            notify(`Cannot assign trailer ${trailerInfo.name}: asset is marked Down.`, 'warning');
+            return false;
+        }
+        const active = findAssetActiveAssignment(trailerInfo.name, route.id);
+        if (active) {
+            const target = active.role === 'Trailer' ? 'as a trailer' : 'to another route';
+            notify(`${trailerInfo.name} is already assigned ${target} on ${active.route.name || active.route.id}. Unassign it first.`, 'warning');
+            return false;
+        }
     }
     
     route.trailer = trailerInfo;
@@ -479,13 +588,16 @@ function addSafetyEscort(routeId, escortInfo) {
         return false;
     }
     
-    // Remove escort from other routes
-    STATE.data.routes.forEach(r => {
-        r.safetyEscorts = r.safetyEscorts.filter(escort => escort.name !== escortInfo.name);
-        if (r.safetyEscorts.length !== r.safetyEscorts.length) {
-            r.updatedAt = new Date().toISOString();
-        }
-    });
+    // Validation: escort cannot be out-of-service or assigned elsewhere (driver or escort)
+    if (STATE.staffOut && STATE.staffOut.some(out => out && out.name === escortInfo.name)) {
+        notify(`Cannot assign ${escortInfo.name}: marked Out of Service.`, 'warning');
+        return false;
+    }
+    const active = findStaffActiveAssignment(escortInfo.name, route.id);
+    if (active) {
+        notify(`${escortInfo.name} is already assigned as ${active.role} on ${active.route.name || active.route.id}. Unassign them first.`, 'warning');
+        return false;
+    }
     
     route.safetyEscorts.push(escortInfo);
     route.updatedAt = new Date().toISOString();
@@ -545,6 +657,47 @@ function findRouteById(routeId) {
     return STATE.data.routes.find(route => route.id === routeId);
 }
 
+function resolveRouteFromKey(routeKey) {
+    if (!STATE.data?.routes) return null;
+    if (routeKey === null || routeKey === undefined) return null;
+
+    const rawKey = String(routeKey).trim();
+    if (!rawKey) return null;
+
+    const candidates = new Set([rawKey]);
+
+    if (rawKey.includes('_')) {
+        candidates.add(rawKey.split('_')[0].trim());
+    }
+
+    const digits = rawKey.replace(/[^0-9]/g, '');
+    if (digits) {
+        candidates.add(digits);
+        candidates.add(`route-${digits}`);
+        candidates.add(`Route ${digits}`);
+    }
+
+    for (const candidate of candidates) {
+        const exactMatch = STATE.data.routes.find(route => route.id === candidate);
+        if (exactMatch) return exactMatch;
+    }
+
+    for (const candidate of candidates) {
+        const lowerCandidate = candidate.toLowerCase();
+        const nameMatch = STATE.data.routes.find(route => route.name && route.name.toLowerCase() === lowerCandidate);
+        if (nameMatch) return nameMatch;
+    }
+
+    for (const candidate of candidates) {
+        const digitsOnly = candidate.replace(/[^0-9]/g, '');
+        if (!digitsOnly) continue;
+        const numberMatch = STATE.data.routes.find(route => String(route.routeNumber) === digitsOnly);
+        if (numberMatch) return numberMatch;
+    }
+
+    return null;
+}
+
 function getRoutesByType(routeType) {
     if (!STATE.data?.routes) return [];
     return STATE.data.routes.filter(route => route.type === routeType);
@@ -557,10 +710,15 @@ function getAvailableDrivers() {
     const assignedDrivers = STATE.data.routes
         .map(route => route.driver?.name)
         .filter(Boolean);
+    // Get all assigned safety escorts (cannot be driver simultaneously)
+    const assignedEscorts = STATE.data.routes
+        .flatMap(route => (route.safetyEscorts || []).map(e => e.name))
+        .filter(Boolean);
     
     // Return available staff (not assigned as drivers and not out of service)
     return STATE.data.staff.filter(staff => 
         !assignedDrivers.includes(staff.name) &&
+        !assignedEscorts.includes(staff.name) &&
         !STATE.staffOut.some(out => out.name === staff.name)
     );
 }
@@ -570,15 +728,17 @@ function getAvailableAssets() {
     
     // Get all assigned assets
     const assignedAssets = STATE.data.routes
-        .map(route => route.asset?.number)
+        .map(route => route.asset?.name)
         .filter(Boolean);
     
     // Return available assets (not assigned to routes and NOT trailers)
-    return STATE.data.assets.filter(asset => 
-        !assignedAssets.includes(asset.name) &&
-        asset.status !== 'down' &&
-        !(asset.type && asset.type.toLowerCase().includes('trailer'))
-    );
+    return STATE.data.assets.filter(asset => {
+        const dynamicDown = STATE.assetStatus?.[asset.name] === 'Down';
+        return !assignedAssets.includes(asset.name) &&
+               asset.status !== 'down' &&
+               !dynamicDown &&
+               !(asset.type && asset.type.toLowerCase().includes('trailer'));
+    });
 }
 
 function getAvailableTrailers() {
@@ -586,15 +746,15 @@ function getAvailableTrailers() {
     
     // Get all assigned trailers
     const assignedTrailers = STATE.data.routes
-        .map(route => route.trailer?.number)
+        .map(route => route.trailer?.name)
         .filter(Boolean);
     
     // Return available trailers (trailer type assets not assigned to routes)
-    return STATE.data.assets.filter(asset => 
-        asset.type && asset.type.toLowerCase().includes('trailer') &&
-        !assignedTrailers.includes(asset.name) &&
-        asset.status !== 'down'
-    );
+    return STATE.data.assets.filter(asset => {
+        const isTrailer = asset.type && asset.type.toLowerCase().includes('trailer');
+        const dynamicDown = STATE.assetStatus?.[asset.name] === 'Down';
+        return isTrailer && !assignedTrailers.includes(asset.name) && asset.status !== 'down' && !dynamicDown;
+    });
 }
 
 function getAvailableSafetyEscorts(excludeRouteId = null) {
@@ -619,6 +779,95 @@ function getAvailableSafetyEscorts(excludeRouteId = null) {
 }
 
 // =============================================================================
+// ASSIGNMENT VALIDATION HELPERS
+// =============================================================================
+
+function notify(message, type = 'warning', duration = 3000) {
+    try {
+        if (typeof window !== 'undefined' && window.uiSystem && typeof window.uiSystem.showNotification === 'function') {
+            window.uiSystem.showNotification(message, type, duration);
+        } else {
+            alert(message);
+        }
+    } catch (e) {
+        try { alert(message); } catch (_) {}
+    }
+}
+
+function findStaffActiveAssignment(staffName, currentRouteId = null) {
+    const routes = (STATE.data && Array.isArray(STATE.data.routes)) ? STATE.data.routes : [];
+    for (const r of routes) {
+        if (currentRouteId && r.id === currentRouteId) continue;
+        if (r.driver && r.driver.name === staffName) return { role: 'Driver', route: r };
+        const escorts = Array.isArray(r.safetyEscorts) ? r.safetyEscorts : [];
+        if (escorts.some(e => e && e.name === staffName)) return { role: 'Safety Escort', route: r };
+    }
+    return null;
+}
+
+function isAssetDownByName(assetName) {
+    const dynamicDown = STATE.assetStatus && STATE.assetStatus[assetName] === 'Down';
+    const staticDown = (STATE.data && Array.isArray(STATE.data.assets) ? STATE.data.assets : [])
+        .some(a => a && a.name === assetName && a.status === 'down');
+    return Boolean(dynamicDown || staticDown);
+}
+
+function findAssetActiveAssignment(assetName, currentRouteId = null) {
+    const routes = (STATE.data && Array.isArray(STATE.data.routes)) ? STATE.data.routes : [];
+    for (const r of routes) {
+        if (currentRouteId && r.id === currentRouteId) continue;
+        if (r.asset && r.asset.name === assetName) return { route: r };
+        if (r.trailer && r.trailer.name === assetName) return { route: r, role: 'Trailer' };
+    }
+    return null;
+}
+
+// =============================================================================
+// UNASSIGNMENT HELPERS
+// =============================================================================
+
+function unassignStaffFromRouteByName(route, staffName) {
+    if (!route) return false;
+    let changed = false;
+    if (route.driver && route.driver.name === staffName) {
+        route.driver = null;
+        changed = true;
+        eventBus.emit('routes:driverUnassigned', { routeId: route.id, staffName });
+    }
+    const before = Array.isArray(route.safetyEscorts) ? route.safetyEscorts.length : 0;
+    route.safetyEscorts = (route.safetyEscorts || []).filter(e => e && e.name !== staffName);
+    if (Array.isArray(route.safetyEscorts) && route.safetyEscorts.length !== before) {
+        changed = true;
+        eventBus.emit('routes:safetyEscortRemoved', { routeId: route.id, escortName: staffName });
+    }
+    if (changed) {
+        route.updatedAt = new Date().toISOString();
+        saveToLocalStorage();
+    }
+    return changed;
+}
+
+function unassignAssetByName(route, assetName) {
+    if (!route) return false;
+    let changed = false;
+    if (route.asset && route.asset.name === assetName) {
+        route.asset = null;
+        changed = true;
+        eventBus.emit('routes:assetUnassigned', { routeId: route.id, assetName });
+    }
+    if (route.trailer && route.trailer.name === assetName) {
+        route.trailer = null;
+        changed = true;
+        eventBus.emit('routes:trailerUnassigned', { routeId: route.id, assetName });
+    }
+    if (changed) {
+        route.updatedAt = new Date().toISOString();
+        saveToLocalStorage();
+    }
+    return changed;
+}
+
+// =============================================================================
 // ROUTE CARD RENDERING
 // =============================================================================
 
@@ -627,70 +876,14 @@ function generateRouteCardHtml(route) {
     const isFieldTrip = route.type === 'field-trips';
     const roleAccent = getDriverRoleColorForRoute(route);
     const contrast = computeContrastColors(roleAccent);
+    const statusPillClass = getStatusPillContainerClass(route.status);
     
     return `
        <div class="route-card bg-white rounded-lg shadow-md border p-4 hover:shadow-lg transition-shadow" 
            data-route-id="${route.id}"
            data-route-type="${route.type}"
-           style="background: ${roleAccent}; color: ${contrast.textColor}; border-left:6px solid ${roleAccent}; --panel-bg: ${contrast.panelBg}; --panel-border: ${contrast.panelBorder}; min-height: 400px; width: 300px;">
+           style="background: ${roleAccent}; color: ${contrast.textColor}; border-left:6px solid ${roleAccent}; --panel-bg: ${contrast.panelBg}; --panel-border: ${contrast.panelBorder}; --accent-color: ${roleAccent}; --accent-text-color: ${contrast.textColor}; width: 300px;">
             
-            <!-- Add CSS for collapsed state -->
-            <style>
-                .route-card {
-                    position: relative;
-                    overflow: hidden;
-                    box-sizing: border-box;
-                }
-                /* Keep assignment/asset/escort panels white for readability */
-                .route-card .driver-assignment,
-                .route-card .asset-assignment .flex-1,
-                .route-card .trailer-assignment .flex-1,
-                .route-card .safety-escort-assignment > div,
-                .route-card .notes-section,
-                .route-card .route-actions,
-                .route-card .assignment-section .p-2 {
-                    background: #ffffff !important;
-                    border-color: rgba(0,0,0,0.08) !important;
-                    color: #111827 !important;
-                }
-                .route-card textarea {
-                    background: transparent !important;
-                    color: inherit !important;
-                    border-color: var(--panel-border) !important;
-                }
-                /* Keep form controls white for readability */
-                .route-card input[type="text"],
-                .route-card input[type="number"],
-                .route-card select,
-                .route-card textarea {
-                    background: #ffffff !important;
-                    color: #111827 !important;
-                    border: 1px solid rgba(0,0,0,0.08) !important;
-                }
-                .route-card.collapsed {
-                    min-height: auto !important;
-                    max-width: 300px;
-                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                    border-left: 4px solid #3b82f6;
-                    overflow: visible;
-                }
-                .route-card.collapsed:hover {
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                }
-                .collapsed-summary {
-                    animation: fadeIn 0.3s ease-in-out;
-                    width: 100%;
-                    max-width: calc(300px - 2rem);
-                    box-sizing: border-box;
-                    position: relative;
-                    z-index: 1;
-                }
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(-10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            </style>
             
             <!-- Route Header -->
             <div class="route-header flex items-center justify-between mb-4">
@@ -699,25 +892,31 @@ function generateRouteCardHtml(route) {
                     ${!isFieldTrip ? `
                         <button type="button" class="combine-route-btn" 
                                 onclick="handleCombineRoute('${route.id}', '${route.routeNumber}')"
-                                title="Combine Routes" aria-label="Combine Routes">
-                            <img src="assets/icons/MergeButton.png" class="merge-button-icon header-action-icon" alt="" aria-hidden="true" />
+                                title="Combine Route" aria-label="Combine Route">
+                            <img src="assets/icons/MergeButton.png" class="header-action-icon" alt="" aria-hidden="true" />
                         </button>
                     ` : ''}
-                </div>
-                <div class="flex items-center gap-2">
                     ${isFieldTrip ? `
-                        <button class="delete-field-trip-btn text-red-400 hover:text-red-600 transition-colors" 
+                        <button type="button" class="delete-field-trip-btn"
                                 onclick="handleDeleteFieldTrip('${route.id}')"
-                                title="Delete Field Trip">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84L13.962 3.5H14.5a.5.5 0 0 0 0-1h-1.006a.58.58 0 0 0-.01 0H11ZM10 2.5H6v-1h4v1ZM4.915 3.5l.845 10.58a1 1 0 0 0 .997.92h6.486a1 1 0 0 0 .997-.92L15.085 3.5H4.915Z"/>
-                                <path d="M6.5 5.5a.5.5 0 0 1 1 0v6a.5.5 0 0 1-1 0v-6ZM8 5.5a.5.5 0 0 1 1 0v6a.5.5 0 0 1-1 0v-6ZM9.5 5.5a.5.5 0 0 1 1 0v6a.5.5 0 0 1-1 0v-6Z"/>
-                            </svg>
+                                title="Delete Field Trip" aria-label="Delete Field Trip">
+                            <img src="assets/icons/DeleteButton.png" class="header-action-icon" alt="" aria-hidden="true" />
                         </button>
                     ` : ''}
-                    <button type="button" class="collapse-card-btn text-gray-400 hover:text-gray-600 transition-colors" 
+                    ${!isFieldTrip ? `
+                        <button type="button" class="delete-route-btn"
+                                onclick="handleDeleteRoute('${route.id}')"
+                                title="Delete Route" aria-label="Delete Route">
+                            <img src="assets/icons/DeleteButton.png" class="header-action-icon" alt="" aria-hidden="true" />
+                        </button>
+                    ` : ''}
+            <button type="button" class="collapse-card-btn text-gray-400 hover:text-gray-600 transition-colors" 
+                            data-route-toggle="${route.id}"
+                            aria-expanded="true"
+                            aria-controls="route-content-${route.id}"
+                title="Collapse card"
                             onclick="toggleRouteCard('${route.id}')">
-                        <img src="assets/icons/CollapseButton.png" class="collapse-icon header-action-icon transition-transform" alt="" aria-hidden="true" />
+                        <img src="assets/icons/CollapseButton.png" class="toggle-icon header-action-icon transition-transform" alt="" aria-hidden="true" />
                     </button>
                 </div>
             </div>
@@ -726,26 +925,9 @@ function generateRouteCardHtml(route) {
             <div id="route-content-${route.id}" class="route-card-content">
                 <!-- Status Section -->
                 <div class="status-section mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">STATUS:</label>
-                    <div class="flex justify-between">
-                        <label class="flex flex-col items-center cursor-pointer">
-                            <input type="radio" name="status-${route.id}" value="10-8" 
-                                   class="mb-1" ${route.status === '10-8' ? 'checked' : ''}
-                                   onchange="updateRouteStatus('${route.id}', '10-8')">
-                            <span class="text-xs font-medium text-green-600">10-8</span>
-                        </label>
-                        <label class="flex flex-col items-center cursor-pointer">
-                            <input type="radio" name="status-${route.id}" value="10-7" 
-                                   class="mb-1" ${route.status === '10-7' ? 'checked' : ''}
-                                   onchange="updateRouteStatus('${route.id}', '10-7')">
-                            <span class="text-xs font-medium text-red-600">10-7</span>
-                        </label>
-                        <label class="flex flex-col items-center cursor-pointer">
-                            <input type="radio" name="status-${route.id}" value="10-11" 
-                                   class="mb-1" ${route.status === '10-11' ? 'checked' : ''}
-                                   onchange="updateRouteStatus('${route.id}', '10-11')">
-                            <span class="text-xs font-medium text-orange-600">10-11</span>
-                        </label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">STATUS</label>
+                    <div class="status-pill ${statusPillClass}" role="group" aria-label="Route status">
+                        ${renderStatusSegments(route)}
                     </div>
                     <hr class="mt-3 border-gray-300">
                 </div>
@@ -891,8 +1073,10 @@ function renderRouteCards() {
         // Clean up any duplicate routes before rendering
         deduplicateRoutes();
 
-        // Filter out inactive routes and filter by current view (AM/PM)
+        // Filter out inactive or hidden routes and filter by current view (AM/PM)
         const activeRoutes = STATE.data.routes.filter(route => {
+            // Exclude routes intentionally hidden (e.g., combined into another route)
+            if (route.hidden === true) return false;
             // Exclude inactive routes from dashboard
             if (route.type === 'inactive') return false;
             
@@ -945,7 +1129,7 @@ function renderRouteCards() {
                 <div class="route-type-section mb-8">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                            <span style="color: ${type.color}">${type.icon}</span>
+                            ${renderRouteTypeIcon(type)}
                             ${type.label.toUpperCase()} ROUTES
                             <span class="text-sm font-normal text-gray-500 ml-2">(${routes.length})</span>
                         </h2>
@@ -989,6 +1173,12 @@ function renderRouteCards() {
         
         // Add event listeners
         setupRouteCardEventListeners();
+        
+        // Initialize note tooltips
+        initializeNoteTooltips();
+        
+        // Emit event for other systems
+        eventBus.emit('routes:rendered');
         
         console.log('✅ Route cards rendered successfully');
         
@@ -1093,10 +1283,12 @@ function handleAssignDriver(routeId) {
         items: availableDrivers,
         itemDisplayKey: 'name',
         multiSelect: false,
+        mode: 'driver',
+        routeId,
         onConfirm: (selectedItems) => {
             if (selectedItems.length > 0) {
-                assignDriver(routeId, selectedItems[0]);
-                debounceRender('renderRouteCards');
+                const ok = assignDriver(routeId, selectedItems[0]);
+                if (ok) debounceRender('renderRouteCards');
             }
         }
     });
@@ -1116,10 +1308,12 @@ function handleAssignAsset(routeId) {
         itemDisplayKey: 'name',
         itemIdKey: 'name', // Use name as the unique identifier for assets
         multiSelect: false,
+        mode: 'asset',
+        routeId,
         onConfirm: (selectedItems) => {
             if (selectedItems.length > 0) {
-                assignAsset(routeId, selectedItems[0]);
-                debounceRender('renderRouteCards');
+                const ok = assignAsset(routeId, selectedItems[0]);
+                if (ok) debounceRender('renderRouteCards');
             }
         }
     });
@@ -1144,10 +1338,12 @@ function handleAssignTrailer(routeId) {
         itemDisplayKey: 'name',
         itemIdKey: 'name', // Use name as the unique identifier for trailers
         multiSelect: false,
+        mode: 'trailer',
+        routeId,
         onConfirm: (selectedItems) => {
             if (selectedItems.length > 0) {
-                assignTrailer(routeId, selectedItems[0]);
-                debounceRender('renderRouteCards');
+                const ok = assignTrailer(routeId, selectedItems[0]);
+                if (ok) debounceRender('renderRouteCards');
             }
         }
     });
@@ -1301,12 +1497,15 @@ function handleAddSafetyEscort(routeId) {
         items: availableEscorts,
         itemDisplayKey: 'name',
         multiSelect: true,
+        mode: 'escort',
+        routeId,
         maxSelections: 5,
         onConfirm: (selectedItems) => {
+            let successCount = 0;
             selectedItems.forEach(escort => {
-                addSafetyEscort(routeId, escort);
+                if (addSafetyEscort(routeId, escort)) successCount++;
             });
-            if (selectedItems.length > 0) {
+            if (successCount > 0) {
                 debounceRender('renderRouteCards');
             }
         }
@@ -1360,15 +1559,51 @@ function showSelectionModal(options) {
         
         filteredItems.forEach(item => {
             const isSelected = selectedItems.some(selected => selected[idKey] === item[idKey]);
+            // Determine disabled state based on item type and current assignments/status
+            let isDisabled = false;
+            let disabledReason = '';
+            const name = item.name || '';
+            if (options.mode === 'driver' || options.title.includes('Driver')) {
+                if (STATE.staffOut && STATE.staffOut.some(out => out && out.name === name)) {
+                    isDisabled = true; disabledReason = 'Out of Service';
+                } else {
+                    const active = findStaffActiveAssignment(name);
+                    if (active) { isDisabled = true; disabledReason = `Assigned as ${active.role} (${active.route.name || active.route.id})`; }
+                }
+            } else if (options.mode === 'asset' || options.title.includes('Asset')) {
+                if (isAssetDownByName(name)) {
+                    isDisabled = true; disabledReason = 'Down';
+                } else {
+                    const active = findAssetActiveAssignment(name);
+                    if (active) { isDisabled = true; disabledReason = `Assigned (${active.route.name || active.route.id})`; }
+                }
+            } else if (options.mode === 'trailer' || options.title.includes('Trailer')) {
+                if (isAssetDownByName(name)) {
+                    isDisabled = true; disabledReason = 'Down';
+                } else {
+                    const active = findAssetActiveAssignment(name);
+                    if (active) { isDisabled = true; disabledReason = `Assigned (${active.route.name || active.route.id})`; }
+                }
+            } else if (options.mode === 'escort' || options.title.includes('Safety')) {
+                if (STATE.staffOut && STATE.staffOut.some(out => out && out.name === name)) {
+                    isDisabled = true; disabledReason = 'Out of Service';
+                } else {
+                    const active = findStaffActiveAssignment(name);
+                    if (active) { isDisabled = true; disabledReason = `Assigned as ${active.role} (${active.route.name || active.route.id})`; }
+                }
+            }
             const itemDiv = document.createElement('div');
-            itemDiv.className = `p-3 border rounded cursor-pointer transition-colors ${
-                isSelected 
-                    ? 'bg-blue-100 border-blue-500 text-blue-700' 
-                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+            itemDiv.className = `p-3 border rounded transition-colors ${
+                isDisabled
+                    ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                    : isSelected
+                        ? 'bg-blue-100 border-blue-500 text-blue-700 cursor-pointer'
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100 cursor-pointer'
             }`;
             
             const displayText = item[options.itemDisplayKey] || item.name || item.toString();
-            const subtitle = getItemSubtitle(item);
+            const subtitleBase = getItemSubtitle(item);
+            const subtitle = disabledReason ? `${subtitleBase ? subtitleBase + ' • ' : ''}${disabledReason}` : subtitleBase;
             
             itemDiv.innerHTML = `
                 <div class="flex items-center justify-between">
@@ -1381,6 +1616,7 @@ function showSelectionModal(options) {
             `;
             
             itemDiv.addEventListener('click', () => {
+                if (isDisabled) return; // Ignore clicks on disabled items
                 if (options.multiSelect) {
                     // Multi-select logic
                     if (isSelected) {
@@ -1400,6 +1636,60 @@ function showSelectionModal(options) {
                 renderItems(filteredItems);
                 updateConfirmButton();
             });
+
+            // Provide a quick "Unassign & Assign" action if the item is disabled due to being assigned elsewhere
+            if (isDisabled && disabledReason.startsWith('Assigned')) {
+                const actionsRow = document.createElement('div');
+                actionsRow.className = 'mt-2 flex gap-2';
+                const unassignBtn = document.createElement('button');
+                unassignBtn.type = 'button';
+                unassignBtn.textContent = 'Unassign & Assign';
+                unassignBtn.className = 'px-2 py-1 text-xs rounded bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-300';
+                unassignBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    try {
+                        const active = (options.mode === 'asset' || options.mode === 'trailer')
+                            ? findAssetActiveAssignment(name, options.routeId)
+                            : findStaffActiveAssignment(name, options.routeId);
+                        if (!active || !active.route) return;
+                        // Unassign from the active route
+                        if (options.mode === 'asset' || options.mode === 'trailer') {
+                            unassignAssetByName(active.route, name);
+                        } else {
+                            unassignStaffFromRouteByName(active.route, name);
+                        }
+                        // Assign to the current route
+                        let assigned = false;
+                        if (options.mode === 'asset') {
+                            assigned = assignAsset(options.routeId, item);
+                        } else if (options.mode === 'trailer') {
+                            assigned = assignTrailer(options.routeId, item);
+                        } else if (options.mode === 'driver') {
+                            assigned = assignDriver(options.routeId, item);
+                        } else if (options.mode === 'escort') {
+                            assigned = addSafetyEscort(options.routeId, item);
+                        }
+                        if (assigned) {
+                            // Update UI quickly
+                            debounceRender('renderRouteCards');
+                            // Close modal automatically on single-select modes
+                            if (!options.multiSelect) {
+                                const modal = document.getElementById('assignment-modal');
+                                if (modal) modal.classList.add('hidden');
+                            } else {
+                                // For multi-select, refresh list and selection state
+                                selectedItems = [];
+                                renderItems(options.items);
+                                updateConfirmButton();
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Unassign & Assign failed:', err);
+                    }
+                });
+                actionsRow.appendChild(unassignBtn);
+                itemDiv.appendChild(actionsRow);
+            }
             
             list.appendChild(itemDiv);
         });
@@ -1516,37 +1806,121 @@ function handleEditRoute(routeId) {
 
 function handleDeleteRoute(routeId) {
     console.log('Deleting route:', routeId);
-    if (confirm('Are you sure you want to delete this route?')) {
-        STATE.data.routes = STATE.data.routes.filter(route => route.id !== routeId);
-        saveToLocalStorage();
-        debounceRender('renderRouteCards');
+
+    const route = findRouteById(routeId);
+    if (!route) {
+        alert('Route not found. Please refresh and try again.');
+        return;
     }
+
+    const hasAssignments = Boolean(
+        route.driver ||
+        route.asset ||
+        (route.safetyEscorts && route.safetyEscorts.length > 0) ||
+        route.trailer ||
+        (route.notes && route.notes.trim().length > 0)
+    );
+
+    const childRoutes = Array.isArray(route.combinedChildren)
+        ? route.combinedChildren
+            .map(childId => STATE.data.routes.find(r => r.id === childId))
+            .filter(Boolean)
+        : [];
+
+    const parentRoute = route.combinedInto
+        ? STATE.data.routes.find(r => r.id === route.combinedInto)
+        : null;
+
+    const messageLines = [];
+    const routeLabel = route.name || (route.routeNumber ? `Route ${route.routeNumber}` : 'this route');
+    messageLines.push(`Are you sure you want to delete ${routeLabel}?`);
+
+    if (hasAssignments) {
+        messageLines.push('This will remove its driver, vehicle, escorts, trailer, and notes.');
+    }
+
+    if (childRoutes.length > 0) {
+        const childLabels = childRoutes
+            .map(child => child.name || (child.routeNumber ? `Route ${child.routeNumber}` : child.id))
+            .join('\n• ');
+        messageLines.push(`The following combined routes will be restored as separate cards:\n• ${childLabels}`);
+    }
+
+    if (parentRoute) {
+        const parentLabel = parentRoute.name || (parentRoute.routeNumber ? `Route ${parentRoute.routeNumber}` : parentRoute.id);
+        messageLines.push(`${routeLabel} is currently combined into ${parentLabel} and will be removed from that card.`);
+    }
+
+    messageLines.push('This action cannot be undone.');
+
+    const confirmation = confirm(messageLines.join('\n\n'));
+    if (!confirmation) {
+        return;
+    }
+
+    // Detach from parent route if currently combined
+    if (parentRoute) {
+        detachRouteFromParent(parentRoute, route.id);
+        updatePrimaryRouteCombinationDisplay(parentRoute);
+        parentRoute.updatedAt = new Date().toISOString();
+    }
+
+    // Restore any combined child routes before deletion
+    if (childRoutes.length > 0) {
+        const childIds = [...(route.combinedChildren || [])];
+        childIds.forEach(childId => detachRouteFromParent(route, childId));
+    }
+
+    // Remove any route-specific metadata from global state stores
+    if (STATE.routeStatus && routeId in STATE.routeStatus) {
+        delete STATE.routeStatus[routeId];
+    }
+    if (STATE.routeNotes && routeId in STATE.routeNotes) {
+        delete STATE.routeNotes[routeId];
+    }
+
+    const deletedRouteName = route.name || routeLabel;
+
+    STATE.data.routes = STATE.data.routes.filter(r => r.id !== routeId);
+    saveToLocalStorage();
+    debounceRender('renderRouteCards');
+
+    showTemporaryMessage(`${deletedRouteName} deleted`, 'success');
 }
 
 // Global functions for onclick handlers in HTML
-window.updateRouteStatus = function(routeId, status) {
-    console.log('🔄 Updating route status:', routeId, 'to:', status);
-    const route = findRouteById(routeId);
-    if (route) {
-        console.log('📊 Route found, old status:', route.status, '→ new status:', status);
-        route.status = status;
-        route.updatedAt = new Date().toISOString();
-        saveToLocalStorage();
-        
-        // Update collapsed summary if it exists
-        const card = document.querySelector(`[data-route-id="${routeId}"]`);
-        if (card && card.classList.contains('collapsed')) {
-            console.log('🔄 Updating collapsed summary for route:', routeId);
-            const existingSummary = card.querySelector('.collapsed-summary');
-            if (existingSummary) {
-                existingSummary.remove();
-                createCollapsedSummary(routeId, card);
-            }
-        }
-    } else {
-        console.error('❌ Route not found for status update:', routeId);
+function handleRouteStatusUpdate(routeKey, status) {
+    console.log('🔄 Updating route status:', routeKey, 'to:', status);
+    const route = resolveRouteFromKey(routeKey);
+    if (!route) {
+        console.error('❌ Route not found for status update:', routeKey);
+        return;
     }
-};
+
+    const routeId = route.id;
+    const previousStatus = route.status;
+    if (previousStatus !== status) {
+        console.log('📊 Route found, old status:', previousStatus, '→ new status:', status);
+    }
+
+    route.status = status;
+    route.updatedAt = new Date().toISOString();
+    saveToLocalStorage();
+    updateStatusPillUI(routeId, status);
+
+    const card = document.querySelector(`[data-route-id="${routeId}"]`);
+    if (card && card.classList.contains('collapsed')) {
+        console.log('🔄 Updating collapsed summary for route:', routeId);
+        removeCollapsedSummary(card);
+        createCollapsedSummary(routeId, card);
+    }
+}
+
+window.routeCardsHandleStatusUpdate = handleRouteStatusUpdate;
+
+if (typeof window.updateRouteStatus !== 'function') {
+    window.updateRouteStatus = handleRouteStatusUpdate;
+}
 
 window.updateRouteDestination = function(routeId, destination) {
     console.log('Updating route destination:', routeId, destination);
@@ -1793,45 +2167,98 @@ function checkFieldTripNumbering(autoRenumber = false) {
 // CARD COLLAPSE FUNCTIONALITY
 // =============================================================================
 
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value).replace(/[&<>"']/g, (char) => {
+        switch (char) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#39;';
+            default: return char;
+        }
+    });
+}
+
+function getToggleIconSource(isExpanded) {
+    return isExpanded ? 'assets/icons/CollapseButton.png' : 'assets/icons/ExpandButton.png';
+}
+
+function refreshToggleIcon(icon, src) {
+    // Reset any rotation applied by previous states and refresh the src to bust cache
+    icon.style.transform = '';
+    icon.src = src;
+
+    if (icon.complete) {
+        icon.src = `${src}?v=${Date.now()}`;
+    }
+}
+
+function syncRouteToggleButtons(card, routeId, isExpanded) {
+    const buttons = card.querySelectorAll(`[data-route-toggle="${routeId}"]`);
+    const icons = Array.from(buttons)
+        .map(button => button.querySelector('.toggle-icon'))
+        .filter(Boolean);
+
+    console.log(`🔄 Syncing ${icons.length} toggle button(s) for route ${routeId}, expanded: ${isExpanded}`);
+
+    buttons.forEach(button => {
+        button.title = isExpanded ? 'Collapse card' : 'Expand card';
+        button.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    });
+
+    const newSrc = getToggleIconSource(isExpanded);
+    icons.forEach(icon => refreshToggleIcon(icon, newSrc));
+}
+
+function removeCollapsedSummary(card) {
+    const existingSummary = card.querySelector('.collapsed-summary');
+    if (existingSummary) {
+        existingSummary.remove();
+    }
+}
+
+function getStatusDotColor(status) {
+    switch (status) {
+        case '10-8': return '#16a34a'; // green
+        case '10-7': return '#dc2626'; // red
+        case '10-11': return '#f97316'; // orange
+        default: return '#6b7280'; // gray
+    }
+}
+
 /**
  * Toggle collapse/expand state of a route card
  * @param {string} routeId - The ID of the route card to toggle
  */
 function toggleRouteCard(routeId) {
+    const card = document.querySelector(`.route-card[data-route-id="${routeId}"]`);
     const content = document.getElementById(`route-content-${routeId}`);
-    const button = document.querySelector(`[onclick="toggleRouteCard('${routeId}')"]`);
-    const icon = button?.querySelector('.collapse-icon');
-    const card = content?.closest('.route-card');
     
-    if (!content || !button || !icon || !card) {
+    if (!content || !card) {
         console.error('❌ Could not find route card elements for:', routeId);
         return;
     }
-    
-    const isCollapsed = content.style.display === 'none';
-    
-    if (isCollapsed) {
-        // Expand
-        content.style.display = 'block';
-        icon.style.transform = 'rotate(0deg)';
-        button.title = 'Collapse card';
-        card.classList.remove('collapsed');
-        
-        // Remove collapsed summary if it exists
-        const existingSummary = card.querySelector('.collapsed-summary');
-        if (existingSummary) {
-            existingSummary.remove();
-        }
-    } else {
-        // Collapse
-        content.style.display = 'none';
-        icon.style.transform = 'rotate(-90deg)';
-        button.title = 'Expand card';
+
+    const isCurrentlyCollapsed = card.classList.contains('collapsed');
+
+    // Ensure legacy inline display styles don't interfere
+    content.style.removeProperty('display');
+
+    const shouldCollapse = !isCurrentlyCollapsed;
+
+    if (shouldCollapse) {
         card.classList.add('collapsed');
-        
-        // Add collapsed summary
+        content.hidden = true;
         createCollapsedSummary(routeId, card);
+    } else {
+        card.classList.remove('collapsed');
+        content.hidden = false;
+        removeCollapsedSummary(card);
     }
+
+    syncRouteToggleButtons(card, routeId, !shouldCollapse);
 }
 
 /**
@@ -1845,82 +2272,74 @@ function createCollapsedSummary(routeId, card) {
         console.error('❌ Route not found for collapsed summary:', routeId);
         return;
     }
-    
+
     console.log('📋 Creating collapsed summary for route:', routeId, 'status:', route.status);
-    
-    // Remove any existing summary
-    const existingSummary = card.querySelector('.collapsed-summary');
-    if (existingSummary) {
-        existingSummary.remove();
+
+    removeCollapsedSummary(card);
+
+    const header = card.querySelector('.route-header');
+    if (!header) {
+        console.warn('⚠️ Route card header not found when creating collapsed summary:', routeId);
+        return;
     }
-    
-    // Create summary HTML
+
+    const isFieldTrip = route.type === 'field-trips';
+    const hasNotes = Boolean(route.notes && route.notes.trim());
+    const driverName = route.driver ? escapeHtml(route.driver.name) : 'No driver';
+    const vehicleName = route.asset ? escapeHtml(route.asset.name) : 'No vehicle';
+    const trailerName = isFieldTrip && route.trailer ? escapeHtml(route.trailer.name) : null;
+    const escortCount = Array.isArray(route.safetyEscorts) ? route.safetyEscorts.length : 0;
+
+    const safeRouteId = escapeHtml(route.id);
+    const safeRouteNumber = route.routeNumber ? escapeHtml(route.routeNumber) : '';
+    const routeName = escapeHtml(route.name || 'Unnamed Route');
+    const noteContent = hasNotes ? escapeHtml(route.notes) : '';
+
+    const notesMarkup = hasNotes
+        ? `<span class="note-icon-container" data-note="${noteContent}" title="Click to view note"><img src="assets/icons/NoteButton.png" alt="Notes" class="note-icon" /></span>`
+        : '';
+
+    const trailerMarkup = trailerName
+        ? `<span class="collapsed-summary-trailer">${trailerName}</span>`
+        : '';
+
+    const escortMarkup = escortCount > 0
+        ? `<span class="collapsed-summary-escorts">${escortCount} Escort${escortCount > 1 ? 's' : ''}</span>`
+        : '';
+
+    const actionButtonsHtml = [
+        !isFieldTrip
+            ? `<button type="button" class="collapsed-summary-action-btn" onclick="handleCombineRoute('${safeRouteId}', '${safeRouteNumber}')" title="Combine Route"><img src="assets/icons/MergeButton.png" alt="" /></button>`
+            : '',
+        isFieldTrip
+            ? `<button type="button" class="collapsed-summary-action-btn" onclick="handleDeleteFieldTrip('${safeRouteId}')" title="Delete Field Trip"><img src="assets/icons/DeleteButton.png" alt="" /></button>`
+            : `<button type="button" class="collapsed-summary-action-btn" onclick="handleDeleteRoute('${safeRouteId}')" title="Delete Route"><img src="assets/icons/DeleteButton.png" alt="" /></button>`,
+        `<button type="button" class="collapsed-summary-toggle" data-route-toggle="${safeRouteId}" aria-expanded="false" aria-controls="route-content-${safeRouteId}" title="Expand card" onclick="toggleRouteCard('${safeRouteId}')"><img src="${getToggleIconSource(false)}" class="toggle-icon" alt="" loading="eager" /></button>`
+    ].filter(Boolean).join('');
+
     const summaryHtml = `
-        <div class="collapsed-summary mt-3 p-2 bg-gray-50 rounded border-l-4 border-blue-400" style="width: 100%; max-width: 100%; box-sizing: border-box;">
-            <div class="flex flex-col gap-2 text-sm" style="width: 100%; overflow: hidden;">
-                <!-- Status Row -->
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1 min-w-0 flex-1">
-                        ${route.status && ['10-8', '10-7', '10-11'].includes(route.status) ? `
-                        <span class="text-xs font-medium text-gray-500 shrink-0">Status:</span>
-                        <span class="status-indicator ${getStatusColor(route.status)} px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap">
-                            ${route.status}
-                        </span>
-                        ` : ''}
-                    </div>
-                    ${route.notes && route.notes.trim() ? 
-                        `<div class="flex items-center ml-2">
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" class="text-blue-500">
-                                <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 2.5V13L4.414 10.5A1.5 1.5 0 0 1 5.5 10H14V2H2z"/>
-                                <path d="M3 3.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM3 6a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 6zm0 2.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
-                            </svg>
-                        </div>` : ''
-                    }
+        <div class="collapsed-summary" data-route-id="${safeRouteId}">
+            <div class="collapsed-summary-top-row">
+                <div class="collapsed-summary-route-info">
+                    <span class="collapsed-summary-route-name">${routeName}</span>
+                    ${route.status ? `<span class="collapsed-summary-status-dot" style="background-color: ${getStatusDotColor(route.status)};"></span>` : ''}
                 </div>
-                
-                <!-- Assignments Row -->
-                <div class="flex flex-col gap-1">
-                    <div class="flex items-center gap-1 min-w-0">
-                        <span class="text-xs font-medium text-gray-500 shrink-0">Driver:</span>
-                        <span class="text-xs ${route.driver ? 'text-green-600 font-medium' : 'text-gray-400'} truncate">
-                            ${route.driver ? route.driver.name : 'Not assigned'}
-                        </span>
-                    </div>
-                    
-                    <div class="flex items-center gap-1 min-w-0">
-                        <span class="text-xs font-medium text-gray-500 shrink-0">Vehicle:</span>
-                        <span class="text-xs ${route.asset ? 'text-purple-600 font-medium' : 'text-gray-400'} truncate">
-                            ${route.asset ? route.asset.name : 'Not assigned'}
-                        </span>
-                    </div>
-                    
-                    ${route.type === 'field-trip' && route.trailer ? `
-                    <div class="flex items-center gap-1 min-w-0">
-                        <span class="text-xs font-medium text-gray-500 shrink-0">Trailer:</span>
-                        <span class="text-xs text-orange-600 font-medium truncate">
-                            ${route.trailer.name}
-                        </span>
-                    </div>
-                    ` : ''}
+                <div class="collapsed-summary-top-actions">
+                    ${actionButtonsHtml}
                 </div>
-                
-                <!-- Indicators Row -->
-                ${route.safetyEscorts && route.safetyEscorts.length > 0 ? `
-                <div class="flex items-center gap-2 mt-1">
-                    <span class="bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap">
-                        ${route.safetyEscorts.length} Escort${route.safetyEscorts.length > 1 ? 's' : ''}
-                    </span>
-                </div>
-                ` : ''}
+            </div>
+            <div class="collapsed-summary-bottom-row">
+                <span class="collapsed-summary-driver ${route.driver ? 'assigned' : 'unassigned'}">${driverName}</span>
+                <span class="collapsed-summary-asset ${route.asset ? 'assigned' : 'unassigned'}">${vehicleName}</span>
+                ${notesMarkup}
+                ${trailerMarkup}
+                ${escortMarkup}
+                <button type="button" class="collapsed-summary-reset" onclick="handleResetCard('${safeRouteId}')">Reset</button>
             </div>
         </div>
     `;
-    
-    // Insert summary after the route header
-    const header = card.querySelector('.route-header');
-    if (header) {
-        header.insertAdjacentHTML('afterend', summaryHtml);
-    }
+
+    header.insertAdjacentHTML('afterend', summaryHtml);
 }
 
 /**
@@ -1956,12 +2375,8 @@ function toggleSection(sectionId) {
     // Check if any cards are expanded (have visible content)
     let hasExpandedCards = false;
     routeCards.forEach(card => {
-        const routeId = card.dataset.routeId;
-        if (routeId) {
-            const content = document.getElementById(`route-content-${routeId}`);
-            if (content && content.style.display !== 'none') {
-                hasExpandedCards = true;
-            }
+        if (!card.classList.contains('collapsed')) {
+            hasExpandedCards = true;
         }
     });
     
@@ -1971,20 +2386,8 @@ function toggleSection(sectionId) {
         
         routeCards.forEach(card => {
             const routeId = card.dataset.routeId;
-            if (routeId) {
-                const content = document.getElementById(`route-content-${routeId}`);
-                const collapseBtn = card.querySelector('.collapse-card-btn');
-                const icon = collapseBtn?.querySelector('.collapse-icon');
-                
-                if (content && content.style.display !== 'none') {
-                    // Collapse this individual card
-                    content.style.display = 'none';
-                    if (icon) icon.style.transform = 'rotate(-90deg)';
-                    card.classList.add('collapsed');
-                    
-                    // Add collapsed summary
-                    createCollapsedSummary(routeId, card);
-                }
+            if (routeId && !card.classList.contains('collapsed')) {
+                toggleRouteCard(routeId);
             }
         });
     } else {
@@ -1993,25 +2396,149 @@ function toggleSection(sectionId) {
         
         routeCards.forEach(card => {
             const routeId = card.dataset.routeId;
-            if (routeId) {
-                const content = document.getElementById(`route-content-${routeId}`);
-                const collapseBtn = card.querySelector('.collapse-card-btn');
-                const icon = collapseBtn?.querySelector('.collapse-icon');
-                
-                if (content && content.style.display === 'none') {
-                    // Expand this individual card
-                    content.style.display = 'block';
-                    if (icon) icon.style.transform = 'rotate(0deg)';
-                    card.classList.remove('collapsed');
-                    
-                    // Remove collapsed summary
-                    const existingSummary = card.querySelector('.collapsed-summary');
-                    if (existingSummary) existingSummary.remove();
-                }
+            if (routeId && card.classList.contains('collapsed')) {
+                toggleRouteCard(routeId);
             }
         });
     }
 }
+
+// =============================================================================
+// NOTE TOOLTIP FUNCTIONALITY
+// =============================================================================
+
+/**
+ * Initialize note tooltip functionality for all note icons
+ */
+function initializeNoteTooltips() {
+    // Remove existing listeners to prevent duplicates
+    document.removeEventListener('mouseover', handleNoteIconHover);
+    document.removeEventListener('mouseout', handleNoteIconLeave);
+    
+    // Add event listeners using event delegation
+    document.addEventListener('mouseover', handleNoteIconHover);
+    document.addEventListener('mouseout', handleNoteIconLeave);
+}
+
+/**
+ * Handle hover over note icon
+ */
+function handleNoteIconHover(event) {
+    const noteIcon = event.target.closest('.note-icon-container');
+    if (!noteIcon) return;
+    
+    const noteContent = noteIcon.getAttribute('data-note');
+    if (!noteContent) return;
+    
+    showNoteTooltip(noteIcon, noteContent);
+}
+
+/**
+ * Handle mouse leave from note icon
+ */
+function handleNoteIconLeave(event) {
+    const noteIcon = event.target.closest('.note-icon-container');
+    if (!noteIcon) return;
+    
+    hideNoteTooltip();
+}
+
+/**
+ * Show note tooltip with smart positioning
+ */
+function showNoteTooltip(container, noteContent) {
+    // Remove any existing tooltip
+    hideNoteTooltip();
+    
+    // Create tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.className = 'note-tooltip';
+    tooltip.id = 'note-tooltip';
+    tooltip.textContent = noteContent;
+    
+    // Add to container
+    container.appendChild(tooltip);
+    
+    // Calculate best position
+    const containerRect = container.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    let position = 'top'; // default
+    let left = 0;
+    let top = 0;
+    
+    // Determine best vertical position
+    const spaceAbove = containerRect.top;
+    const spaceBelow = viewportHeight - containerRect.bottom;
+    const tooltipHeight = tooltipRect.height || 60; // estimate if not available
+    
+    if (spaceAbove >= tooltipHeight + 10) {
+        position = 'top';
+        top = -tooltipHeight - 12;
+    } else if (spaceBelow >= tooltipHeight + 10) {
+        position = 'bottom';
+        top = container.offsetHeight + 12;
+    } else {
+        // Use side positioning if not enough vertical space
+        const spaceLeft = containerRect.left;
+        const spaceRight = viewportWidth - containerRect.right;
+        const tooltipWidth = tooltipRect.width || 200; // estimate
+        
+        if (spaceRight >= tooltipWidth + 10) {
+            position = 'right';
+            left = container.offsetWidth + 12;
+            top = -container.offsetHeight / 2;
+        } else if (spaceLeft >= tooltipWidth + 10) {
+            position = 'left';
+            left = -tooltipWidth - 12;
+            top = -container.offsetHeight / 2;
+        } else {
+            // Fallback to top with adjusted position
+            position = 'top';
+            top = -tooltipHeight - 12;
+        }
+    }
+    
+    // For top/bottom positioning, center horizontally
+    if (position === 'top' || position === 'bottom') {
+        left = (container.offsetWidth / 2) - (tooltipRect.width / 2);
+        
+        // Adjust if tooltip would go off screen horizontally
+        const tooltipLeft = containerRect.left + left;
+        const tooltipRight = tooltipLeft + tooltipRect.width;
+        
+        if (tooltipLeft < 10) {
+            left = 10 - containerRect.left;
+        } else if (tooltipRight > viewportWidth - 10) {
+            left = (viewportWidth - 10) - containerRect.left - tooltipRect.width;
+        }
+    }
+    
+    // Apply positioning
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+    tooltip.classList.add(`position-${position}`);
+    
+    // Show tooltip with animation
+    requestAnimationFrame(() => {
+        tooltip.classList.add('visible');
+    });
+}
+
+/**
+ * Hide note tooltip
+ */
+function hideNoteTooltip() {
+    const tooltip = document.getElementById('note-tooltip');
+    if (tooltip) {
+        tooltip.remove();
+    }
+}
+
+// Initialize tooltips when route cards are rendered
+eventBus.on('routes:rendered', initializeNoteTooltips);
 
 window.handleAssignDriver = handleAssignDriver;
 window.handleAssignAsset = handleAssignAsset;
@@ -2539,135 +3066,287 @@ export {
 
 // Route combining functionality
 function handleCombineRoute(routeId, routeNumber) {
-    console.log(`🔀 Initiating route combination for Route ${routeNumber}`);
-    
-    // Get all available routes for combining (excluding the current route)
-    const availableRoutes = STATE.data.routes.filter(route => 
-        route.id !== routeId && 
-        route.type !== 'field-trips' && 
-        route.routeNumber !== routeNumber
-    );
-    
-    if (availableRoutes.length === 0) {
-        alert('No other routes available for combining.');
+    console.log(`🔀 Opening route combination modal for Route ${routeNumber}`);
+
+    if (!Array.isArray(STATE.data?.routes)) {
+        alert('Route data is unavailable. Please try again after reloading the dashboard.');
         return;
     }
-    
-    // Create and show route selection modal
-    showRouteCombineModal(routeId, routeNumber, availableRoutes);
+
+    const sourceRoute = STATE.data.routes.find(route => route.id === routeId);
+    if (!sourceRoute) {
+        alert('Route not found. Please refresh and try again.');
+        return;
+    }
+
+    initializeRouteCombinationMetadata(sourceRoute);
+
+    // Include routes that are not field trips and either uncombined or already combined into this source route
+    const candidateRoutes = STATE.data.routes
+        .filter(route => route.id !== routeId && route.type !== 'field-trips')
+        .filter(route => !route.combinedInto || route.combinedInto === sourceRoute.id);
+
+    if (candidateRoutes.length === 0) {
+        alert('No other routes are available to combine right now.');
+        return;
+    }
+
+    showRouteCombineModal(sourceRoute, candidateRoutes);
 }
 
-function showRouteCombineModal(sourceRouteId, sourceRouteNumber, availableRoutes) {
+function initializeRouteCombinationMetadata(route) {
+    if (!route) return;
+    if (!route.baseName) {
+        const fallback = route.routeNumber ? `Route ${route.routeNumber}` : (route.name || 'Route');
+        route.baseName = route.name || fallback;
+    }
+    if (route.combinedWith) {
+        delete route.combinedWith;
+    }
+    if (!Array.isArray(route.combinedChildren)) {
+        route.combinedChildren = [];
+    }
+    if (!route.combinationDetails) {
+        route.combinationDetails = {};
+    }
+}
+
+function showRouteCombineModal(sourceRoute, availableRoutes) {
     const modal = document.createElement('div');
     modal.id = 'route-combine-modal';
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-    
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+
+    const selectedIds = new Set(sourceRoute.combinedChildren || []);
+    const sortedRoutes = [...availableRoutes].sort(sortRoutesByNumber);
+
     modal.innerHTML = `
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-96 overflow-hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-xl w-full mx-4 max-h-[80vh] overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Combine Route ${sourceRouteNumber}</h3>
-                <p class="text-sm text-gray-600 mt-1">Select a route to combine with Route ${sourceRouteNumber}</p>
+                <h3 class="text-lg font-semibold text-gray-900">Combine Routes for ${sourceRoute.baseName || sourceRoute.name}</h3>
+                <p class="text-sm text-gray-600 mt-1">Select one or more routes to merge into this card. Unchecking a route will restore it as a separate card.</p>
             </div>
             
-            <div class="px-6 py-4 max-h-64 overflow-y-auto">
+            <div class="px-6 py-4 max-h-[55vh] overflow-y-auto">
                 <div class="space-y-2">
-                    ${availableRoutes.map(route => `
-                        <label class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <input type="radio" name="target-route" value="${route.id}" class="mr-3">
-                            <div class="flex-1">
-                                <div class="font-medium">Route ${route.routeNumber}</div>
-                                <div class="text-sm text-gray-600">${route.name || 'Unnamed Route'}</div>
-                                ${route.driver ? `<div class="text-xs text-gray-500">Driver: ${route.driver.name}</div>` : ''}
-                            </div>
-                        </label>
-                    `).join('')}
+                    ${sortedRoutes.map(route => {
+                        const isSelected = selectedIds.has(route.id);
+                        const isDisabled = route.combinedInto && route.combinedInto !== sourceRoute.id;
+                        const checkboxAttributes = [
+                            'type="checkbox"',
+                            'name="target-route"',
+                            `value="${route.id}"`,
+                            isSelected ? 'checked' : '',
+                            isDisabled ? 'disabled' : ''
+                        ].filter(Boolean).join(' ');
+                        const combinedBadge = route.combinedInto && route.combinedInto !== sourceRoute.id
+                            ? '<div class="text-xs text-red-500">Already combined with another route</div>'
+                            : '';
+                        return `
+                            <label class="flex items-start gap-3 p-3 rounded-lg border ${isSelected ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-gray-50'} hover:bg-gray-100 transition-colors cursor-pointer">
+                                <input ${checkboxAttributes} class="mt-1">
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium text-gray-900">Route ${route.routeNumber || route.name || route.id}</div>
+                                    <div class="text-sm text-gray-600 truncate">${route.name || 'Unnamed Route'}</div>
+                                    ${route.driver ? `<div class="text-xs text-gray-500 mt-1">Driver: ${route.driver.name}</div>` : ''}
+                                    ${combinedBadge}
+                                </div>
+                            </label>
+                        `;
+                    }).join('')}
                 </div>
             </div>
             
-            <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center gap-3">
                 <button type="button" onclick="closeRouteCombineModal()" 
                         class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
                     Cancel
                 </button>
-                <button type="button" onclick="confirmRouteCombination('${sourceRouteId}', '${sourceRouteNumber}')" 
-                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                    <span class="mr-2">🔀</span>Combine Routes
+                <button type="button" onclick="applyRouteCombinationSelections('${sourceRoute.id}')" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    Save &amp; Apply
                 </button>
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
+
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeRouteCombineModal();
+        }
+    });
+
+    // Focus first checkbox for accessibility
+    requestAnimationFrame(() => {
+        const firstCheckbox = modal.querySelector('input[name="target-route"]');
+        if (firstCheckbox) {
+            firstCheckbox.focus();
+        }
+    });
 }
 
-function confirmRouteCombination(sourceRouteId, sourceRouteNumber) {
-    const selectedTarget = document.querySelector('input[name="target-route"]:checked');
-    
-    if (!selectedTarget) {
-        alert('Please select a route to combine with.');
+function sortRoutesByNumber(a, b) {
+    const labelA = a.routeNumber || a.name || '';
+    const labelB = b.routeNumber || b.name || '';
+    const numA = parseInt(labelA, 10);
+    const numB = parseInt(labelB, 10);
+
+    if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+        return numA - numB;
+    }
+
+    return String(labelA).localeCompare(String(labelB), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function applyRouteCombinationSelections(sourceRouteId) {
+    const modal = document.getElementById('route-combine-modal');
+    if (!modal) {
+        console.error('Route combine modal not found when attempting to apply selections.');
         return;
     }
-    
-    const targetRouteId = selectedTarget.value;
-    const targetRoute = STATE.data.routes.find(r => r.id === targetRouteId);
-    const sourceRoute = STATE.data.routes.find(r => r.id === sourceRouteId);
-    
-    if (!targetRoute || !sourceRoute) {
-        alert('Error: Could not find selected routes.');
+
+    const selectedIds = Array.from(modal.querySelectorAll('input[name="target-route"]:checked'))
+        .map(input => input.value);
+
+    applyRouteCombinationChanges(sourceRouteId, selectedIds);
+}
+
+function applyRouteCombinationChanges(sourceRouteId, selectedIds) {
+    if (!Array.isArray(STATE.data?.routes)) {
+        alert('Route data is unavailable. Please try again later.');
         return;
     }
-    
-    // Create combined route name
-    const combinedName = `Route ${sourceRouteNumber} + ${targetRoute.routeNumber}`;
-    
-    // Update source route with combined information
-    sourceRoute.name = combinedName;
-    sourceRoute.combinedWith = targetRoute.routeNumber;
-    
-    // Add a note about the combination
-    const combinationNote = `Combined with Route ${targetRoute.routeNumber} on ${new Date().toLocaleDateString()}`;
-    if (sourceRoute.notes) {
-        sourceRoute.notes += `\n${combinationNote}`;
-    } else {
-        sourceRoute.notes = combinationNote;
+
+    const sourceRoute = STATE.data.routes.find(route => route.id === sourceRouteId);
+    if (!sourceRoute) {
+        alert('Route not found. Please refresh and try again.');
+        return;
     }
-    
-    // If target route had assignments, merge them
-    if (targetRoute.driver && !sourceRoute.driver) {
-        sourceRoute.driver = targetRoute.driver;
-    }
-    if (targetRoute.asset && !sourceRoute.asset) {
-        sourceRoute.asset = targetRoute.asset;
-    }
-    
-    // Remove the target route from active routes (or mark it as combined)
-    const targetIndex = STATE.data.routes.findIndex(r => r.id === targetRouteId);
-    if (targetIndex !== -1) {
-        STATE.data.routes.splice(targetIndex, 1);
-    }
-    
-    // Save state and refresh display
+
+    initializeRouteCombinationMetadata(sourceRoute);
+
+    const previousSet = new Set(sourceRoute.combinedChildren || []);
+    const nextSet = new Set(selectedIds);
+
+    const toAdd = [...nextSet].filter(id => !previousSet.has(id));
+    const toRemove = [...previousSet].filter(id => !nextSet.has(id));
+
+    toAdd.forEach(childId => attachRouteToParent(sourceRoute, childId));
+    toRemove.forEach(childId => detachRouteFromParent(sourceRoute, childId));
+
+    updatePrimaryRouteCombinationDisplay(sourceRoute);
+
+    sourceRoute.updatedAt = new Date().toISOString();
     saveToLocalStorage();
     renderRouteCards();
-    
     closeRouteCombineModal();
-    
-    console.log(`✅ Combined Route ${sourceRouteNumber} with Route ${targetRoute.routeNumber}`);
-    
-    // Show success message
-    const notification = document.createElement('div');
-    notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-    notification.innerHTML = `
-        <div class="flex items-center">
-            <span class="mr-2">✅</span>
-            Successfully combined Route ${sourceRouteNumber} with Route ${targetRoute.routeNumber}
-        </div>
-    `;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
+
+    showTemporaryMessage(`Updated combined routes for ${sourceRoute.name}`, 'success');
+}
+
+function attachRouteToParent(sourceRoute, childId) {
+    const childRoute = STATE.data.routes.find(route => route.id === childId);
+    if (!childRoute) {
+        console.warn('Cannot combine routes: target route not found', childId);
+        return;
+    }
+
+    if (childRoute.combinedInto && childRoute.combinedInto !== sourceRoute.id) {
+        console.warn(`Route ${childRoute.routeNumber} is already combined with another route.`);
+        return;
+    }
+
+    initializeRouteCombinationMetadata(sourceRoute);
+
+    if (!sourceRoute.combinedChildren.includes(childId)) {
+        sourceRoute.combinedChildren.push(childId);
+    }
+
+    const noteText = generateCombinationNote(childRoute);
+    if (!sourceRoute.combinationDetails) {
+        sourceRoute.combinationDetails = {};
+    }
+
+    const previousNote = sourceRoute.combinationDetails[childId];
+    if (previousNote && previousNote !== noteText) {
+        removeCombinationNoteFromRoute(sourceRoute, previousNote);
+    }
+
+    sourceRoute.combinationDetails[childId] = noteText;
+    ensureCombinationNoteOnRoute(sourceRoute, noteText);
+
+    childRoute.combinedInto = sourceRoute.id;
+    childRoute.hidden = true;
+    childRoute.hiddenReason = 'combined';
+    childRoute.hiddenAt = new Date().toISOString();
+    childRoute.updatedAt = new Date().toISOString();
+}
+
+function detachRouteFromParent(sourceRoute, childId) {
+    const childRoute = STATE.data.routes.find(route => route.id === childId);
+    if (!childRoute) {
+        console.warn('Cannot uncombine routes: target route not found', childId);
+        return;
+    }
+
+    sourceRoute.combinedChildren = (sourceRoute.combinedChildren || []).filter(id => id !== childId);
+
+    if (sourceRoute.combinationDetails && sourceRoute.combinationDetails[childId]) {
+        removeCombinationNoteFromRoute(sourceRoute, sourceRoute.combinationDetails[childId]);
+        delete sourceRoute.combinationDetails[childId];
+    }
+
+    childRoute.hidden = false;
+    childRoute.hiddenReason = null;
+    childRoute.hiddenAt = null;
+    childRoute.combinedInto = null;
+    childRoute.updatedAt = new Date().toISOString();
+}
+
+function updatePrimaryRouteCombinationDisplay(route) {
+    if (!route) return;
+    initializeRouteCombinationMetadata(route);
+
+    const childRoutes = (route.combinedChildren || [])
+        .map(childId => STATE.data.routes.find(r => r.id === childId))
+        .filter(Boolean);
+
+    if (childRoutes.length === 0) {
+        route.name = route.baseName;
+        return;
+    }
+
+    const sortedChildren = childRoutes.slice().sort(sortRoutesByNumber);
+    const childNames = sortedChildren.map(child => child.name || (child.routeNumber ? `Route ${child.routeNumber}` : child.id));
+
+    route.name = `${route.baseName} + ${childNames.join(' + ')}`;
+}
+
+function generateCombinationNote(route) {
+    const label = route.routeNumber ? `Route ${route.routeNumber}` : (route.name || route.id);
+    return `Combined with ${label} on ${new Date().toLocaleString()}`;
+}
+
+function ensureCombinationNoteOnRoute(route, noteText) {
+    const currentNotes = route.notes || '';
+    const lines = currentNotes.split('\n');
+    const alreadyPresent = lines.some(line => line.trim() === noteText);
+    if (alreadyPresent) return;
+
+    route.notes = currentNotes.trim().length > 0
+        ? `${currentNotes.trimEnd()}\n${noteText}`
+        : noteText;
+}
+
+function removeCombinationNoteFromRoute(route, noteText) {
+    if (!route.notes) return;
+    const filteredLines = route.notes
+        .split('\n')
+        .filter(line => line.trim() !== noteText);
+    route.notes = filteredLines.join('\n').trim();
 }
 
 function closeRouteCombineModal() {
@@ -2679,5 +3358,6 @@ function closeRouteCombineModal() {
 
 // Make functions globally available for onclick handlers
 window.handleCombineRoute = handleCombineRoute;
-window.confirmRouteCombination = confirmRouteCombination;
+window.applyRouteCombinationSelections = applyRouteCombinationSelections;
 window.closeRouteCombineModal = closeRouteCombineModal;
+window.handleDeleteRoute = handleDeleteRoute;

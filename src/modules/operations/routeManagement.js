@@ -471,6 +471,11 @@ window.resetFieldTrip = (fieldTripId) => routeManagementOperations.resetFieldTri
 window.updateFieldTripDestination = (fieldTripId, destination) => routeManagementOperations.updateFieldTripDestination(fieldTripId, destination);
 window.updateRouteNote = (runKey, note) => routeManagementOperations.updateRouteNote(runKey, note);
 window.updateFieldTripNote = (fieldTripId, note) => routeManagementOperations.updateFieldTripNote(fieldTripId, note);
-window.updateRouteStatus = (runKey, status) => routeManagementOperations.updateRouteStatus(runKey, status);
+window.updateRouteStatus = (runKey, status) => {
+  routeManagementOperations.updateRouteStatus(runKey, status);
+  if (typeof window.routeCardsHandleStatusUpdate === 'function') {
+    window.routeCardsHandleStatusUpdate(runKey, status);
+  }
+};
 
 export { routeManagementOperations };

@@ -35,6 +35,298 @@
   transform: translateY(-1px);
 }
 
+/* Collapsed route card should shrink to content height */
+.route-card.collapsed {
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #111827;
+}
+.large-screen .route-card.collapsed { min-height: 0 !important; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .route-card.collapsed { min-height: 0 !important; }
+}
+@media (max-width: 767px) {
+  .route-card.collapsed { min-height: 0 !important; }
+}
+
+.route-card.collapsed .route-header {
+  display: none;
+}
+
+.route-card.collapsed .route-card-content {
+  display: none !important;
+}
+
+.route-card.collapsed .collapse-card-btn {
+  display: none;
+}
+
+.collapsed-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border-radius: 12px;
+  border: 1px solid var(--panel-border, #d1d5db);
+  border-left-width: 6px;
+  border-left-style: solid;
+  border-left-color: var(--accent-color, #3b82f6);
+  background: var(--panel-bg, #f9fafb);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  color: #1f2937;
+}
+
+/* Top Row: Route # + Status Dot + Action Buttons */
+.collapsed-summary-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.collapsed-summary-route-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.collapsed-summary-route-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.collapsed-summary-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.collapsed-summary-top-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+/* Bottom Row: Driver + Asset + Notes */
+.collapsed-summary-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.collapsed-summary-driver,
+.collapsed-summary-asset {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.collapsed-summary-driver.assigned,
+.collapsed-summary-asset.assigned {
+  color: #059669;
+  font-weight: 600;
+}
+
+.collapsed-summary-driver.unassigned,
+.collapsed-summary-asset.unassigned {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.collapsed-summary-trailer,
+.collapsed-summary-escorts {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #059669;
+  background: rgba(5, 150, 105, 0.1);
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+}
+
+.collapsed-summary-notes {
+  font-size: 0.875rem;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+  padding: 0.125rem 0.25rem;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.note-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.note-icon-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tooltip styles */
+.note-tooltip {
+  position: absolute;
+  background: #1f2937;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 250px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.note-tooltip.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Tooltip arrow */
+.note-tooltip::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+}
+
+/* Arrow positioning classes will be added dynamically by JavaScript */
+.note-tooltip.position-top::before {
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: #1f2937;
+}
+
+.note-tooltip.position-bottom::before {
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: #1f2937;
+}
+
+.note-tooltip.position-left::before {
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: #1f2937;
+}
+
+.note-tooltip.position-right::before {
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: #1f2937;
+}
+
+/* Action Buttons - Base Styles */
+.collapsed-summary-toggle,
+.collapsed-summary-action-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  min-height: 32px !important;
+}
+
+/* Action Buttons - Transparent Background */
+.collapsed-summary-action-btn {
+  background: transparent !important;
+}
+
+/* Toggle Button - Blue Background */
+.collapsed-summary-toggle {
+  background: var(--accent-color, #3b82f6) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
+}
+
+.collapsed-summary-toggle:hover,
+.collapsed-summary-toggle:focus-visible {
+  transform: scale(1.05);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.16);
+  outline: none;
+}
+
+.collapsed-summary-action-btn:hover,
+.collapsed-summary-action-btn:focus-visible {
+  opacity: 0.7;
+  outline: none;
+}
+
+.collapsed-summary-toggle .toggle-icon {
+  display: block !important;
+  width: 24px !important;
+  height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
+  filter: brightness(0) invert(1) !important;
+  transition: transform 0.3s ease;
+  transform: rotate(-90deg) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  object-fit: contain !important;
+  /* Fallback if image fails to load */
+  background-image: url('/assets/icons/CollapseButton.png') !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+}
+
+.collapsed-summary-action-btn img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 24px;
+  max-height: 24px;
+  object-fit: contain;
+}
+
+.collapsed-summary-reset {
+  margin-left: auto;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.collapsed-summary-reset:hover,
+.collapsed-summary-reset:focus-visible {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+  outline: none;
+}
+
 /* ==========================================================================
    RESPONSIVE ROUTE CARD SIZING
    ========================================================================== */
@@ -156,7 +448,9 @@
 }
 
 .route-card .combine-route-btn,
-.route-card .collapse-card-btn {
+.route-card .collapse-card-btn,
+.route-card .delete-route-btn,
+.route-card .delete-field-trip-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -165,6 +459,7 @@
   padding: 0;
   border: none;
   background: transparent;
+  cursor: pointer;
 }
 
 .route-card .header-action-icon {
@@ -176,7 +471,128 @@
   object-fit: contain;
 }
 
-.route-card .collapse-card-btn .collapse-icon {
+.route-type-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+  object-fit: contain;
+}
+
+.route-type-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.status-pill {
+  --pill-bg: #f9fafb;
+  --pill-border: #d1d5db;
+  --pill-divider: #e5e7eb;
+  --pill-text: #6b7280;
+  --pill-hover-bg: #f3f4f6;
+  --pill-hover-text: #374151;
+  --pill-active-bg: #e5e7eb;
+  --pill-active-text: #111827;
+  --pill-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  display: flex;
+  border: 1px solid var(--pill-border);
+  border-radius: 9999px;
+  overflow: hidden;
+  background: var(--pill-bg);
+  box-shadow: var(--pill-shadow);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-pill-button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.55rem 0.75rem;
+  text-align: center;
+  color: var(--pill-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-pill-button + .status-pill-button {
+  border-left: 1px solid var(--pill-divider);
+}
+
+.status-pill-button:hover {
+  background: var(--pill-hover-bg);
+  color: var(--pill-hover-text);
+}
+
+.status-pill-button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+.status-pill-button .status-code {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-pill-button .status-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.status-pill-button.is-active {
+  font-weight: 700;
+  background: var(--pill-active-bg);
+  color: var(--pill-active-text);
+  box-shadow: inset 0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+.status-pill.status-pill-10-8 {
+  --pill-bg: #16a34a;
+  --pill-border: #15803d;
+  --pill-divider: rgba(255, 255, 255, 0.28);
+  --pill-text: rgba(255, 255, 255, 0.82);
+  --pill-hover-bg: rgba(255, 255, 255, 0.2);
+  --pill-hover-text: #ffffff;
+  --pill-active-bg: rgba(255, 255, 255, 0.24);
+  --pill-active-text: #ffffff;
+  --pill-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.status-pill.status-pill-10-7 {
+  --pill-bg: #dc2626;
+  --pill-border: #b91c1c;
+  --pill-divider: rgba(255, 255, 255, 0.28);
+  --pill-text: rgba(255, 255, 255, 0.82);
+  --pill-hover-bg: rgba(255, 255, 255, 0.2);
+  --pill-hover-text: #ffffff;
+  --pill-active-bg: rgba(255, 255, 255, 0.24);
+  --pill-active-text: #ffffff;
+  --pill-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.status-pill.status-pill-10-11 {
+  --pill-bg: #f97316;
+  --pill-border: #ea580c;
+  --pill-divider: rgba(255, 255, 255, 0.28);
+  --pill-text: rgba(255, 255, 255, 0.85);
+  --pill-hover-bg: rgba(255, 255, 255, 0.2);
+  --pill-hover-text: #ffffff;
+  --pill-active-bg: rgba(255, 255, 255, 0.26);
+  --pill-active-text: #ffffff;
+  --pill-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.route-card .collapse-card-btn .toggle-icon {
   max-width: 26px;
   max-height: 26px;
 }

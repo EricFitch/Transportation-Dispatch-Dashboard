@@ -61,9 +61,10 @@
 
 /* Responsive sidebar with auto-hide functionality */
 .responsive-sidebar {
-  flex: 0 0 var(--sidebar-width, clamp(280px, 20vw, 400px));
-  width: var(--sidebar-width, clamp(280px, 20vw, 400px));
-  min-width: 240px;
+  /* Base, non-hovered width uses CSS var with sensible bounds */
+  flex: 0 0 var(--sidebar-width, clamp(320px, 22vw, 520px));
+  width: var(--sidebar-width, clamp(320px, 22vw, 520px));
+  min-width: 300px;
   max-width: 100%;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), flex 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -94,20 +95,39 @@
 }
 
 /* Expand on hover/focus */
+@supports (scrollbar-width: auto) {
+  .responsive-sidebar.auto-hide-enabled:hover,
+  .responsive-sidebar.auto-hide-enabled:focus-within,
+  .responsive-sidebar.auto-hide-enabled.mobile-expanded {
+    scrollbar-width: auto; /* Firefox */
+  }
+}
+
 .responsive-sidebar.auto-hide-enabled:hover,
 .responsive-sidebar.auto-hide-enabled:focus-within,
 .responsive-sidebar.auto-hide-enabled.mobile-expanded {
-  flex: 0 0 var(--sidebar-width, clamp(320px, 25vw, 450px)) !important;
-  width: var(--sidebar-width, clamp(320px, 25vw, 450px)) !important;
-  min-width: 320px !important;
-  max-width: 450px !important;
+  /* Expanded/visible width: wider so headings fit on one line */
+  flex: 0 0 var(--sidebar-width, clamp(420px, 26vw, 560px)) !important;
+  width: var(--sidebar-width, clamp(420px, 26vw, 560px)) !important;
+  min-width: 420px !important;
+  max-width: 560px !important;
   padding: 0.5rem 0.5rem 0.5rem 0.7rem !important;
   overflow-y: auto;
+  -ms-overflow-style: auto; /* IE/Edge */
   border-left: 1.5px solid #e5e7eb !important;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15) !important;
   background: #ffffff !important;
   z-index: 1000;
 }
+
+/* Make the sidebar's own scrollbar visible and styled */
+#resource-sidebar::-webkit-scrollbar { width: 10px; }
+#resource-sidebar::-webkit-scrollbar-track { background: #f3f4f6; }
+#resource-sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+#resource-sidebar:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
+
+/* Ensure the inner content can scroll independently if needed */
+#resource-sidebar .sidebar-content { overflow-y: auto; max-height: calc(100vh - 120px); }
 
 /* Ensure main content expands properly */
 #route-cards-container {
@@ -116,13 +136,13 @@
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-x: hidden !important;
   overflow-y: auto !important;
-  padding-left: 16px !important;
+  padding-left: 12px !important;
   margin-left: 0 !important;
 }
 
 /* Ensure no overlap with toggle button when sidebar is collapsed */
 .sidebar-collapsed #route-cards-container {
-  padding-left: 20px !important;
+  padding-left: 14px !important; /* Extra clearance so the red vertical tab never overlaps card edges */
 }
 
 /* Toggle button for auto-hide - always visible */
@@ -169,26 +189,26 @@
 
 /* When sidebar is collapsed, make toggle more prominent */
 .responsive-sidebar.auto-hide-enabled .sidebar-toggle {
-  background: #ef4444 !important;
-  right: -36px !important;
-  width: 48px !important;
-  height: 160px !important;
-  font-size: 18px !important;
-  border-radius: 0 22px 22px 0 !important;
-  box-shadow: 6px 0 20px rgba(239, 68, 68, 0.4) !important;
+  background: transparent !important; /* Make the tab transparent when not interacting */
+  right: -30px !important;
+  width: 44px !important;
+  height: 140px !important;
+  font-size: 16px !important;
+  border-radius: 0 20px 20px 0 !important;
+  box-shadow: none !important;
   flex-direction: column !important;
   justify-content: center !important;
   align-items: center !important;
-  gap: 14px !important;
-  padding: 18px 10px !important;
+  gap: 12px !important;
+  padding: 16px 9px !important;
   z-index: 50 !important;
 }
 
 .responsive-sidebar.auto-hide-enabled .sidebar-toggle:hover {
   background: #dc2626 !important;
-  transform: translateX(6px) !important;
-  box-shadow: 8px 0 24px rgba(239, 68, 68, 0.5) !important;
-  width: 52px !important;
+  background: #ef4444 !important; /* Only show the red tab when hovered or focused */
+  box-shadow: 8px 0 20px rgba(239, 68, 68, 0.45) !important;
+  width: 48px !important;
 }
 
 .sidebar-toggle[data-state="collapsed"] .sidebar-toggle-icon {
@@ -219,9 +239,9 @@
 
 /* Show label when sidebar is collapsed */
 .responsive-sidebar.auto-hide-enabled .sidebar-toggle-label {
-  opacity: 1 !important;
-  visibility: visible !important;
-  max-height: 40px !important;
+  opacity: 0 !important; /* Keep the label hidden until user interacts with the tab */
+  visibility: hidden !important;
+  max-height: 0 !important;
 }
 
 /* Enhanced hover effect for collapsed state */
@@ -234,7 +254,7 @@
 .responsive-sidebar.auto-hide-enabled .sidebar-content {
   opacity: 0;
   visibility: hidden;
-  pointer-events: none;
+  pointer-events: none; /* disabled until hover/focus */
   transform: translateX(-12px);
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
@@ -244,7 +264,7 @@
 .responsive-sidebar.auto-hide-enabled.mobile-expanded .sidebar-content {
   opacity: 1;
   visibility: visible;
-  pointer-events: auto;
+  pointer-events: auto; /* enable interactivity when visible */
   transform: translateX(0);
   transition-delay: 0.1s;
 }
@@ -498,17 +518,24 @@
 /* Remove scrollbars but keep functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
+@supports (scrollbar-width: none) {
+  .scrollbar-hide {
+    scrollbar-width: none;
+  }
+}
+
 /* Custom scrollbar */
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: #d1d5db #f9fafb;
+@supports (scrollbar-width: thin) {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f9fafb;
+  }
 }
 
 .scrollbar-thin::-webkit-scrollbar {
