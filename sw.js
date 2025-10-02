@@ -3,11 +3,9 @@
  * Provides basic offline functionality and caching
  */
 
-const CACHE_NAME = 'dispatch-dashboard-v1';
+const CACHE_NAME = 'dispatch-dashboard-v3';
 const STATIC_CACHE_URLS = [
-  '/modular.html',
-  '/src/app.js',
-  '/src/styles/main.css'
+  // Caching disabled for development
 ];
 
 // Install event - cache static assets
@@ -44,26 +42,10 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - serve from cache when offline
+// Fetch event - DISABLED - let browser handle all requests normally
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
-      .catch(() => {
-        // Return offline page for navigation requests
-        if (event.request.mode === 'navigate') {
-          return caches.match('/modular.html');
-        }
-      })
-  );
+  // Do nothing - let the browser handle requests normally
+  return;
 });
 
 // Listen for messages from the main app

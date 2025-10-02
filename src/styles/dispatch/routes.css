@@ -19,20 +19,20 @@
 
 .route-card {
   background: white;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #d1d5db;
   border-radius: 12px;
   padding: calc(var(--spacing-4) * var(--route-card-scale, 1));
   margin-bottom: calc(var(--spacing-4) * var(--route-card-scale, 1));
   transition: all var(--route-animation-duration, 0.2s) ease;
   font-size: calc(1rem * var(--route-card-scale, 1));
   position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .route-card:hover {
   border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(59, 130, 246, 0.2);
+  transform: translateY(-2px);
 }
 
 /* Collapsed route card should shrink to content height */
@@ -69,15 +69,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
-  padding: var(--spacing-3);
+  padding: var(--spacing-4);
   border-radius: 12px;
-  border: 1px solid var(--panel-border, #d1d5db);
+  border: 2px solid var(--panel-border, #9ca3af);
   border-left-width: 6px;
   border-left-style: solid;
   border-left-color: var(--accent-color, #3b82f6);
-  background: var(--panel-bg, #f9fafb);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
-  color: #1f2937;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  color: #111827;
 }
 
 /* Top Row: Route # + Status Dot + Action Buttons */
@@ -94,8 +94,8 @@
 }
 
 .collapsed-summary-route-name {
-  font-weight: 600;
-  font-size: 0.9375rem;
+  font-weight: 700;
+  font-size: 1rem;
   color: #111827;
   line-height: 1.2;
 }
@@ -124,9 +124,9 @@
 
 .collapsed-summary-driver,
 .collapsed-summary-asset {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4b5563;
 }
 
 .collapsed-summary-driver.assigned,
@@ -283,17 +283,9 @@
   height: 24px !important;
   max-width: 24px !important;
   max-height: 24px !important;
-  filter: brightness(0) invert(1) !important;
-  transition: transform 0.3s ease;
-  transform: rotate(-90deg) !important;
   opacity: 1 !important;
   visibility: visible !important;
   object-fit: contain !important;
-  /* Fallback if image fails to load */
-  background-image: url('/assets/icons/CollapseButton.png') !important;
-  background-size: contain !important;
-  background-repeat: no-repeat !important;
-  background-position: center !important;
 }
 
 .collapsed-summary-action-btn img {
@@ -336,7 +328,7 @@
   min-height: clamp(200px, 15vh, 300px);
   padding: calc(var(--spacing-6) * var(--route-card-scale, 1));
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Tablet optimizations */

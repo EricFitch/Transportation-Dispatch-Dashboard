@@ -85,6 +85,22 @@ Dispatch Command Center/
    firebase hosting:channel:create live
    ```
 
+### Local Development with Firebase
+
+Test the application locally before deploying:
+
+```bash
+firebase serve
+```
+
+This will start a local Firebase hosting server at `http://localhost:5000` (or another port if 5000 is in use). The local server simulates the Firebase hosting environment, allowing you to test:
+- Static file serving
+- Firebase configuration
+- Service worker behavior
+- All app functionality before deployment
+
+Press `Ctrl+C` to stop the local server.
+
 ## 💾 Data Management
 
 The system supports CSV import for:

@@ -267,38 +267,44 @@ class SettingsSystem {
    * Apply display settings
    */
   applyDisplaySettings() {
+    console.log('🎨 Applying display settings...');
     const root = document.documentElement;
     const display = this.settings.display;
 
-    // Card size / density / animation variables consumed by CSS
-    const cardSize = ['small', 'medium', 'large'].includes(display.cardSize) ? display.cardSize : 'medium';
-    const density = ['compact', 'comfortable', 'spacious'].includes(display.gridDensity) ? display.gridDensity : 'comfortable';
-    const animSpeed = ['slow', 'medium', 'fast'].includes(display.animationSpeed) ? display.animationSpeed : 'medium';
+    // Apply card scale (0.8 - 1.5)
+    const cardScale = display.cardScale || 1.0;
+    root.style.setProperty('--route-card-scale', cardScale);
+    console.log('  ✓ Card scale:', cardScale);
 
-    root.style.setProperty('--route-card-scale', this.getCardSizeValue(cardSize));
-    root.style.setProperty('--route-grid-gap', this.getGridDensityValue(density));
-    root.style.setProperty('--route-animation-duration', this.getAnimationSpeed(animSpeed));
+    // Apply grid gap (8-32px)
+    const gridGap = display.gridGap || 16;
+    root.style.setProperty('--route-grid-gap', `${gridGap}px`);
+    console.log('  ✓ Grid gap:', gridGap, 'px');
 
-    // Sidebar and header dimensions
-    root.style.setProperty('--sidebar-width', `${display.sidebarWidth}px`);
-    root.style.setProperty('--header-height', `${display.headerHeight}px`);
+    // Apply animations enabled/disabled
+    const animationsEnabled = display.animationsEnabled !== false; // default true
+    document.body.classList.toggle('animations-disabled', !animationsEnabled);
+    if (!animationsEnabled) {
+      root.style.setProperty('--route-animation-duration', '0s');
+      root.style.setProperty('--transition-speed', '0s');
+    } else {
+      root.style.setProperty('--route-animation-duration', '0.3s');
+      root.style.setProperty('--transition-speed', '0.2s');
+    }
+    console.log('  ✓ Animations:', animationsEnabled ? 'enabled' : 'disabled');
 
-    // Body classes used for conditional styling
-    document.body.classList.remove('card-size-small', 'card-size-medium', 'card-size-large');
-    document.body.classList.add(`card-size-${cardSize}`);
+    // Force browser to recalculate layout
+    const routeCards = document.querySelectorAll('.route-card, .route-grid');
+    if (routeCards.length > 0) {
+      console.log(`  🔄 Forcing reflow on ${routeCards.length} elements...`);
+      routeCards.forEach(card => {
+        // Force reflow by reading offsetHeight
+        void card.offsetHeight;
+      });
+      console.log('  ✓ Reflow complete');
+    }
 
-    document.body.classList.remove('grid-density-compact', 'grid-density-comfortable', 'grid-density-spacious');
-    document.body.classList.add(`grid-density-${density}`);
-
-    document.body.classList.remove('anim-speed-slow', 'anim-speed-medium', 'anim-speed-fast');
-    document.body.classList.add(`anim-speed-${animSpeed}`);
-
-    // Toggle UI elements
-    document.body.classList.toggle('hide-icons', !display.showIcons);
-    document.body.classList.toggle('hide-timestamps', !display.showTimestamps);
-    document.body.classList.toggle('hide-status-badges', !display.showStatusBadges);
-    document.body.classList.toggle('hide-tooltips', !display.tooltips);
-    document.body.classList.toggle('hide-breadcrumbs', !display.breadcrumbs);
+    console.log('✅ Display settings applied');
   }
 
   /**
@@ -607,35 +613,32 @@ class SettingsSystem {
    */
   openSettingsDialog() {
     console.log('🔧 Opening settings dialog...');
+    console.log('DEBUG: Function openSettingsDialog called at line 609');
+    console.log('DEBUG: this.settings =', this.settings);
     
     // Get the existing settings modal from HTML
     const modal = document.getElementById('settings-modal');
+    console.log('DEBUG: modal found =', modal);
     if (!modal) {
       console.error('❌ Settings modal not found in HTML');
       return;
     }
 
-    // Update the tab navigation to match our comprehensive settings
-    const tabNavigation = modal.querySelector('.flex.space-x-1.mb-4.border-b');
-    if (tabNavigation) {
-      tabNavigation.innerHTML = `
-        <button class="tab-btn active px-4 py-2 font-medium text-sm border-b-2 border-blue-500 text-blue-600" data-tab="data">📁 Data</button>
-        <button class="tab-btn px-4 py-2 font-medium text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="colors">🎨 Colors</button>
-        <button class="tab-btn px-4 py-2 font-medium text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="controls">🎮 Controls</button>
-        <button class="tab-btn px-4 py-2 font-medium text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="display">🖥️ Display</button>
-        <button class="tab-btn px-4 py-2 font-medium text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="notifications">🔔 Notifications</button>
-        <button class="tab-btn px-4 py-2 font-medium text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="advanced">⚙️ Advanced</button>
-      `;
-    }
-
-    // Update the modal content with our comprehensive settings
-    const contentContainer = modal.querySelector('.flex-1.overflow-hidden');
-    if (contentContainer) {
-      contentContainer.innerHTML = this.createSettingsContent();
-    }
-
-    // Show the modal
+    // Show the modal first
     modal.classList.remove('hidden');
+    
+    // Update the modal content with simplified single-page settings
+    const contentContainer = modal.querySelector('#settings-content');
+    console.log('🔍 Looking for settings container...', contentContainer);
+    
+    if (contentContainer) {
+      const content = this.createSettingsContent();
+      console.log('📝 Generated content length:', content.length);
+      contentContainer.innerHTML = content;
+      console.log('✅ Content inserted successfully');
+    } else {
+      console.error('❌ Content container #settings-content not found in modal');
+    }
     
     // Setup event handlers for the settings
     this.setupSettingsHandlers();
@@ -672,36 +675,166 @@ class SettingsSystem {
   }
 
   /**
-   * Create settings dialog content
+   * Create simplified single-page settings content
    */
   createSettingsContent() {
+    console.log('🎨 Creating settings content...');
+    console.log('Settings object:', this.settings);
+    
+    const data = this.settings.data || {};
+    const display = this.settings.display || {};
+    
+    console.log('Data settings:', data);
+    console.log('Display settings:', display);
+    
     return `
-      <div class="settings-container h-full">
-        <div class="settings-content h-full overflow-auto">
-          <div class="tab-content active" id="data-tab">
-            ${this.createDataSettingsContent()}
+      <div class="space-y-4">
+        <!-- General Settings -->
+        <details class="settings-section-collapsible" open>
+          <summary class="settings-section-header cursor-pointer font-semibold text-lg text-gray-800 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2">
+            <span class="text-xl">⚙️</span>
+            <span>General Settings</span>
+          </summary>
+          <div class="settings-section-content p-4 space-y-4">
+            <div class="setting-group">
+              <label class="setting-label">
+                <input type="checkbox" id="auto-save" ${data.autoSave ? 'checked' : ''}>
+                <span>Auto-save changes</span>
+              </label>
+              <small class="setting-description">Automatically save changes every few seconds</small>
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label block mb-2 font-medium">Auto-save interval (seconds)</label>
+              <input type="number" id="auto-save-interval" value="${data.autoSaveInterval / 1000}" min="10" max="300" class="setting-input w-full">
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label">
+                <input type="checkbox" id="data-validation" ${data.dataValidation ? 'checked' : ''}>
+                <span>Enable data validation</span>
+              </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="setting-group">
+                <label class="setting-label block mb-2 font-medium">Date Format</label>
+                <select id="date-format" class="setting-select w-full">
+                  <option value="MM/DD/YYYY" ${data.dateFormat === 'MM/DD/YYYY' ? 'selected' : ''}>MM/DD/YYYY</option>
+                  <option value="DD/MM/YYYY" ${data.dateFormat === 'DD/MM/YYYY' ? 'selected' : ''}>DD/MM/YYYY</option>
+                  <option value="YYYY-MM-DD" ${data.dateFormat === 'YYYY-MM-DD' ? 'selected' : ''}>YYYY-MM-DD</option>
+                </select>
+              </div>
+
+              <div class="setting-group">
+                <label class="setting-label block mb-2 font-medium">Time Format</label>
+                <select id="time-format" class="setting-select w-full">
+                  <option value="12h" ${data.timeFormat === '12h' ? 'selected' : ''}>12 Hour (AM/PM)</option>
+                  <option value="24h" ${data.timeFormat === '24h' ? 'selected' : ''}>24 Hour</option>
+                </select>
+              </div>
+            </div>
           </div>
-          
-          <div class="tab-content hidden" id="colors-tab">
-            ${this.createColorSettingsContent()}
+        </details>
+
+        <!-- Appearance Settings -->
+        <details class="settings-section-collapsible">
+          <summary class="settings-section-header cursor-pointer font-semibold text-lg text-gray-800 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2">
+            <span class="text-xl">🎨</span>
+            <span>Appearance & Display</span>
+          </summary>
+          <div class="settings-section-content p-4 space-y-4">
+            <div class="setting-group">
+              <label class="setting-label block mb-2 font-medium">Route Card Scale</label>
+              <input type="range" id="card-scale" min="0.8" max="1.5" step="0.1" value="${display.cardScale}" class="w-full">
+              <small class="setting-description">Current: ${display.cardScale}x</small>
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label block mb-2 font-medium">Card Spacing</label>
+              <input type="range" id="grid-gap" min="8" max="32" step="4" value="${display.gridGap}" class="w-full">
+              <small class="setting-description">Current: ${display.gridGap}px</small>
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label">
+                <input type="checkbox" id="animations-enabled" ${display.animationsEnabled ? 'checked' : ''}>
+                <span>Enable animations</span>
+              </label>
+            </div>
           </div>
-          
-          <div class="tab-content hidden" id="controls-tab">
-            ${this.createControlSettingsContent()}
+        </details>
+
+        <!-- Data Management -->
+        <details class="settings-section-collapsible">
+          <summary class="settings-section-header cursor-pointer font-semibold text-lg text-gray-800 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2">
+            <span class="text-xl">💾</span>
+            <span>Data Management</span>
+          </summary>
+          <div class="settings-section-content p-4 space-y-4">
+            <div class="setting-group">
+              <label class="setting-label">
+                <input type="checkbox" id="backup-before-import" ${data.backupBeforeImport ? 'checked' : ''}>
+                <span>Create backup before importing</span>
+              </label>
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label block mb-2 font-medium">Maximum backups to keep</label>
+              <input type="number" id="max-backups" value="${data.maxBackups}" min="1" max="50" class="setting-input w-full">
+            </div>
+
+            <div class="flex gap-3 mt-4">
+              <button class="btn btn-secondary flex-1" onclick="settingsSystem.createBackup()">📦 Create Backup</button>
+              <button class="btn btn-secondary flex-1" onclick="settingsSystem.viewBackups()">📋 View Backups</button>
+            </div>
+
+            <div class="border-t pt-4 mt-4">
+              <button class="btn btn-warning w-full" onclick="settingsSystem.resetAllData()">⚠️ Reset All Data</button>
+              <small class="setting-description text-red-600 mt-2 block">Warning: This will delete all routes, assets, and staff data!</small>
+            </div>
           </div>
-          
-          <div class="tab-content hidden" id="display-tab">
-            ${this.createDisplaySettingsContent()}
+        </details>
+
+        <!-- Advanced Settings -->
+        <details class="settings-section-collapsible">
+          <summary class="settings-section-header cursor-pointer font-semibold text-lg text-gray-800 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2">
+            <span class="text-xl">🔧</span>
+            <span>Advanced</span>
+          </summary>
+          <div class="settings-section-content p-4 space-y-4">
+            <div class="info-grid grid grid-cols-2 gap-3 text-sm">
+              <div class="info-item">
+                <span class="font-medium text-gray-600">Version:</span>
+                <span class="text-gray-800">1.0.0</span>
+              </div>
+              <div class="info-item">
+                <span class="font-medium text-gray-600">Build Date:</span>
+                <span class="text-gray-800">Oct 1, 2025</span>
+              </div>
+              <div class="info-item">
+                <span class="font-medium text-gray-600">Screen:</span>
+                <span class="text-gray-800">${screen.width} × ${screen.height}</span>
+              </div>
+              <div class="info-item">
+                <span class="font-medium text-gray-600">Storage:</span>
+                <span class="text-gray-800">localStorage</span>
+              </div>
+            </div>
+
+            <div class="setting-group">
+              <label class="setting-label">
+                <input type="checkbox" id="debug-mode" ${this.settings.advanced?.debugMode ? 'checked' : ''}>
+                <span>Debug mode</span>
+              </label>
+            </div>
+
+            <div class="flex gap-3 mt-4">
+              <button class="btn btn-secondary flex-1" onclick="settingsSystem.downloadLogs()">📄 Download Logs</button>
+              <button class="btn btn-secondary flex-1" onclick="settingsSystem.runDiagnostics()">🔍 Run Diagnostics</button>
+            </div>
           </div>
-          
-          <div class="tab-content hidden" id="notifications-tab">
-            ${this.createNotificationSettingsContent()}
-          </div>
-          
-          <div class="tab-content hidden" id="advanced-tab">
-            ${this.createAdvancedSettingsContent()}
-          </div>
-        </div>
+        </details>
       </div>
     `;
   }
@@ -1281,21 +1414,6 @@ class SettingsSystem {
    */
   setupSettingsHandlers() {
     console.log('🔧 Setting up settings handlers...');
-    
-    // Tab switching with more robust selectors
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    console.log(`Found ${tabButtons.length} tab buttons`);
-    
-    tabButtons.forEach((btn, index) => {
-      const tabName = btn.dataset.tab;
-      console.log(`Setting up handler for tab ${index}: ${tabName}`);
-      
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log(`🖱️ Tab button clicked: ${tabName}`);
-        this.showSettingsTab(tabName);
-      });
-    });
 
     // Theme selection change
     const themeSelect = document.getElementById('theme-select');
@@ -1519,64 +1637,62 @@ class SettingsSystem {
    * Update settings from form
    */
   updateFromForm() {
-    // Data settings
+    console.log('📝 Updating settings from form...');
+    
+    // General Settings
     const autoSave = document.getElementById('auto-save');
-    if (autoSave) this.settings.data.autoSave = autoSave.checked;
-
-    const autoSaveInterval = document.getElementById('auto-save-interval');
-    if (autoSaveInterval) this.settings.data.autoSaveInterval = parseInt(autoSaveInterval.value) * 1000;
-
-    // Color settings
-    const themeSelect = document.getElementById('theme-select');
-    if (themeSelect) this.settings.colors.theme = themeSelect.value;
-
-    // Update custom colors
-    Object.keys(this.settings.colors.customTheme).forEach(key => {
-      const input = document.getElementById(`custom-${key}`);
-      if (input) this.settings.colors.customTheme[key] = input.value;
-    });
-
-    // Update status colors
-    Object.keys(this.settings.colors.statusColors).forEach(status => {
-      const input = document.getElementById(`status-${status}`);
-      if (input) this.settings.colors.statusColors[status] = input.value;
-    });
-
-    // Display settings
-    const cardSize = document.getElementById('card-size');
-    if (cardSize) this.settings.display.cardSize = cardSize.value;
-
-    const gridDensity = document.getElementById('grid-density');
-    if (gridDensity) this.settings.display.gridDensity = gridDensity.value;
-
-    const animationSpeed = document.getElementById('animation-speed');
-    if (animationSpeed) this.settings.display.animationSpeed = animationSpeed.value;
-
-    const sidebarWidth = document.getElementById('sidebar-width');
-    if (sidebarWidth) {
-      const parsed = parseInt(sidebarWidth.value, 10);
-      if (!Number.isNaN(parsed)) {
-        this.settings.display.sidebarWidth = parsed;
-      }
+    if (autoSave) {
+      this.settings.data.autoSave = autoSave.checked;
+      console.log('  ✓ Auto-save:', autoSave.checked);
     }
 
-    const showIcons = document.getElementById('show-icons');
-    if (showIcons) this.settings.display.showIcons = showIcons.checked;
+    const autoSaveInterval = document.getElementById('auto-save-interval');
+    if (autoSaveInterval) {
+      this.settings.data.autoSaveInterval = parseInt(autoSaveInterval.value) * 1000;
+      console.log('  ✓ Auto-save interval:', autoSaveInterval.value, 'seconds');
+    }
 
-    const showTimestamps = document.getElementById('show-timestamps');
-    if (showTimestamps) this.settings.display.showTimestamps = showTimestamps.checked;
+    // Appearance & Display Settings
+    const cardScale = document.getElementById('card-scale');
+    if (cardScale) {
+      this.settings.display.cardScale = parseFloat(cardScale.value);
+      console.log('  ✓ Card scale:', cardScale.value);
+    }
 
-    const showStatusBadges = document.getElementById('show-status-badges');
-    if (showStatusBadges) this.settings.display.showStatusBadges = showStatusBadges.checked;
+    const gridGap = document.getElementById('grid-gap');
+    if (gridGap) {
+      this.settings.display.gridGap = parseInt(gridGap.value);
+      console.log('  ✓ Grid gap:', gridGap.value, 'px');
+    }
 
-    const showTooltips = document.getElementById('show-tooltips');
-    if (showTooltips) this.settings.display.tooltips = showTooltips.checked;
+    const animationsEnabled = document.getElementById('animations-enabled');
+    if (animationsEnabled) {
+      this.settings.display.animationsEnabled = animationsEnabled.checked;
+      console.log('  ✓ Animations enabled:', animationsEnabled.checked);
+    }
 
-    const showBreadcrumbs = document.getElementById('show-breadcrumbs');
-    if (showBreadcrumbs) this.settings.display.breadcrumbs = showBreadcrumbs.checked;
+    // Data Management Settings
+    const backupBeforeImport = document.getElementById('backup-before-import');
+    if (backupBeforeImport) {
+      this.settings.data.backupBeforeImport = backupBeforeImport.checked;
+      console.log('  ✓ Backup before import:', backupBeforeImport.checked);
+    }
 
-    // Continue updating other settings...
-    // (This would continue for all form fields)
+    const maxBackups = document.getElementById('max-backups');
+    if (maxBackups) {
+      this.settings.data.maxBackups = parseInt(maxBackups.value);
+      console.log('  ✓ Max backups:', maxBackups.value);
+    }
+
+    // Advanced Settings
+    const debugMode = document.getElementById('debug-mode');
+    if (debugMode) {
+      if (!this.settings.advanced) this.settings.advanced = {};
+      this.settings.advanced.debugMode = debugMode.checked;
+      console.log('  ✓ Debug mode:', debugMode.checked);
+    }
+
+    console.log('✅ Settings updated from form');
   }
 
   /**
@@ -2276,6 +2392,122 @@ class SettingsSystem {
     });
 
     document.body.appendChild(modal);
+  }
+
+  /**
+   * View backups dialog
+   */
+  viewBackups() {
+    if (this.backups.length === 0) {
+      alert('No backups available. Create a backup first.');
+      return;
+    }
+
+    const backupList = this.backups.map((backup, index) => `
+      <div class="backup-item flex justify-between items-center p-3 border rounded mb-2 hover:bg-gray-50">
+        <div>
+          <div class="font-semibold">${backup.timestamp}</div>
+          <div class="text-sm text-gray-600">Routes: ${backup.data.routes?.length || 0}, Assets: ${backup.data.assets?.length || 0}, Staff: ${backup.data.staff?.length || 0}</div>
+        </div>
+        <div class="flex gap-2">
+          <button class="restore-backup px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600" data-index="${index}">Restore</button>
+          <button class="delete-backup px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600" data-index="${index}">Delete</button>
+        </div>
+      </div>
+    `).join('');
+
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+      <div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold">💾 Backup Manager</h3>
+          <button class="close-backups text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        </div>
+        <div class="flex-1 overflow-y-auto">
+          ${backupList}
+        </div>
+      </div>
+    `;
+
+    modal.querySelector('.close-backups').addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+
+    modal.querySelectorAll('.restore-backup').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = parseInt(e.target.dataset.index);
+        if (confirm('Restore this backup? Current data will be overwritten.')) {
+          this.restoreBackup(index);
+          document.body.removeChild(modal);
+          alert('Backup restored successfully! Refreshing page...');
+          location.reload();
+        }
+      });
+    });
+
+    modal.querySelectorAll('.delete-backup').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = parseInt(e.target.dataset.index);
+        if (confirm('Delete this backup?')) {
+          this.backups.splice(index, 1);
+          this.saveBackups();
+          document.body.removeChild(modal);
+          this.viewBackups();
+        }
+      });
+    });
+
+    document.body.appendChild(modal);
+  }
+
+  /**
+   * Restore a backup by index
+   */
+  restoreBackup(index) {
+    if (index < 0 || index >= this.backups.length) {
+      console.error('Invalid backup index');
+      return;
+    }
+
+    const backup = this.backups[index];
+    STATE.data = { ...backup.data };
+    STATE.save();
+    console.log('✅ Backup restored:', backup.timestamp);
+  }
+
+  /**
+   * Reset all data
+   */
+  resetAllData() {
+    if (!confirm('⚠️ WARNING: This will delete ALL data including routes, assets, and staff. This cannot be undone. Continue?')) {
+      return;
+    }
+
+    if (!confirm('Are you absolutely sure? Type YES to confirm in the next prompt.')) {
+      return;
+    }
+
+    const confirmation = prompt('Type YES to confirm data reset:');
+    if (confirmation !== 'YES') {
+      alert('Reset cancelled.');
+      return;
+    }
+
+    // Create final backup before reset
+    this.createBackup();
+
+    // Reset STATE to defaults
+    STATE.data = {
+      routes: [],
+      assets: [],
+      staff: [],
+      fieldTrips: []
+    };
+    STATE.save();
+
+    alert('All data has been reset. A backup was created. Refreshing page...');
+    location.reload();
   }
 }
 

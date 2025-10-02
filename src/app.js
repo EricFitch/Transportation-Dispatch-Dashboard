@@ -59,7 +59,7 @@ import { uiSystem } from './modules/ui/system.js';
 import { uiUtilities } from './modules/ui/utilities.js';
 import { cardManagement } from './modules/ui/cardManagement.js';
 import { advancedSearchSystem } from './modules/ui/advancedSearch.js';
-import { settingsSystem } from './modules/ui/settingsSystem.js';
+import { settingsSystem } from './modules/ui/settingsSystem.js?v=20251002';
 
 // ==========================================================================
 // DISPATCH MODULES
@@ -891,6 +891,7 @@ class ModularDispatchApp {
     const closeBtn = document.getElementById('timestamp-report-close');
     const cancelBtn = document.getElementById('timestamp-report-cancel');
     const printBtn = document.getElementById('print-current-day');
+    const emailBtn = document.getElementById('email-report');
     const clearBtn = document.getElementById('clear-timestamps');
 
     const closeModal = () => {
@@ -911,6 +912,11 @@ class ModularDispatchApp {
     if (printBtn) {
       printBtn.removeEventListener('click', this.printTimestampReport);
       printBtn.addEventListener('click', this.printTimestampReport.bind(this));
+    }
+
+    if (emailBtn) {
+      emailBtn.removeEventListener('click', this.emailTimestampReport);
+      emailBtn.addEventListener('click', this.emailTimestampReport.bind(this));
     }
 
     if (clearBtn) {
@@ -1131,6 +1137,104 @@ class ModularDispatchApp {
   }
 
   /**
+   * Email timestamp report
+   */
+  emailTimestampReport() {
+    const content = document.getElementById('timestamp-report-content');
+    if (!content) return;
+
+    // Generate plain text version of the report
+    const reportData = this.generateReportText();
+    
+    // Compose email
+    const subject = encodeURIComponent(`Route Status Timestamp Report - ${new Date().toLocaleDateString()}`);
+    const body = encodeURIComponent(reportData);
+    
+    // Create mailto link
+    const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
+    
+    // Open email client
+    window.location.href = mailtoLink;
+    
+    console.log('📧 Email client opened with report');
+  }
+
+  /**
+   * Generate plain text version of report for email
+   */
+  generateReportText() {
+    const timestamps = STATE.statusTimestamps || {};
+    const routes = STATE.data.routes || [];
+    
+    let reportText = `ROUTE STATUS TIMESTAMP REPORT\n`;
+    reportText += `Generated: ${new Date().toLocaleString()}\n`;
+    reportText += `Complete route status and assignment history\n`;
+    reportText += `${'='.repeat(70)}\n\n`;
+
+    if (Object.keys(timestamps).length === 0) {
+      reportText += 'No status timestamps recorded yet.\n';
+      return reportText;
+    }
+
+    Object.entries(timestamps).forEach(([runKey, statusHistory]) => {
+      if (statusHistory && statusHistory.length > 0) {
+        const routeIdentifier = runKey.replace(/_AM$|_PM$/, '');
+        const schedule = runKey.includes('_AM') ? 'AM' : 'PM';
+        
+        let currentRoute = routes.find(r => {
+          if (r.id === routeIdentifier) return true;
+          if (r.name === routeIdentifier) return true;
+          if (r.routeNumber === routeIdentifier) return true;
+          if (r.name && r.name.toLowerCase() === routeIdentifier.toLowerCase()) return true;
+          if (r.id && r.id.toLowerCase() === routeIdentifier.toLowerCase()) return true;
+          return false;
+        });
+        
+        let displayName = currentRoute ? currentRoute.name : routeIdentifier;
+        if (displayName && displayName.toLowerCase().startsWith('route ')) {
+          displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+        }
+        
+        reportText += `${displayName} (${schedule})\n`;
+        reportText += `${'-'.repeat(70)}\n`;
+        
+        // Current Assignments
+        reportText += `\nCURRENT ASSIGNMENTS:\n`;
+        if (currentRoute) {
+          reportText += `  Driver: ${currentRoute.driver || 'Not assigned'}\n`;
+          reportText += `  Asset: ${currentRoute.asset || 'Not assigned'}\n`;
+          
+          if (currentRoute.safetyEscorts && currentRoute.safetyEscorts.length > 0) {
+            reportText += `  Safety Escorts: ${currentRoute.safetyEscorts.join(', ')}\n`;
+          } else {
+            reportText += `  Safety Escorts: None assigned\n`;
+          }
+          
+          if (currentRoute.notes && currentRoute.notes.trim()) {
+            reportText += `  Notes: ${currentRoute.notes}\n`;
+          }
+        } else {
+          reportText += `  Route data not found in current system\n`;
+        }
+        
+        // Status History
+        reportText += `\nSTATUS CHANGE HISTORY:\n`;
+        statusHistory
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .forEach(entry => {
+            const time = new Date(entry.timestamp).toLocaleTimeString();
+            const date = new Date(entry.timestamp).toLocaleDateString();
+            reportText += `  ${entry.status} | ${entry.user || 'System'} | ${date} ${time}\n`;
+          });
+        
+        reportText += `\n`;
+      }
+    });
+
+    return reportText;
+  }
+
+  /**
    * Clear all timestamps
    */
   clearAllTimestamps() {
@@ -1250,16 +1354,20 @@ class ModularDispatchApp {
 
   /**
    * Register service worker for offline functionality
+   * TEMPORARILY DISABLED FOR DEVELOPMENT
    */
   async registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('📱 Service Worker registered:', registration);
-      } catch (error) {
-        console.log('📱 Service Worker registration failed:', error);
-      }
-    }
+    console.log('📱 Service Worker registration skipped (disabled for development)');
+    return;
+    
+    // if ('serviceWorker' in navigator) {
+    //   try {
+    //     const registration = await navigator.serviceWorker.register('/sw.js');
+    //     console.log('📱 Service Worker registered:', registration);
+    //   } catch (error) {
+    //     console.log('📱 Service Worker registration failed:', error);
+    //   }
+    // }
   }
 
   /**

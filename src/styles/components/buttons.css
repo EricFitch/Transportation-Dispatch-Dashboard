@@ -220,28 +220,44 @@ button:disabled {
   width: 32px;
   height: 32px;
   object-fit: contain;
-  /* Remove default filter - let the images show normally */
+  transition: all 0.3s ease;
 }
 
 #am-toggle.active,
 #pm-toggle.active {
-  background-color: #3b82f6;
+  background-color: transparent;
   color: white;
-  border-color: #3b82f6;
+  border-color: transparent;
 }
 
-/* Show white version on active (blue background) buttons */
+/* Glow effect for active AM button */
 #am-toggle.active .am-pm-icon,
 #am-toggle.bg-blue-500 .am-pm-icon,
 #am-toggle.selected .am-pm-icon {
-  filter: brightness(0) invert(1);
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8)) 
+          drop-shadow(0 0 16px rgba(59, 130, 246, 0.6))
+          drop-shadow(0 0 24px rgba(59, 130, 246, 0.4));
+  transform: scale(1.05);
 }
 
-/* Show normal/dark version on inactive buttons */
+/* Glow effect for active PM button */
+#pm-toggle.active .am-pm-icon,
+#pm-toggle.bg-blue-500 .am-pm-icon,
+#pm-toggle.selected .am-pm-icon {
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8)) 
+          drop-shadow(0 0 16px rgba(59, 130, 246, 0.6))
+          drop-shadow(0 0 24px rgba(59, 130, 246, 0.4));
+  transform: scale(1.05);
+}
+
+/* Slightly dim inactive buttons */
+#am-toggle:not(.active) .am-pm-icon,
+#am-toggle:not(.bg-blue-500) .am-pm-icon,
+#am-toggle:not(.selected) .am-pm-icon,
 #pm-toggle:not(.active) .am-pm-icon,
 #pm-toggle:not(.bg-blue-500) .am-pm-icon,
 #pm-toggle:not(.selected) .am-pm-icon {
-  filter: brightness(0.3);
+  opacity: 0.5;
 }
 
 /* Close buttons */
