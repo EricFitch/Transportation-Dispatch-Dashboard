@@ -11,6 +11,7 @@
 // Transportation Dispatch Dashboard Module Dependencies
 import { PERFORMANCE } from './utils.js';
 import { initFirebase } from '../../firebase.js';
+import { SHIFTS } from './constants.js';
 
 const REMOTE_COLLECTION = 'dispatch';
 const REMOTE_DOC_ID = 'sharedState';
@@ -64,7 +65,7 @@ function getFirebaseConfig() {
 const STATE = {
     // Core data
     data: null, // will be initialized by loadData()
-    currentView: 'AM',
+    currentView: SHIFTS.AM,
     
     // Assignments and status
     assignments: {},
@@ -603,6 +604,11 @@ function updateRouteStatus(runKey, status) {
 }
 
 function switchView(view) {
+    // Validate view
+    if (!Object.values(SHIFTS).includes(view)) {
+        console.warn('⚠️ Invalid view:', view);
+        return;
+    }
     console.log('🔄 Switching to view:', view);
     STATE.currentView = view;
     STATE.isDirty = true;

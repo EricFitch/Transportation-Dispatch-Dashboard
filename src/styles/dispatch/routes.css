@@ -463,6 +463,29 @@
   object-fit: contain;
 }
 
+/* Unassign buttons styling */
+.route-card .unassign-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.route-card .unassign-icon {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 24px;
+  max-height: 24px;
+  object-fit: contain;
+}
+
 .route-type-icon {
   width: 28px;
   height: 28px;

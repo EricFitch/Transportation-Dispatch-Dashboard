@@ -10,8 +10,10 @@
 
 // Transportation Dispatch Dashboard Module Dependencies
 import { eventBus } from '../core/events.js';
-import { STATE, saveToLocalStorage } from '../core/state.js';
+import { STATE, saveToLocalStorage, addAsset } from '../core/state.js';
 import { debounceRender, PERFORMANCE } from '../core/utils.js';
+import { ASSET_STATUS, DYNAMIC_STATUS } from '../core/constants.js';
+import { ValidationService } from '../core/validationService.js';
 
 // =============================================================================
 // ASSET RENDERING SYSTEM
@@ -47,10 +49,14 @@ function renderAssetPanel() {
         
         const downAssets = allAssets.filter(asset => {
             const name = asset.name || asset.vehicleNumber;
-            const status = asset.status || 'active';
+            const status = asset.status || ASSET_STATUS.ACTIVE;
             const dynamicStatus = STATE.assetStatus?.[name];
             
-            const isDown = status === 'down' || status === 'maintenance' || status === 'retired' || dynamicStatus === 'Down';
+            const isDown = [
+                ASSET_STATUS.DOWN,
+                ASSET_STATUS.MAINTENANCE,
+                ASSET_STATUS.RETIRED
+            ].includes(status) || dynamicStatus === DYNAMIC_STATUS.DOWN;
             if (isDown) {
                 console.log(`🔍 Down asset found: ${name}, status: ${status}, dynamicStatus: ${dynamicStatus}`);
             }
@@ -60,12 +66,12 @@ function renderAssetPanel() {
         });
         const availableAssets = allAssets.filter(asset => {
             const name = asset.name || asset.vehicleNumber;
-            const status = asset.status || 'active';
+            const status = asset.status || ASSET_STATUS.ACTIVE;
             const dynamicStatus = STATE.assetStatus?.[name];
             
             // Asset is available if not originally down AND not dynamically marked down
-            const isAvailable = status === 'active' && dynamicStatus !== 'Down';
-            if (!isAvailable && status === 'active') {
+            const isAvailable = status === ASSET_STATUS.ACTIVE && dynamicStatus !== DYNAMIC_STATUS.DOWN;
+            if (!isAvailable && status === ASSET_STATUS.ACTIVE) {
                 console.log(`🔍 Asset marked down: ${name}, dynamicStatus: ${dynamicStatus}`);
             }
             
@@ -145,8 +151,12 @@ function renderMainAssetList(container, availableAssets, assignedAssets) {
         
         const name = asset.name || asset.vehicleNumber || 'Unknown';
         const type = asset.type || 'Bus';
-        const status = asset.status || 'active';
-        const isDown = status === 'down' || status === 'maintenance' || status === 'retired';
+        const status = asset.status || ASSET_STATUS.ACTIVE;
+        const isDown = [
+            ASSET_STATUS.DOWN,
+            ASSET_STATUS.MAINTENANCE,
+            ASSET_STATUS.RETIRED
+        ].includes(status);
         
         // Check if asset is assigned to a route
         const isAssigned = STATE.data.routes?.some(route => 
@@ -482,14 +492,14 @@ function toggleAssetStatus(assetName, reason = '') {
     
     const currentStatus = STATE.assetStatus[assetName];
     
-    if (currentStatus === 'Down') {
+    if (currentStatus === DYNAMIC_STATUS.DOWN) {
         // Mark as repaired (available)
         delete STATE.assetStatus[assetName];
         console.log(`✅ ${assetName} marked as repaired`);
         eventBus.emit('assets:repaired', { assetName });
     } else {
         // Mark as down
-        STATE.assetStatus[assetName] = 'Down';
+        STATE.assetStatus[assetName] = DYNAMIC_STATUS.DOWN;
         
         // Store reason if provided
         if (reason) {
@@ -678,9 +688,8 @@ function getAssetAssignmentInfo(assetName) {
     return assignments.join(', ') || 'Unassigned';
 }
 
-function getAssetDownReason(assetName) {
-    return STATE.assetDownReasons?.[assetName]?.reason || '';
-}
+// getAssetDownReason moved to ValidationService
+// Use: ValidationService.getAssetDownReason(assetName)
 
 function updateAssetSummary(available, down, assigned, spares) {
     const assetSummary = document.getElementById('asset-summary');
@@ -737,7 +746,7 @@ function exportAssetData() {
         down: down.map(asset => ({
             name: asset.name,
             type: asset.type,
-            reason: getAssetDownReason(asset.name),
+            reason: ValidationService.getAssetDownReason(asset.name),
             downSince: STATE.assetDownReasons?.[asset.name]?.timestamp
         })),
         spares: spares.map(asset => ({
@@ -782,7 +791,7 @@ function handleAssetPanelClick(event) {
     // Handle edit reason button
     if (target.classList.contains('asset-edit-reason-btn')) {
         const assetName = target.dataset.assetName;
-        const currentReason = getAssetDownReason(assetName);
+        const currentReason = ValidationService.getAssetDownReason(assetName);
         const newReason = prompt(`Edit maintenance reason for ${assetName}:`, currentReason);
         
         if (newReason !== null) {
@@ -838,7 +847,7 @@ function showAssetDetails(assetName) {
     
     const assignmentInfo = getAssetAssignmentInfo(assetName);
     const isDown = STATE.assetStatus[assetName] === 'Down';
-    const downReason = getAssetDownReason(assetName);
+    const downReason = ValidationService.getAssetDownReason(assetName);
     
     eventBus.emit('ui:showModal', {
         title: `Asset Details - ${assetName}`,
@@ -885,6 +894,124 @@ eventBus.on('assignments:changed', () => {
     debounceRender('renderAssetPanel');
 });
 
+// =============================================================================
+// ASSET MODAL FORM HANDLERS
+// =============================================================================
+
+/**
+ * Refresh the asset list in the modal
+ */
+function refreshAssetListModal() {
+    const assetListModal = document.getElementById('asset-list-modal');
+    if (!assetListModal) return;
+
+    const assets = STATE.data?.assets || [];
+    
+    if (assets.length === 0) {
+        assetListModal.innerHTML = '<p class="text-gray-500 text-sm">No assets yet. Add one above.</p>';
+        return;
+    }
+
+    assetListModal.innerHTML = assets.map(asset => `
+        <div class="flex justify-between items-center p-2 border rounded hover:bg-gray-50">
+            <div class="flex-1">
+                <div class="font-medium">${asset.name}</div>
+                <div class="text-xs text-gray-500">
+                    ${asset.type || 'N/A'} • Capacity: ${asset.capacity || 'N/A'} • Status: ${asset.status || 'active'}
+                </div>
+            </div>
+            <button onclick="deleteAssetFromModal('${asset.name}')" 
+                    class="text-red-500 hover:text-red-700 px-2 py-1 text-sm"
+                    aria-label="Delete ${asset.name}">
+                Delete
+            </button>
+        </div>
+    `).join('');
+}
+
+/**
+ * Delete an asset from the modal
+ */
+function deleteAssetFromModal(assetName) {
+    if (!confirm(`Delete asset "${assetName}"?`)) return;
+    
+    if (!STATE.data?.assets) return;
+    
+    STATE.data.assets = STATE.data.assets.filter(a => a.name !== assetName);
+    saveToLocalStorage();
+    refreshAssetListModal();
+    renderAssetPanel();
+    
+    console.log(`✅ Asset "${assetName}" deleted`);
+}
+
+/**
+ * Setup asset form handler
+ */
+function setupAssetFormHandler() {
+    const form = document.getElementById('add-asset-form');
+    if (!form) return;
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const nameInput = document.getElementById('asset-name');
+        const capacityInput = document.getElementById('asset-capacity');
+        const typeSelect = document.getElementById('asset-type');
+        const statusSelect = document.getElementById('asset-status');
+        
+        const name = nameInput?.value.trim();
+        const capacity = parseInt(capacityInput?.value) || 0;
+        const type = typeSelect?.value || 'Bus';
+        const status = statusSelect?.value || 'active';
+        
+        if (!name) {
+            alert('Please enter an asset name/ID');
+            return;
+        }
+        
+        // Check for duplicates
+        if (STATE.data?.assets?.some(a => a.name === name)) {
+            alert(`Asset "${name}" already exists!`);
+            return;
+        }
+        
+        // Add asset
+        const success = addAsset({
+            name: name,
+            type: type,
+            capacity: capacity,
+            status: status
+        });
+        
+        if (success) {
+            console.log(`✅ Asset "${name}" added successfully`);
+            
+            // Clear form
+            if (nameInput) nameInput.value = '';
+            if (capacityInput) capacityInput.value = '';
+            if (typeSelect) typeSelect.value = 'Bus';
+            if (statusSelect) statusSelect.value = 'active';
+            
+            // Refresh displays
+            refreshAssetListModal();
+            renderAssetPanel();
+            
+            // Focus back to name input
+            if (nameInput) nameInput.focus();
+        }
+    });
+    
+    console.log('✅ Asset form handler setup');
+}
+
+// Setup form handler when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupAssetFormHandler);
+} else {
+    setupAssetFormHandler();
+}
+
 // Make functions globally accessible
 if (typeof window !== 'undefined') {
     window.toggleAssetStatus = toggleAssetStatus;
@@ -892,6 +1019,8 @@ if (typeof window !== 'undefined') {
     window.addNewAsset = () => eventBus.emit('assets:addNew');
     window.isAssetAssigned = isAssetAssigned;
     window.getAssetAssignmentInfo = getAssetAssignmentInfo;
+    window.refreshAssetListModal = refreshAssetListModal;
+    window.deleteAssetFromModal = deleteAssetFromModal;
 }
 
 // =============================================================================
@@ -910,7 +1039,7 @@ export {
     getAssetTypeColor,
     isAssetAssigned,
     getAssetAssignmentInfo,
-    getAssetDownReason,
+    // getAssetDownReason - now in ValidationService
     updateAssetSummary,
     getAssetsByType,
     getAssetByName,

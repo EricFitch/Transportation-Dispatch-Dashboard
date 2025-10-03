@@ -11,6 +11,11 @@
 import { eventBus } from '../core/events.js';
 import { STATE, saveToLocalStorage } from '../core/state.js';
 import { debounceRender, PERFORMANCE } from '../core/utils.js';
+import { ROUTE_TYPES as ROUTE_TYPE_IDS, ROUTE_SCHEDULES as ROUTE_SCHEDULE_IDS } from '../core/constants.js';
+import { ValidationService } from '../core/validationService.js';
+import { Logger } from '../core/logger.js';
+import { ErrorHandler } from '../core/errorHandler.js';
+import { ModalService } from '../ui/modalService.js';
 
 // =============================================================================
 // ROUTE CARD DATA STRUCTURE
@@ -397,14 +402,14 @@ function updateRouteConfig(routeNumber, routeType, schedule) {
     if (existingRoute) {
         // Update existing route while preserving assignments
         if (routeType !== null) {
-            const wasInactive = existingRoute.type === 'inactive';
+            const wasInactive = existingRoute.type === ROUTE_TYPE_IDS.INACTIVE;
             existingRoute.type = routeType;
             
             // If route is being activated (changed from inactive to any other type)
             // and no specific schedule was provided, set default schedule to 'both'
-            if (wasInactive && routeType !== 'inactive' && schedule === null) {
+            if (wasInactive && routeType !== ROUTE_TYPE_IDS.INACTIVE && schedule === null) {
                 console.log(`🔄 Route ${routeNumber} activated from inactive to ${routeType}, setting default schedule to 'both'`);
-                existingRoute.schedule = 'both';
+                existingRoute.schedule = ROUTE_SCHEDULE_IDS.BOTH;
                 
                 // Show notification to user about automatic schedule setting
                 if (typeof window !== 'undefined' && window.uiSystem) {
@@ -416,9 +421,9 @@ function updateRouteConfig(routeNumber, routeType, schedule) {
                 }
             }
             // If route is being deactivated (changed to inactive), set schedule to 'none'
-            else if (routeType === 'inactive' && schedule === null) {
+            else if (routeType === ROUTE_TYPE_IDS.INACTIVE && schedule === null) {
                 console.log(`🔄 Route ${routeNumber} deactivated to inactive, setting schedule to 'none'`);
-                existingRoute.schedule = 'none';
+                existingRoute.schedule = ROUTE_SCHEDULE_IDS.NONE;
             }
         }
         
@@ -427,10 +432,10 @@ function updateRouteConfig(routeNumber, routeType, schedule) {
     } else {
         // Create new route
         // If creating a new active route without specifying schedule, default to 'both'
-        if (routeType !== 'inactive' && schedule === null) {
-            schedule = 'both';
-        } else if (routeType === 'inactive' && schedule === null) {
-            schedule = 'none';
+        if (routeType !== ROUTE_TYPE_IDS.INACTIVE && schedule === null) {
+            schedule = ROUTE_SCHEDULE_IDS.BOTH;
+        } else if (routeType === ROUTE_TYPE_IDS.INACTIVE && schedule === null) {
+            schedule = ROUTE_SCHEDULE_IDS.NONE;
         }
         createRoute(routeNumber, routeType, schedule);
     }
@@ -477,23 +482,19 @@ function importRoutesFromCSV(csvData) {
 }
 
 function assignDriver(routeId, driverInfo) {
-    console.log(`👨‍💼 Assigning driver to route ${routeId}:`, driverInfo);
+    Logger.info('Assigning driver to route:', routeId, driverInfo?.name);
     
     const route = findRouteById(routeId);
     if (!route) {
-        console.error('❌ Route not found:', routeId);
+        ErrorHandler.notFound('Route', routeId);
         return false;
     }
     
-    // Validation: staff cannot be assigned if out-of-service or already assigned in any role
+    // Validate driver assignment using ValidationService
     if (driverInfo) {
-        if (STATE.staffOut && STATE.staffOut.some(out => out && out.name === driverInfo.name)) {
-            notify(`Cannot assign ${driverInfo.name}: marked Out of Service.`, 'warning');
-            return false;
-        }
-        const active = findStaffActiveAssignment(driverInfo.name, route.id);
-        if (active) {
-            notify(`${driverInfo.name} is already assigned as ${active.role} on ${active.route.name || active.route.id}. Unassign them first.`, 'warning');
+        const validation = ValidationService.canAssignStaff(driverInfo.name, route.id);
+        if (!validation.valid) {
+            notify(validation.reason, 'warning');
             return false;
         }
     }
@@ -507,23 +508,19 @@ function assignDriver(routeId, driverInfo) {
 }
 
 function assignAsset(routeId, assetInfo) {
-    console.log(`🚌 Assigning asset to route ${routeId}:`, assetInfo);
+    Logger.info('Assigning asset to route:', routeId, assetInfo?.name);
     
     const route = findRouteById(routeId);
     if (!route) {
-        console.error('❌ Route not found:', routeId);
+        ErrorHandler.notFound('Route', routeId);
         return false;
     }
     
-    // Validation: asset cannot be assigned if down or already assigned elsewhere
+    // Validate asset assignment using ValidationService
     if (assetInfo) {
-        if (isAssetDownByName(assetInfo.name)) {
-            notify(`Cannot assign ${assetInfo.name}: asset is marked Down.`, 'warning');
-            return false;
-        }
-        const active = findAssetActiveAssignment(assetInfo.name, route.id);
-        if (active) {
-            notify(`${assetInfo.name} is already assigned to ${active.route.name || active.route.id}. Unassign it first.`, 'warning');
+        const validation = ValidationService.canAssignAsset(assetInfo.name, route.id);
+        if (!validation.valid) {
+            notify(validation.reason, 'warning');
             return false;
         }
     }
@@ -537,24 +534,19 @@ function assignAsset(routeId, assetInfo) {
 }
 
 function assignTrailer(routeId, trailerInfo) {
-    console.log(`🚛 Assigning trailer to route ${routeId}:`, trailerInfo);
+    Logger.info('Assigning trailer to route:', routeId, trailerInfo?.name);
     
     const route = findRouteById(routeId);
     if (!route) {
-        console.error('❌ Route not found:', routeId);
+        ErrorHandler.notFound('Route', routeId);
         return false;
     }
     
-    // Validation: trailer cannot be assigned if down or already assigned elsewhere
+    // Validate trailer assignment using ValidationService
     if (trailerInfo) {
-        if (isAssetDownByName(trailerInfo.name)) {
-            notify(`Cannot assign trailer ${trailerInfo.name}: asset is marked Down.`, 'warning');
-            return false;
-        }
-        const active = findAssetActiveAssignment(trailerInfo.name, route.id);
-        if (active) {
-            const target = active.role === 'Trailer' ? 'as a trailer' : 'to another route';
-            notify(`${trailerInfo.name} is already assigned ${target} on ${active.route.name || active.route.id}. Unassign it first.`, 'warning');
+        const validation = ValidationService.canAssignTrailer(trailerInfo.name, route.id);
+        if (!validation.valid) {
+            notify(validation.reason, 'warning');
             return false;
         }
     }
@@ -568,34 +560,30 @@ function assignTrailer(routeId, trailerInfo) {
 }
 
 function addSafetyEscort(routeId, escortInfo) {
-    console.log(`🛡️ Adding safety escort to route ${routeId}:`, escortInfo);
+    Logger.info('Adding safety escort to route:', routeId, escortInfo?.name);
     
     const route = findRouteById(routeId);
     if (!route) {
-        console.error('❌ Route not found:', routeId);
+        ErrorHandler.notFound('Route', routeId);
         return false;
     }
     
     // Check if escort already assigned to this route
     if (route.safetyEscorts.some(escort => escort.name === escortInfo.name)) {
-        console.warn('⚠️ Escort already assigned to this route:', escortInfo.name);
+        Logger.warn('Escort already assigned to this route:', escortInfo.name);
         return false;
     }
     
     // Check maximum escorts limit (5)
     if (route.safetyEscorts.length >= 5) {
-        console.warn('⚠️ Maximum safety escorts (5) already assigned to route');
+        notify('Maximum 5 safety escorts allowed per route', 'warning');
         return false;
     }
     
-    // Validation: escort cannot be out-of-service or assigned elsewhere (driver or escort)
-    if (STATE.staffOut && STATE.staffOut.some(out => out && out.name === escortInfo.name)) {
-        notify(`Cannot assign ${escortInfo.name}: marked Out of Service.`, 'warning');
-        return false;
-    }
-    const active = findStaffActiveAssignment(escortInfo.name, route.id);
-    if (active) {
-        notify(`${escortInfo.name} is already assigned as ${active.role} on ${active.route.name || active.route.id}. Unassign them first.`, 'warning');
+    // Validate escort assignment using ValidationService
+    const validation = ValidationService.canAssignStaff(escortInfo.name, route.id);
+    if (!validation.valid) {
+        notify(validation.reason, 'warning');
         return false;
     }
     
@@ -724,21 +712,37 @@ function getAvailableDrivers() {
 }
 
 function getAvailableAssets() {
-    if (!STATE.data?.assets) return [];
+    console.log('🔍 getAvailableAssets called');
+    console.log('🔍 STATE.data?.assets:', STATE.data?.assets);
+    
+    if (!STATE.data?.assets) {
+        console.log('❌ No assets in STATE.data');
+        return [];
+    }
+    
+    console.log('📊 Total assets in system:', STATE.data.assets.length);
     
     // Get all assigned assets
     const assignedAssets = STATE.data.routes
         .map(route => route.asset?.name)
         .filter(Boolean);
     
+    console.log('📊 Assigned assets:', assignedAssets);
+    
     // Return available assets (not assigned to routes and NOT trailers)
-    return STATE.data.assets.filter(asset => {
+    const available = STATE.data.assets.filter(asset => {
         const dynamicDown = STATE.assetStatus?.[asset.name] === 'Down';
-        return !assignedAssets.includes(asset.name) &&
-               asset.status !== 'down' &&
-               !dynamicDown &&
-               !(asset.type && asset.type.toLowerCase().includes('trailer'));
+        const isTrailer = asset.type && asset.type.toLowerCase().includes('trailer');
+        const isDown = asset.status === 'down';
+        const isAssigned = assignedAssets.includes(asset.name);
+        
+        console.log(`🔍 Asset ${asset.name}: assigned=${isAssigned}, down=${isDown}, dynamicDown=${dynamicDown}, trailer=${isTrailer}`);
+        
+        return !isAssigned && !isDown && !dynamicDown && !isTrailer;
     });
+    
+    console.log('✅ Available assets:', available);
+    return available;
 }
 
 function getAvailableTrailers() {
@@ -805,22 +809,10 @@ function findStaffActiveAssignment(staffName, currentRouteId = null) {
     return null;
 }
 
-function isAssetDownByName(assetName) {
-    const dynamicDown = STATE.assetStatus && STATE.assetStatus[assetName] === 'Down';
-    const staticDown = (STATE.data && Array.isArray(STATE.data.assets) ? STATE.data.assets : [])
-        .some(a => a && a.name === assetName && a.status === 'down');
-    return Boolean(dynamicDown || staticDown);
-}
-
-function findAssetActiveAssignment(assetName, currentRouteId = null) {
-    const routes = (STATE.data && Array.isArray(STATE.data.routes)) ? STATE.data.routes : [];
-    for (const r of routes) {
-        if (currentRouteId && r.id === currentRouteId) continue;
-        if (r.asset && r.asset.name === assetName) return { route: r };
-        if (r.trailer && r.trailer.name === assetName) return { route: r, role: 'Trailer' };
-    }
-    return null;
-}
+// Asset status functions moved to ValidationService - use:
+// - ValidationService.isAssetDown(assetName)
+// - ValidationService.findAssetActiveAssignment(assetName, currentRouteId)
+// - ValidationService.getAssetDownReason(assetName)
 
 // =============================================================================
 // UNASSIGNMENT HELPERS
@@ -947,19 +939,29 @@ function generateRouteCardHtml(route) {
             <!-- Driver Assignment -->
             <div class="assignment-section mb-3">
                 <label class="block text-sm font-medium text-blue-600 mb-1">DRIVER:</label>
-                <div class="driver-assignment p-2 border border-gray-300 rounded-md bg-gray-50 cursor-pointer"
-                     onclick="handleAssignDriver('${route.id}')">
-                    ${route.driver ? 
-                        `<span class="text-sm text-gray-800">${route.driver.name}</span>` : 
-                        `<span class="text-sm text-gray-500">Click to assign</span>`
-                    }
+                <div class="driver-assignment flex items-center gap-2">
+                    <div class="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 cursor-pointer"
+                         onclick="handleAssignDriver('${route.id}')">
+                        ${route.driver ? 
+                            `<span class="text-sm text-gray-800">${route.driver.name}</span>` : 
+                            `<span class="text-sm text-gray-500">Click to assign</span>`
+                        }
+                    </div>
+                    ${route.driver ? `
+                        <button type="button" class="unassign-btn" 
+                                onclick="event.stopPropagation(); handleUnassignDriver('${route.id}');"
+                                title="Unassign Driver" 
+                                aria-label="Unassign Driver">
+                            <img src="assets/icons/DeleteButton.png" class="unassign-icon" alt="" aria-hidden="true" />
+                        </button>
+                    ` : ''}
                 </div>
             </div>
             
             <!-- Asset Assignment -->
             <div class="assignment-section mb-3">
                 <label class="block text-sm font-medium text-purple-600 mb-1">ASSET:</label>
-                <div class="asset-assignment flex items-center">
+                <div class="asset-assignment flex items-center gap-2">
                     <div class="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 cursor-pointer"
                          onclick="handleAssignAsset('${route.id}')">
                         ${route.asset ? 
@@ -967,10 +969,12 @@ function generateRouteCardHtml(route) {
                             `<span class="text-sm text-gray-500">Click to assign</span>`
                         }
                     </div>
-                    ${isFieldTrip && route.asset ? `
-                        <button class="ml-2 px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200"
-                                onclick="handleEditAsset('${route.id}')">
-                            Edit
+                    ${route.asset ? `
+                        <button type="button" class="unassign-btn" 
+                                onclick="event.stopPropagation(); handleUnassignAsset('${route.id}');"
+                                title="Unassign Asset" 
+                                aria-label="Unassign Asset">
+                            <img src="assets/icons/DeleteButton.png" class="unassign-icon" alt="" aria-hidden="true" />
                         </button>
                     ` : ''}
                 </div>
@@ -980,7 +984,7 @@ function generateRouteCardHtml(route) {
             <!-- Trailer Assignment (Field Trips Only) -->
             <div class="assignment-section mb-3">
                 <label class="block text-sm font-medium text-orange-600 mb-1">TRAILER: <span class="text-gray-400">(optional)</span></label>
-                <div class="trailer-assignment flex items-center">
+                <div class="trailer-assignment flex items-center gap-2">
                     <div class="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 cursor-pointer"
                          onclick="handleAssignTrailer('${route.id}')">
                         ${route.trailer ? 
@@ -989,9 +993,11 @@ function generateRouteCardHtml(route) {
                         }
                     </div>
                     ${route.trailer ? `
-                        <button class="ml-2 px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200"
-                                onclick="handleRemoveTrailer('${route.id}')">
-                            Remove
+                        <button type="button" class="unassign-btn" 
+                                onclick="event.stopPropagation(); handleUnassignTrailer('${route.id}');"
+                                title="Unassign Trailer" 
+                                aria-label="Unassign Trailer">
+                            <img src="assets/icons/DeleteButton.png" class="unassign-icon" alt="" aria-hidden="true" />
                         </button>
                     ` : ''}
                 </div>
@@ -1009,9 +1015,11 @@ function generateRouteCardHtml(route) {
                             ${route.safetyEscorts.map((escort, index) => `
                                 <div class="flex items-center justify-between p-1 bg-green-50 rounded text-sm">
                                     <span class="text-gray-800">${escort.name}</span>
-                                    <button class="remove-escort-btn text-red-500 hover:text-red-700 text-xs" 
-                                            onclick="handleRemoveSafetyEscort('${route.id}', '${escort.name}')">
-                                        ✕
+                                    <button type="button" class="unassign-btn" 
+                                            onclick="event.stopPropagation(); handleRemoveSafetyEscort('${route.id}', '${escort.name}');"
+                                            title="Remove Safety Escort" 
+                                            aria-label="Remove ${escort.name}">
+                                        <img src="assets/icons/DeleteButton.png" class="unassign-icon" alt="" aria-hidden="true" />
                                     </button>
                                 </div>
                             `).join('')}
@@ -1195,7 +1203,19 @@ eventBus.on('colors:changed', (data) => {
     debounceRender('renderRouteCards');
 });
 
-// Initialize sample routes for demonstration
+/**
+ * Initialize sample routes for demonstration and testing purposes
+ * 
+ * This function is automatically called when STATE.data.routes is empty,
+ * providing new users with example routes to understand the system.
+ * 
+ * Creates:
+ * - 6 General Education routes (Routes 2-7)
+ * - 6 Special Education routes (Routes 80-82, 86-88)
+ * - 1 Miscellaneous route (Route 70)
+ * 
+ * Note: Remove this function if demo routes are no longer needed in production
+ */
 function initializeSampleRoutes() {
     console.log('🎯 Initializing sample route data...');
     
@@ -1295,10 +1315,31 @@ function handleAssignDriver(routeId) {
 }
 
 function handleAssignAsset(routeId) {
-    console.log('Assigning asset to route:', routeId);
+    console.log('🚛 Assigning asset to route:', routeId);
+    console.log('📊 STATE.data.assets:', STATE.data?.assets);
+    console.log('📊 Assets count:', STATE.data?.assets?.length || 0);
+    
     const availableAssets = getAvailableAssets();
+    console.log('✅ Available assets:', availableAssets);
+    console.log('✅ Available assets count:', availableAssets.length);
+    
+    // Show helpful message if no assets exist at all
+    if (!STATE.data?.assets || STATE.data.assets.length === 0) {
+        if (confirm('No assets in the system. Would you like to open Fleet Management to add assets?')) {
+            // Open Fleet Management modal/interface
+            const fleetDetailsBtn = document.getElementById('fleet-details-btn');
+            if (fleetDetailsBtn) {
+                fleetDetailsBtn.click();
+            } else {
+                alert('Please use the "Fleet Details" button in the Fleet Status section to manage assets.');
+            }
+        }
+        return;
+    }
+    
+    // Show message if assets exist but none are available
     if (availableAssets.length === 0) {
-        alert('No available assets');
+        alert(`No available assets. All assets are either:\n• Already assigned to routes\n• Marked as down/maintenance\n• Configured as trailers\n\nTip: You can unassign assets using the 🗑️ buttons, or use "Fleet Details" to add new assets.`);
         return;
     }
     
@@ -1559,39 +1600,12 @@ function showSelectionModal(options) {
         
         filteredItems.forEach(item => {
             const isSelected = selectedItems.some(selected => selected[idKey] === item[idKey]);
-            // Determine disabled state based on item type and current assignments/status
-            let isDisabled = false;
-            let disabledReason = '';
+            
+            // Use ValidationService for consistent validation
             const name = item.name || '';
-            if (options.mode === 'driver' || options.title.includes('Driver')) {
-                if (STATE.staffOut && STATE.staffOut.some(out => out && out.name === name)) {
-                    isDisabled = true; disabledReason = 'Out of Service';
-                } else {
-                    const active = findStaffActiveAssignment(name);
-                    if (active) { isDisabled = true; disabledReason = `Assigned as ${active.role} (${active.route.name || active.route.id})`; }
-                }
-            } else if (options.mode === 'asset' || options.title.includes('Asset')) {
-                if (isAssetDownByName(name)) {
-                    isDisabled = true; disabledReason = 'Down';
-                } else {
-                    const active = findAssetActiveAssignment(name);
-                    if (active) { isDisabled = true; disabledReason = `Assigned (${active.route.name || active.route.id})`; }
-                }
-            } else if (options.mode === 'trailer' || options.title.includes('Trailer')) {
-                if (isAssetDownByName(name)) {
-                    isDisabled = true; disabledReason = 'Down';
-                } else {
-                    const active = findAssetActiveAssignment(name);
-                    if (active) { isDisabled = true; disabledReason = `Assigned (${active.route.name || active.route.id})`; }
-                }
-            } else if (options.mode === 'escort' || options.title.includes('Safety')) {
-                if (STATE.staffOut && STATE.staffOut.some(out => out && out.name === name)) {
-                    isDisabled = true; disabledReason = 'Out of Service';
-                } else {
-                    const active = findStaffActiveAssignment(name);
-                    if (active) { isDisabled = true; disabledReason = `Assigned as ${active.role} (${active.route.name || active.route.id})`; }
-                }
-            }
+            const validationDisplay = ValidationService.getValidationDisplay(name, options.mode, options.routeId);
+            const isDisabled = validationDisplay.isDisabled;
+            const disabledReason = validationDisplay.disabledReason;
             const itemDiv = document.createElement('div');
             itemDiv.className = `p-3 border rounded transition-colors ${
                 isDisabled
@@ -1649,7 +1663,7 @@ function showSelectionModal(options) {
                     e.stopPropagation();
                     try {
                         const active = (options.mode === 'asset' || options.mode === 'trailer')
-                            ? findAssetActiveAssignment(name, options.routeId)
+                            ? ValidationService.findAssetActiveAssignment(name, options.routeId)
                             : findStaffActiveAssignment(name, options.routeId);
                         if (!active || !active.route) return;
                         // Unassign from the active route
@@ -1674,8 +1688,7 @@ function showSelectionModal(options) {
                             debounceRender('renderRouteCards');
                             // Close modal automatically on single-select modes
                             if (!options.multiSelect) {
-                                const modal = document.getElementById('assignment-modal');
-                                if (modal) modal.classList.add('hidden');
+                                ModalService.close('assignment-modal');
                             } else {
                                 // For multi-select, refresh list and selection state
                                 selectedItems = [];
@@ -1729,36 +1742,81 @@ function showSelectionModal(options) {
         renderItems(filteredItems);
     });
     
-    // Event handlers
+    // Event handlers using ModalService
     cancelBtn.onclick = () => {
-        modal.classList.add('hidden');
+        ModalService.close('assignment-modal');
     };
     
     confirmBtn.onclick = () => {
         if (selectedItems.length > 0 && options.onConfirm) {
             options.onConfirm(selectedItems);
         }
-        modal.classList.add('hidden');
-    };
-    
-    // Close on background click
-    modal.onclick = (e) => {
-        if (e.target === modal) {
-            modal.classList.add('hidden');
-        }
+        ModalService.close('assignment-modal');
     };
     
     // Initial render
     renderItems();
     updateConfirmButton();
     
-    // Show modal
-    modal.classList.remove('hidden');
-    search.focus();
+    // Show modal using ModalService (handles backdrop clicks and ESC key)
+    ModalService.open('assignment-modal', () => {
+        search.focus();
+    });
 }
 
-// Make modal function globally available
+// =============================================================================
+// GLOBAL EXPOSURE - Assignment Modal & Unassign Handlers
+// Required for HTML onclick attributes and modal interactions
+// =============================================================================
 window.showSelectionModal = showSelectionModal;
+window.handleUnassignDriver = handleUnassignDriver;
+window.handleUnassignAsset = handleUnassignAsset;
+window.handleUnassignTrailer = handleUnassignTrailer;
+
+function handleUnassignDriver(routeId) {
+    console.log('Unassigning driver from route:', routeId);
+    const route = findRouteById(routeId);
+    if (route && route.driver) {
+        const driverName = route.driver.name;
+        if (confirm(`Unassign ${driverName} from ${route.name}?`)) {
+            route.driver = null;
+            route.updatedAt = new Date().toISOString();
+            saveToLocalStorage();
+            debounceRender('renderRouteCards');
+            eventBus.emit('routes:driverUnassigned', { routeId, driverName });
+        }
+    }
+}
+
+function handleUnassignAsset(routeId) {
+    console.log('Unassigning asset from route:', routeId);
+    const route = findRouteById(routeId);
+    if (route && route.asset) {
+        const assetName = route.asset.name;
+        if (confirm(`Unassign ${assetName} from ${route.name}?`)) {
+            route.asset = null;
+            route.updatedAt = new Date().toISOString();
+            saveToLocalStorage();
+            debounceRender('renderRouteCards');
+            eventBus.emit('routes:assetUnassigned', { routeId, assetName });
+        }
+    }
+}
+
+function handleUnassignTrailer(routeId) {
+    console.log('Unassigning trailer from route:', routeId);
+    const route = findRouteById(routeId);
+    if (route && route.trailer) {
+        const trailerName = route.trailer.name;
+        if (confirm(`Unassign ${trailerName} from ${route.name}?`)) {
+            route.trailer = null;
+            route.updatedAt = new Date().toISOString();
+            saveToLocalStorage();
+            debounceRender('renderRouteCards');
+            eventBus.emit('routes:trailerUnassigned', { routeId, trailerName });
+        }
+    }
+}
 
 function handleRemoveSafetyEscort(routeId, escortName) {
     console.log('Removing safety escort from route:', routeId, escortName);
@@ -1916,6 +1974,10 @@ function handleRouteStatusUpdate(routeKey, status) {
     }
 }
 
+// =============================================================================
+// GLOBAL EXPOSURE - Route Status & Destination Handlers
+// Required for HTML onclick attributes
+// =============================================================================
 window.routeCardsHandleStatusUpdate = handleRouteStatusUpdate;
 
 if (typeof window.updateRouteStatus !== 'function') {
@@ -2540,21 +2602,29 @@ function hideNoteTooltip() {
 // Initialize tooltips when route cards are rendered
 eventBus.on('routes:rendered', initializeNoteTooltips);
 
-window.handleAssignDriver = handleAssignDriver;
+// =============================================================================
+// GLOBAL EXPOSURE - Route Card Action Handlers
+// Required for HTML onclick attributes in route card templates
+// Organized in Phase 2 Task 2.4 for better maintainability
+// =============================================================================
+window.handleAssignDriver = handleAssignDriver;           // Assignment actions
 window.handleAssignAsset = handleAssignAsset;
 window.handleEditAsset = handleEditAsset;
 window.handleAssignTrailer = handleAssignTrailer;
 window.handleRemoveTrailer = handleRemoveTrailer;
-window.handleDeleteFieldTrip = handleDeleteFieldTrip;
-window.deleteAllFieldTrips = deleteAllFieldTrips;
 window.handleAddSafetyEscort = handleAddSafetyEscort;
 window.handleRemoveSafetyEscort = handleRemoveSafetyEscort;
-window.handleUpdateNotes = handleUpdateNotes;
+
+window.handleUpdateNotes = handleUpdateNotes;             // Route management
 window.handleResetCard = handleResetCard;
 window.toggleRouteCard = toggleRouteCard;
 window.toggleSection = toggleSection;
+
+window.handleDeleteFieldTrip = handleDeleteFieldTrip;     // Field trip actions
+window.deleteAllFieldTrips = deleteAllFieldTrips;
 window.addNewFieldTripRoute = addNewFieldTripRoute;
-window.deduplicateRoutes = deduplicateRoutes;
+
+window.deduplicateRoutes = deduplicateRoutes;             // Utility functions
 
 // =============================================================================
 // RESET FUNCTIONALITY

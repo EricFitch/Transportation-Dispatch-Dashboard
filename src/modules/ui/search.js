@@ -350,5 +350,9 @@ document.addEventListener('DOMContentLoaded', () => {
   searchSystem.init();
 });
 
-// Export for global access
+// =============================================================================
+// GLOBAL EXPOSURE - Quick Search Dialog
+// Required for keyboard shortcut handler and search button onclick
+// Organized in Phase 2 Task 2.4 for better maintainability
+// =============================================================================
 window.openQuickSearchDialog = openQuickSearchDialog;

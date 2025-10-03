@@ -390,7 +390,12 @@ class CardManagement {
 // Create and export singleton instance
 const cardManagement = new CardManagement();
 
-// Make functions globally accessible for inline event handlers
+// =============================================================================
+// GLOBAL EXPOSURE - Card Collapse Management
+// Required for HTML onclick attributes in route cards and control buttons
+// Organized in Phase 2 Task 2.4 for better maintainability
+// Note: These duplicate some functions from responsive.js for compatibility
+// =============================================================================
 window.setupCardCollapse = () => cardManagement.setupCardCollapse();
 window.toggleCardCollapse = (routeKey) => cardManagement.toggleCardCollapse(routeKey);
 window.collapseAllCards = () => cardManagement.collapseAllCards();

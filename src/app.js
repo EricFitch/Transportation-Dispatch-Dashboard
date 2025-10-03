@@ -51,6 +51,11 @@ import {
     initializeTouchGestures as initializeCoreTouch
 } from './modules/core/events.js';
 
+import { Logger } from './modules/core/logger.js';
+import { ErrorHandler } from './modules/core/errorHandler.js';
+import { ValidationService } from './modules/core/validationService.js';
+import { ModalService } from './modules/ui/modalService.js';
+
 // ==========================================================================
 // UI SYSTEM MODULES
 // ==========================================================================
@@ -128,7 +133,7 @@ import {
   getAssetTypeColor,
   isAssetAssigned,
   getAssetAssignmentInfo,
-  getAssetDownReason,
+  // getAssetDownReason, - now in ValidationService
   updateAssetSummary,
   getAssetsByType,
   getAssetByName,
@@ -260,7 +265,7 @@ class ModularDispatchApp {
    */
   async init() {
     try {
-      console.log('🚀 Initializing Modular Dispatch Dashboard...');
+      Logger.info('Initializing Modular Dispatch Dashboard...');
       
       // Pre-flight data validation and cleanup
       await this.validateAndCleanData();
@@ -285,7 +290,7 @@ class ModularDispatchApp {
           }
         });
       } catch (e) {
-        console.warn('Failed to attach hamburger fallback handler', e);
+        Logger.warn('Failed to attach hamburger fallback handler', e);
       }
       // Phase 3: Initialize domain modules
       await this.initializeDomainModules();
@@ -295,8 +300,8 @@ class ModularDispatchApp {
       await this.finalizeInitialization();
       this.initialized = true;
       const loadTime = performance.now() - this.startTime;
-      console.log(`✅ Application initialized successfully in ${loadTime.toFixed(2)}ms`);
-      console.log(`📊 Loaded ${this.modules.size} modules`);
+      Logger.info(`Application initialized successfully in ${loadTime.toFixed(2)}ms`);
+      Logger.info(`Loaded ${this.modules.size} modules`);
       // Show the main application
       this.showApplication();
       // Dispatch application ready event
@@ -306,7 +311,11 @@ class ModularDispatchApp {
         modules: Array.from(this.modules.keys())
       });
     } catch (error) {
-      console.error('❌ Application initialization failed:', error);
+      ErrorHandler.handle(error, {
+        context: 'Application Initialization',
+        fatal: true,
+        userMessage: 'Failed to initialize the application. Please refresh the page.'
+      });
       this.handleInitializationError(error);
     }
   }
@@ -315,17 +324,17 @@ class ModularDispatchApp {
    * Validate and clean localStorage data before app initialization
    */
   async validateAndCleanData() {
-    console.log('🔍 Validating and cleaning data...');
+    Logger.info('Validating and cleaning data...');
     
     try {
       // Get storage statistics
       const stats = getStorageStats();
-      console.log(`📊 Storage stats: ${stats.totalItems} items, ${stats.totalSizeKB.toFixed(2)}KB total`);
+      Logger.info(`Storage stats: ${stats.totalItems} items, ${stats.totalSizeKB.toFixed(2)}KB total`);
       
       if (stats.unrelated.items > 0) {
-        console.warn(`⚠️ Found ${stats.unrelated.items} unrelated items:`, stats.unrelated.keys);
+        Logger.warn(`Found ${stats.unrelated.items} unrelated items:`, stats.unrelated.keys);
         const removedCount = cleanUnrelatedData();
-        console.log(`✅ Cleaned ${removedCount} unrelated items`);
+        Logger.info(`Cleaned ${removedCount} unrelated items`);
       }
       
       // Repair localStorage data
@@ -337,7 +346,11 @@ class ModularDispatchApp {
       }
       
     } catch (error) {
-      console.error('❌ Error during data validation:', error);
+      ErrorHandler.handle(error, {
+        context: 'Data Validation',
+        showUser: false,
+        fatal: false
+      });
       // Continue initialization even if data validation fails
     }
   }
@@ -346,7 +359,7 @@ class ModularDispatchApp {
    * Phase 1: Initialize core foundation modules
    */
   async initializeCoreModules() {
-    console.log('🔧 Initializing core modules...');
+    Logger.info('Initializing core modules...');
     
     // Core Utils - Load utilities (functions are already available after import)
     this.modules.set('CoreUtils', {
@@ -356,6 +369,14 @@ class ModularDispatchApp {
         eventBus,
         formatDate,
         generateId
+    });
+    
+    // Core Services - Load service utilities
+    this.modules.set('CoreServices', {
+        Logger,
+        ErrorHandler,
+        ValidationService,
+        ModalService
     });
     
     // Core State - Load state management (functions are already available after import)
@@ -376,14 +397,14 @@ class ModularDispatchApp {
         eventBus
     });
     
-    console.log('✅ Core modules initialized');
+    Logger.info('Core modules initialized');
   }
 
   /**
    * Phase 2: Initialize UI system modules
    */
   async initializeUIModules() {
-    console.log('🎨 Initializing UI modules...');
+    Logger.info('Initializing UI modules...');
     
     // UI System - Main UI management (singleton instance)
     this.modules.set('UISystem', uiSystem);
@@ -403,7 +424,7 @@ class ModularDispatchApp {
     await settingsSystem.init();
     this.modules.set('UISettings', settingsSystem);
     
-    console.log('✅ UI modules initialized');
+    Logger.info('UI modules initialized');
   }
 
   /**
@@ -462,7 +483,7 @@ class ModularDispatchApp {
       getAssetTypeColor,
       isAssetAssigned,
       getAssetAssignmentInfo,
-      getAssetDownReason,
+      // getAssetDownReason, - now in ValidationService
       updateAssetSummary,
       getAssetsByType,
       getAssetByName,
@@ -573,26 +594,26 @@ class ModularDispatchApp {
     // Use the singleton instance exported from bulk module
     this.modules.set('OperationsBulk', operationsBulk);
     
-    console.log('✅ Domain modules initialized');
+    Logger.info('Domain modules initialized');
   }
 
   /**
    * Phase 4: Initialize data layer modules
    */
   async initializeDataModules() {
-    console.log('💾 Initializing data modules...');
+    Logger.info('Initializing data modules...');
     
     // Use the singleton instance exported from the module
     this.modules.set('DataImportExport', importExportManager);
     
-    console.log('✅ Data modules initialized');
+    Logger.info('Data modules initialized');
   }
 
   /**
    * Phase 5: Finalize application initialization
    */
   async finalizeInitialization() {
-    console.log('🏁 Finalizing application setup...');
+    Logger.info('Finalizing application setup...');
     
     // Setup inter-module communication
     this.setupModuleCommunication();
@@ -623,29 +644,31 @@ class ModularDispatchApp {
         try {
           window.renderAssetPanel();
         } catch (error) {
-          console.error('❌ Error rendering asset panel:', error);
+          ErrorHandler.handle(error, {
+            context: 'Asset Panel Rendering',
+            showUser: false
+          });
         }
       });
-    } else {
-      console.warn('⚠️ renderAssetPanel function not available');
-    }
-    
-    if (window.renderStaffPanel) {
+      } else {
+        Logger.warn('renderAssetPanel function not available');
+      }    if (window.renderStaffPanel) {
       requestAnimationFrame(() => {
         setTimeout(() => {
           console.log('👥 Initializing Resource Monitor staff panel...');
           try {
             window.renderStaffPanel();
           } catch (error) {
-            console.error('❌ Error rendering staff panel:', error);
+            ErrorHandler.handle(error, {
+              context: 'Staff Panel Rendering',
+              showUser: false
+            });
           }
         }, 50); // Small delay to ensure asset panel renders first
       });
-    } else {
-      console.warn('⚠️ renderStaffPanel function not available');
-    }
-    
-    // Initialize route cards system
+        } else {
+        Logger.warn('renderStaffPanel function not available');
+      }    // Initialize route cards system
     setTimeout(() => {
       console.log('🚗 Initializing Route Cards system...');
       renderRouteCards();
@@ -671,7 +694,7 @@ class ModularDispatchApp {
       if (this.getModule('UIUtilities')?.initializeSidebarAutoHide) {
         this.getModule('UIUtilities').initializeSidebarAutoHide();
       } else {
-        console.warn('⚠️ UIUtilities module or initializeSidebarAutoHide method not available');
+        Logger.warn('UIUtilities module or initializeSidebarAutoHide method not available');
       }
     }, 200);
     
@@ -679,24 +702,37 @@ class ModularDispatchApp {
   }
 
   /**
-   * Expose critical functions globally for modules and debugging
+   * Expose critical functions globally for HTML onclick handlers and debugging
+   * 
+   * NOTE: These functions must be on window because they're called from HTML onclick attributes.
+   * Individual modules also expose their own functions for HTML integration.
+   * 
+   * Consolidated in Phase 2 Task 2.4 for better organization and documentation.
    */
   exposeGlobalFunctions() {
-    // Make render functions globally available
+    // =============================================================================
+    // CORE RENDERING FUNCTIONS
+    // =============================================================================
     window.renderAssetPanel = renderAssetPanel;
     window.renderStaffPanel = renderStaffPanel;
     window.renderRouteCards = renderRouteCards;
     window.resetRouteBoard = resetRouteBoard;
     
-    // Make uiSystem globally accessible for bulk entry functions
+    // =============================================================================
+    // MODULE SYSTEMS
+    // =============================================================================
     window.uiSystem = this.getModule('UISystem');
     
-    // Make state management functions available
+    // =============================================================================
+    // STATE MANAGEMENT
+    // =============================================================================
     window.getState = getState;
     window.setState = setState;
     window.saveToLocalStorage = saveToLocalStorage;
     
-    // Make route management functions available
+    // =============================================================================
+    // ROUTE OPERATIONS (from routeCards.js and routes.js)
+    // =============================================================================
     window.createRoute = createRoute;
     window.assignDriver = assignDriver;
     window.assignAsset = assignAsset;
@@ -704,7 +740,44 @@ class ModularDispatchApp {
     window.removeSafetyEscort = removeSafetyEscort;
     window.updateRouteNotes = updateRouteNotes;
     
-    console.log('✅ Global functions exposed');
+    // NOTE: Additional route card handlers exposed in routeCards.js:
+    // - handleAssignDriver, handleAssignAsset, handleEditAsset
+    // - handleAssignTrailer, handleRemoveTrailer
+    // - handleAddSafetyEscort, handleRemoveSafetyEscort
+    // - handleUpdateNotes, handleResetCard
+    // - toggleRouteCard, toggleSection
+    // - handleDeleteFieldTrip, deleteAllFieldTrips
+    // - showSelectionModal, handleUnassignDriver, handleUnassignAsset, handleUnassignTrailer
+    
+    // NOTE: Route management operations exposed in routeManagement.js:
+    // - resetCard, removeRoute, addNewFieldTrip, removeFieldTrip
+    // - resetFieldTrip, updateFieldTripDestination
+    // - updateRouteNote, updateFieldTripNote, updateRouteStatus
+    
+    // =============================================================================
+    // UTILITY SERVICES (exposed in their respective modules)
+    // =============================================================================
+    // - window.ModalService (modalService.js)
+    // - window.ValidationService (validationService.js)
+    // - window.Logger (logger.js)
+    // - window.ErrorHandler (errorHandler.js)
+    
+    // =============================================================================
+    // TOUCH & RESPONSIVE (exposed in responsive.js)
+    // =============================================================================
+    // - setupCardCollapse, toggleCardCollapse
+    // - collapseAllCards, expandAllCards
+    // - clearSearch, performSearch
+    
+    // =============================================================================
+    // UI COMPONENTS (exposed in their respective modules)
+    // =============================================================================
+    // - window.openQuickSearchDialog (search.js)
+    // - window.setupCardCollapse, toggleCardCollapse (cardManagement.js)
+    // - window.fieldTripManager (field-trips.js)
+    // - window.operationsBulk (bulk.js)
+    
+    Logger.info('Global functions exposed');
   }
 
   /**
@@ -716,7 +789,7 @@ class ModularDispatchApp {
     if (resetBoardBtn) {
       resetBoardBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        console.log('🔄 Reset Board button clicked');
+        Logger.info('Reset Board button clicked');
         
         // Confirm reset action
         if (confirm('Are you sure you want to reset the route board? This will clear all route data.')) {
@@ -815,7 +888,7 @@ class ModularDispatchApp {
       renderRouteCards();
       console.log(`🔄 Re-rendered route cards for ${view} view`);
     } catch (error) {
-      console.error('❌ Error re-rendering route cards:', error);
+      Logger.error('Error re-rendering route cards:', error);
     }
 
     // Emit event for other modules that might need to respond
@@ -853,14 +926,14 @@ class ModularDispatchApp {
    * Show the timestamp report modal
    */
   showTimestampReportModal() {
-    const modal = document.getElementById('timestamp-report-modal');
-    if (modal) {
-      modal.classList.remove('hidden');
+    const success = ModalService.open('timestamp-report-modal', () => {
       this.setupTimestampReportModalHandlers();
       this.generateTimestampReport();
-      console.log('📋 Timestamp report modal opened');
-    } else {
-      console.warn('⚠️ Timestamp report modal not found');
+      Logger.info('Timestamp report modal opened');
+    });
+    
+    if (!success) {
+      Logger.warn('Timestamp report modal not found');
     }
   }
 
@@ -880,7 +953,11 @@ class ModularDispatchApp {
         console.warn('⚠️ Advanced Search system not available');
       }
     } catch (err) {
-      console.error('❌ Failed to open Advanced Search modal:', err);
+      ErrorHandler.handle(err, {
+        context: 'Advanced Search Modal',
+        userMessage: 'Failed to open search. Please try again.',
+        showUser: true
+      });
     }
   }
 
@@ -894,19 +971,13 @@ class ModularDispatchApp {
     const emailBtn = document.getElementById('email-report');
     const clearBtn = document.getElementById('clear-timestamps');
 
-    const closeModal = () => {
-      const modal = document.getElementById('timestamp-report-modal');
-      if (modal) modal.classList.add('hidden');
-    };
-
+    // Setup close buttons using ModalService
     if (closeBtn) {
-      closeBtn.removeEventListener('click', closeModal);
-      closeBtn.addEventListener('click', closeModal);
+      ModalService.setupCloseButton('timestamp-report-close', 'timestamp-report-modal');
     }
 
     if (cancelBtn) {
-      cancelBtn.removeEventListener('click', closeModal);
-      cancelBtn.addEventListener('click', closeModal);
+      ModalService.setupCloseButton('timestamp-report-cancel', 'timestamp-report-modal');
     }
 
     if (printBtn) {
@@ -1294,7 +1365,7 @@ class ModularDispatchApp {
         e.preventDefault();
         this.saveAllData();
       },
-      'Escape': () => this.modules.get('UISystem')?.closeAllModals(),
+      'Escape': () => ModalService.closeAll(),
       'Ctrl+F': (e) => {
         e.preventDefault();
         try {
@@ -1354,20 +1425,11 @@ class ModularDispatchApp {
 
   /**
    * Register service worker for offline functionality
-   * TEMPORARILY DISABLED FOR DEVELOPMENT
+   * Note: Disabled for development - enable in production if needed
    */
   async registerServiceWorker() {
-    console.log('📱 Service Worker registration skipped (disabled for development)');
+    Logger.debug('Service Worker registration skipped');
     return;
-    
-    // if ('serviceWorker' in navigator) {
-    //   try {
-    //     const registration = await navigator.serviceWorker.register('/sw.js');
-    //     console.log('📱 Service Worker registered:', registration);
-    //   } catch (error) {
-    //     console.log('📱 Service Worker registration failed:', error);
-    //   }
-    // }
   }
 
   /**
@@ -1418,10 +1480,14 @@ class ModularDispatchApp {
         moduleCount: savePromises.length
       });
       
-      console.log('✅ Application data saved');
+      Logger.info('Application data saved');
       
     } catch (error) {
-      console.error('❌ Error saving application data:', error);
+      ErrorHandler.handle(error, {
+        context: 'Data Save Operation',
+        userMessage: 'Failed to save your data. Please try again.',
+        showUser: true
+      });
       eventBus.emit('app:saveError', error);
     }
   }
@@ -1624,8 +1690,8 @@ async function bootstrap() {
     const settingsMenu = document.getElementById('settings-main-menu');
     const openRouteBtn = document.getElementById('open-route-management');
 
-    // Asset management button
-    const openAssetBtn = document.getElementById('open-asset-management');
+    // Fleet management button
+    const openFleetBtn = document.getElementById('open-fleet-management');
 
     // Staff management button
     const openStaffBtn = document.getElementById('open-staff-management');
@@ -1635,7 +1701,7 @@ async function bootstrap() {
 
     // Debug - check if buttons exist
     console.log('🔍 Button check completed');
-    console.log('Route Management, Asset Management, and Staff Management buttons ready');
+    console.log('Route Management, Fleet Management, and Staff Management buttons ready');
 
     // System functions
 
@@ -1648,11 +1714,8 @@ async function bootstrap() {
         e.stopPropagation();
         closeSlideout();
         
-        // Use same approach as Dashboard Settings - show existing modal
-        const modal = document.getElementById('route-management-modal');
-        if (modal) {
-          modal.classList.remove('hidden');
-          
+        // Open route management modal using ModalService
+        ModalService.open('route-management-modal', () => {
           // Setup route management modal and render grid
           if (window.setupRouteManagementModal) {
             window.setupRouteManagementModal();
@@ -1660,9 +1723,21 @@ async function bootstrap() {
           if (window.renderRouteConfigGrid) {
             window.renderRouteConfigGrid();
           }
-        }
+        });
       });
     }
+
+    if (openFleetBtn) {
+      openFleetBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSlideout();
+        
+        console.log('🚛 Fleet Management button clicked - navigating to fleet management');
+        window.location.href = 'fleet-details.html';
+      });
+    }
+
     // Add click handler for Staff Details button to navigate to staff-details.html
     if (staffDetailsBtn) {
       staffDetailsBtn.addEventListener('click', (e) => {
@@ -1672,39 +1747,19 @@ async function bootstrap() {
       });
     }
 
-    if (openAssetBtn) {
-      openAssetBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        closeSlideout();
-        
-        // Use same approach as Dashboard Settings - show existing modal
-        const modal = document.getElementById('asset-management-modal');
-        if (modal) {
-          modal.classList.remove('hidden');
-          // Refresh the asset list when modal opens
-          if (window.refreshAssetListModal) {
-            window.refreshAssetListModal();
-          }
-        }
-      });
-    }
-
     if (openStaffBtn) {
       openStaffBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         closeSlideout();
         
-        // Use same approach as Dashboard Settings - show existing modal
-        const modal = document.getElementById('staff-management-modal');
-        if (modal) {
-          modal.classList.remove('hidden');
+        // Open staff management modal using ModalService
+        ModalService.open('staff-management-modal', () => {
           // Refresh the staff list when modal opens
           if (window.refreshStaffListModal) {
             window.refreshStaffListModal();
           }
-        }
+        });
       });
     }
 
@@ -1720,30 +1775,10 @@ async function bootstrap() {
       });
     }
 
-    // Close button handlers for modals
-    const routeModalClose = document.getElementById('route-modal-close');
-    if (routeModalClose) {
-      routeModalClose.addEventListener('click', () => {
-        const modal = document.getElementById('route-management-modal');
-        if (modal) modal.classList.add('hidden');
-      });
-    }
-
-    const assetModalClose = document.getElementById('asset-modal-close');
-    if (assetModalClose) {
-      assetModalClose.addEventListener('click', () => {
-        const modal = document.getElementById('asset-management-modal');
-        if (modal) modal.classList.add('hidden');
-      });
-    }
-
-    const staffModalClose = document.getElementById('staff-modal-close');
-    if (staffModalClose) {
-      staffModalClose.addEventListener('click', () => {
-        const modal = document.getElementById('staff-management-modal');
-        if (modal) modal.classList.add('hidden');
-      });
-    }
+    // Close button handlers for modals using ModalService
+    ModalService.setupCloseButton('route-modal-close', 'route-management-modal');
+    ModalService.setupCloseButton('staff-modal-close', 'staff-management-modal');
+    ModalService.setupCloseButton('asset-modal-close', 'asset-management-modal');
 
     // Route Management CSV Import Functionality
     const setupRouteCSVImport = () => {

@@ -850,15 +850,19 @@ function observeNewCards() {
 }
 
 // =============================================================================
-// GLOBAL FUNCTIONS
+// GLOBAL EXPOSURE - Responsive & Search Functions
+// Required for HTML onclick attributes and console debugging
+// Organized in Phase 2 Task 2.4 for better maintainability
 // =============================================================================
 
-// Make functions globally accessible
 if (typeof window !== 'undefined') {
+    // Card collapse controls (used in HTML templates)
     window.setupCardCollapse = setupCardCollapse;
     window.toggleCardCollapse = toggleCardCollapse;
     window.collapseAllCards = collapseAllCards;
     window.expandAllCards = expandAllCards;
+    
+    // Search functionality (used in HTML search input handlers)
     window.clearSearch = clearSearchResults;
     window.performSearch = performResponsiveSearch;
 }

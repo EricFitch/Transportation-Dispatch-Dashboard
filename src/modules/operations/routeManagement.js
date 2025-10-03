@@ -462,15 +462,27 @@ class RouteManagementOperations {
 // Create and export singleton instance
 const routeManagementOperations = new RouteManagementOperations();
 
-// Make functions globally accessible for inline event handlers
+// =============================================================================
+// GLOBAL EXPOSURE - Route Management Operations
+// Required for HTML onclick attributes in route management modal
+// Organized in Phase 2 Task 2.4 for better maintainability
+// =============================================================================
+
+// Route card operations (used in route card action buttons)
 window.resetCard = (runKey) => routeManagementOperations.resetCard(runKey);
 window.removeRoute = (runKey) => routeManagementOperations.removeRoute(runKey);
+
+// Field trip management (used in field trip modal and cards)
 window.addNewFieldTrip = (shift) => routeManagementOperations.addNewFieldTrip(shift);
 window.removeFieldTrip = (fieldTripId) => routeManagementOperations.removeFieldTrip(fieldTripId);
 window.resetFieldTrip = (fieldTripId) => routeManagementOperations.resetFieldTrip(fieldTripId);
 window.updateFieldTripDestination = (fieldTripId, destination) => routeManagementOperations.updateFieldTripDestination(fieldTripId, destination);
+
+// Note management (used in notes modal/inline editing)
 window.updateRouteNote = (runKey, note) => routeManagementOperations.updateRouteNote(runKey, note);
 window.updateFieldTripNote = (fieldTripId, note) => routeManagementOperations.updateFieldTripNote(fieldTripId, note);
+
+// Status updates (special handler with callback to route cards)
 window.updateRouteStatus = (runKey, status) => {
   routeManagementOperations.updateRouteStatus(runKey, status);
   if (typeof window.routeCardsHandleStatusUpdate === 'function') {

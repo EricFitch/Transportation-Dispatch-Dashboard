@@ -267,19 +267,16 @@ class SettingsSystem {
    * Apply display settings
    */
   applyDisplaySettings() {
-    console.log('🎨 Applying display settings...');
     const root = document.documentElement;
     const display = this.settings.display;
 
     // Apply card scale (0.8 - 1.5)
     const cardScale = display.cardScale || 1.0;
     root.style.setProperty('--route-card-scale', cardScale);
-    console.log('  ✓ Card scale:', cardScale);
 
     // Apply grid gap (8-32px)
     const gridGap = display.gridGap || 16;
     root.style.setProperty('--route-grid-gap', `${gridGap}px`);
-    console.log('  ✓ Grid gap:', gridGap, 'px');
 
     // Apply animations enabled/disabled
     const animationsEnabled = display.animationsEnabled !== false; // default true
@@ -291,20 +288,14 @@ class SettingsSystem {
       root.style.setProperty('--route-animation-duration', '0.3s');
       root.style.setProperty('--transition-speed', '0.2s');
     }
-    console.log('  ✓ Animations:', animationsEnabled ? 'enabled' : 'disabled');
 
     // Force browser to recalculate layout
     const routeCards = document.querySelectorAll('.route-card, .route-grid');
     if (routeCards.length > 0) {
-      console.log(`  🔄 Forcing reflow on ${routeCards.length} elements...`);
       routeCards.forEach(card => {
-        // Force reflow by reading offsetHeight
-        void card.offsetHeight;
+        void card.offsetHeight; // Force reflow
       });
-      console.log('  ✓ Reflow complete');
     }
-
-    console.log('✅ Display settings applied');
   }
 
   /**
@@ -612,13 +603,10 @@ class SettingsSystem {
    * Open settings dialog
    */
   openSettingsDialog() {
-    console.log('🔧 Opening settings dialog...');
-    console.log('DEBUG: Function openSettingsDialog called at line 609');
-    console.log('DEBUG: this.settings =', this.settings);
+    console.log('⚙️ Opening settings dialog...');
     
     // Get the existing settings modal from HTML
     const modal = document.getElementById('settings-modal');
-    console.log('DEBUG: modal found =', modal);
     if (!modal) {
       console.error('❌ Settings modal not found in HTML');
       return;
@@ -629,13 +617,10 @@ class SettingsSystem {
     
     // Update the modal content with simplified single-page settings
     const contentContainer = modal.querySelector('#settings-content');
-    console.log('🔍 Looking for settings container...', contentContainer);
     
     if (contentContainer) {
       const content = this.createSettingsContent();
-      console.log('📝 Generated content length:', content.length);
       contentContainer.innerHTML = content;
-      console.log('✅ Content inserted successfully');
     } else {
       console.error('❌ Content container #settings-content not found in modal');
     }
@@ -678,14 +663,8 @@ class SettingsSystem {
    * Create simplified single-page settings content
    */
   createSettingsContent() {
-    console.log('🎨 Creating settings content...');
-    console.log('Settings object:', this.settings);
-    
     const data = this.settings.data || {};
     const display = this.settings.display || {};
-    
-    console.log('Data settings:', data);
-    console.log('Display settings:', display);
     
     return `
       <div class="space-y-4">
@@ -1637,62 +1616,36 @@ class SettingsSystem {
    * Update settings from form
    */
   updateFromForm() {
-    console.log('📝 Updating settings from form...');
-    
     // General Settings
     const autoSave = document.getElementById('auto-save');
-    if (autoSave) {
-      this.settings.data.autoSave = autoSave.checked;
-      console.log('  ✓ Auto-save:', autoSave.checked);
-    }
+    if (autoSave) this.settings.data.autoSave = autoSave.checked;
 
     const autoSaveInterval = document.getElementById('auto-save-interval');
-    if (autoSaveInterval) {
-      this.settings.data.autoSaveInterval = parseInt(autoSaveInterval.value) * 1000;
-      console.log('  ✓ Auto-save interval:', autoSaveInterval.value, 'seconds');
-    }
+    if (autoSaveInterval) this.settings.data.autoSaveInterval = parseInt(autoSaveInterval.value) * 1000;
 
     // Appearance & Display Settings
     const cardScale = document.getElementById('card-scale');
-    if (cardScale) {
-      this.settings.display.cardScale = parseFloat(cardScale.value);
-      console.log('  ✓ Card scale:', cardScale.value);
-    }
+    if (cardScale) this.settings.display.cardScale = parseFloat(cardScale.value);
 
     const gridGap = document.getElementById('grid-gap');
-    if (gridGap) {
-      this.settings.display.gridGap = parseInt(gridGap.value);
-      console.log('  ✓ Grid gap:', gridGap.value, 'px');
-    }
+    if (gridGap) this.settings.display.gridGap = parseInt(gridGap.value);
 
     const animationsEnabled = document.getElementById('animations-enabled');
-    if (animationsEnabled) {
-      this.settings.display.animationsEnabled = animationsEnabled.checked;
-      console.log('  ✓ Animations enabled:', animationsEnabled.checked);
-    }
+    if (animationsEnabled) this.settings.display.animationsEnabled = animationsEnabled.checked;
 
     // Data Management Settings
     const backupBeforeImport = document.getElementById('backup-before-import');
-    if (backupBeforeImport) {
-      this.settings.data.backupBeforeImport = backupBeforeImport.checked;
-      console.log('  ✓ Backup before import:', backupBeforeImport.checked);
-    }
+    if (backupBeforeImport) this.settings.data.backupBeforeImport = backupBeforeImport.checked;
 
     const maxBackups = document.getElementById('max-backups');
-    if (maxBackups) {
-      this.settings.data.maxBackups = parseInt(maxBackups.value);
-      console.log('  ✓ Max backups:', maxBackups.value);
-    }
+    if (maxBackups) this.settings.data.maxBackups = parseInt(maxBackups.value);
 
     // Advanced Settings
     const debugMode = document.getElementById('debug-mode');
     if (debugMode) {
       if (!this.settings.advanced) this.settings.advanced = {};
       this.settings.advanced.debugMode = debugMode.checked;
-      console.log('  ✓ Debug mode:', debugMode.checked);
     }
-
-    console.log('✅ Settings updated from form');
   }
 
   /**

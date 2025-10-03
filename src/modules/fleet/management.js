@@ -12,6 +12,7 @@
 import { eventBus } from '../core/events.js';
 import { STATE, saveToLocalStorage } from '../core/state.js';
 import { debounceRender, PERFORMANCE } from '../core/utils.js';
+import { ValidationService } from '../core/validationService.js';
 
 // =============================================================================
 // FLEET MANAGEMENT CONFIGURATION
@@ -346,7 +347,7 @@ function renderDownList() {
     }
     
     downList.innerHTML = downAssets.map(asset => {
-        const reason = getAssetDownReason(asset.name);
+        const reason = ValidationService.getAssetDownReason(asset.name);
         const timestamp = getAssetDownTimestamp(asset.name);
         const category = getAssetDownCategory(asset.name);
         
@@ -753,9 +754,8 @@ function getActiveAssetsCount() {
     return totalAssets - downCount;
 }
 
-function getAssetDownReason(assetName) {
-    return STATE.assetDownReasons?.[assetName]?.reason || '';
-}
+// getAssetDownReason moved to ValidationService
+// Use: ValidationService.getAssetDownReason(assetName)
 
 function getAssetDownTimestamp(assetName) {
     return STATE.assetDownReasons?.[assetName]?.timestamp || null;
