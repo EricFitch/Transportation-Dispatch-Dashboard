@@ -227,20 +227,25 @@
   gap: 0.5rem;
 }
 
-.color-input {
+.color-input,
+.role-color-input {
   width: 100%;
   height: 48px;
-  border: 1px solid var(--settings-border);
+  border: 2px solid var(--settings-border);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
+  padding: 4px;
 }
 
-.color-input:hover {
+.color-input:hover,
+.role-color-input:hover {
   border-color: var(--settings-accent);
+  transform: scale(1.02);
 }
 
-.color-input:focus {
+.color-input:focus,
+.role-color-input:focus {
   outline: none;
   border-color: var(--settings-accent);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);

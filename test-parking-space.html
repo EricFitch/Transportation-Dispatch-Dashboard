@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Parking Space Diagnostic</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            background: #f3f4f6;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #1f2937;
+        }
+        .success { color: #10b981; font-weight: 600; }
+        .error { color: #ef4444; font-weight: 600; }
+        .info { color: #3b82f6; font-weight: 600; }
+        .data-row {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .data-label { font-weight: 600; color: #6b7280; }
+        pre {
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button.success {
+            background: #10b981;
+        }
+        button.success:hover {
+            background: #059669;
+        }
+    </style>
+</head>
+<body>
+    <h1>🅿️ Parking Space Diagnostic Tool</h1>
+    
+    <div class="card">
+        <h2>1. Check Asset 9642 Data</h2>
+        <div id="asset-check">Loading...</div>
+    </div>
+    
+    <div class="card">
+        <h2>2. Check Route Assignment</h2>
+        <div id="route-check">Loading...</div>
+    </div>
+    
+    <div class="card">
+        <h2>3. Test Parking Space Display</h2>
+        <div id="parking-display">Loading...</div>
+    </div>
+    
+    <div class="card">
+        <h2>4. Quick Actions</h2>
+        <button onclick="addTestParkingSpace()">Add Test Parking Space to 9642</button>
+        <button onclick="addTestParkingSpaces()">Add Parking to Multiple Assets</button>
+        <button class="success" onclick="refreshDashboard()">Refresh Dashboard</button>
+        <button onclick="location.reload()">Reload This Page</button>
+    </div>
+    
+    <div class="card">
+        <h2>5. Full Data Dump</h2>
+        <button onclick="showFullData()">Show All Assets</button>
+        <button onclick="showAllRoutes()">Show All Routes</button>
+        <div id="data-dump"></div>
+    </div>
+
+    <script>
+        // Load state from localStorage
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('dispatch.state');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+            } catch (error) {
+                console.error('Error loading state:', error);
+            }
+            return null;
+        }
+
+        function saveState(state) {
+            try {
+                localStorage.setItem('dispatch.state', JSON.stringify(state));
+                return true;
+            } catch (error) {
+                console.error('Error saving state:', error);
+                return false;
+            }
+        }
+
+        // Check asset 9642
+        function checkAsset() {
+            const state = loadState();
+            const output = document.getElementById('asset-check');
+            
+            if (!state || !state.data) {
+                output.innerHTML = '<p class="error">❌ No state data found in localStorage</p>';
+                return;
+            }
+
+            const assets = state.data.assets || [];
+            const asset9642 = assets.find(a => a.name === '9642');
+            
+            if (!asset9642) {
+                output.innerHTML = '<p class="error">❌ Asset 9642 not found in system</p>';
+                output.innerHTML += '<p class="info">Available assets: ' + assets.map(a => a.name).join(', ') + '</p>';
+                return;
+            }
+
+            let html = '<p class="success">✅ Asset 9642 found!</p>';
+            html += '<div class="data-row"><div class="data-label">Asset Name:</div><div>' + asset9642.name + '</div></div>';
+            html += '<div class="data-row"><div class="data-label">Asset Type:</div><div>' + (asset9642.type || 'Unknown') + '</div></div>';
+            html += '<div class="data-row"><div class="data-label">Has details object?</div><div>' + (asset9642.details ? 'YES' : 'NO') + '</div></div>';
+            
+            if (asset9642.details) {
+                const parkingSpace = asset9642.details.parkingSpace;
+                if (parkingSpace) {
+                    html += '<div class="data-row"><div class="data-label">Parking Space:</div><div class="success">' + parkingSpace + ' ✅</div></div>';
+                } else {
+                    html += '<div class="data-row"><div class="data-label">Parking Space:</div><div class="error">NOT SET ❌</div></div>';
+                }
+                html += '<h3>Full Details Object:</h3>';
+                html += '<pre>' + JSON.stringify(asset9642.details, null, 2) + '</pre>';
+            } else {
+                html += '<p class="error">❌ No details object found on asset 9642</p>';
+            }
+            
+            output.innerHTML = html;
+        }
+
+        // Check routes
+        function checkRoutes() {
+            const state = loadState();
+            const output = document.getElementById('route-check');
+            
+            if (!state || !state.data) {
+                output.innerHTML = '<p class="error">❌ No state data found</p>';
+                return;
+            }
+
+            const routes = state.data.routes || [];
+            const routesWith9642 = routes.filter(r => r.asset && r.asset.name === '9642');
+            
+            if (routesWith9642.length === 0) {
+                output.innerHTML = '<p class="error">❌ Asset 9642 is NOT assigned to any routes</p>';
+                output.innerHTML += '<p class="info">💡 This is why parking space doesn\'t show on route cards!</p>';
+                output.innerHTML += '<p class="info">Total routes in system: ' + routes.length + '</p>';
+                return;
+            }
+
+            let html = '<p class="success">✅ Asset 9642 is assigned to ' + routesWith9642.length + ' route(s)</p>';
+            
+            routesWith9642.forEach((route, idx) => {
+                html += '<h3>Route #' + (idx + 1) + '</h3>';
+                html += '<div class="data-row"><div class="data-label">Route Name:</div><div>' + (route.name || 'Unnamed') + '</div></div>';
+                html += '<div class="data-row"><div class="data-label">Route Number:</div><div>' + (route.routeNumber || 'N/A') + '</div></div>';
+                html += '<div class="data-row"><div class="data-label">Asset:</div><div>' + route.asset.name + '</div></div>';
+                
+                const parkingSpace = route.asset.details && route.asset.details.parkingSpace;
+                html += '<div class="data-row"><div class="data-label">Parking Space on Route:</div><div class="' + (parkingSpace ? 'success' : 'error') + '">' + (parkingSpace || 'NOT SET') + '</div></div>';
+            });
+            
+            output.innerHTML = html;
+        }
+
+        // Test parking display
+        function testParkingDisplay() {
+            const state = loadState();
+            const output = document.getElementById('parking-display');
+            
+            const testAsset = {
+                name: '9642',
+                details: {
+                    parkingSpace: 'A-12'
+                }
+            };
+
+            const parkingHTML = getAssetParkingSpace(testAsset);
+            
+            let html = '<p class="info">This is how parking space SHOULD display on route cards:</p>';
+            html += '<div style="background:#f9fafb; padding:15px; border-radius:8px; border:2px solid #e5e7eb;">';
+            html += '<strong>Asset 9642</strong> ' + parkingHTML;
+            html += '</div>';
+            html += '<br>';
+            html += '<p>HTML Code Generated:</p>';
+            html += '<pre>' + escapeHtml(parkingHTML) + '</pre>';
+            
+            output.innerHTML = html;
+        }
+
+        // Function from routeCards.js
+        function getAssetParkingSpace(asset) {
+            if (!asset || !asset.details || !asset.details.parkingSpace) return '';
+            return ` <span class="parking-indicator"><img src="assets/icons/ParkingButton.png" class="parking-icon" alt="Parking" /> ${asset.details.parkingSpace}</span>`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Add test parking space to 9642
+        function addTestParkingSpace() {
+            const state = loadState();
+            if (!state || !state.data) {
+                alert('No state data found!');
+                return;
+            }
+
+            const asset = state.data.assets.find(a => a.name === '9642');
+            if (!asset) {
+                alert('Asset 9642 not found!');
+                return;
+            }
+
+            if (!asset.details) {
+                asset.details = {};
+            }
+
+            asset.details.parkingSpace = 'A-12';
+            
+            // Also update any routes that have this asset
+            if (state.data.routes) {
+                state.data.routes.forEach(route => {
+                    if (route.asset && route.asset.name === '9642') {
+                        if (!route.asset.details) route.asset.details = {};
+                        route.asset.details.parkingSpace = 'A-12';
+                    }
+                });
+            }
+
+            if (saveState(state)) {
+                alert('✅ Parking space A-12 added to asset 9642!\n\nNow refresh the main dashboard to see it.');
+                location.reload();
+            } else {
+                alert('❌ Failed to save state');
+            }
+        }
+
+        // Add parking to multiple assets
+        function addTestParkingSpaces() {
+            const state = loadState();
+            if (!state || !state.data) {
+                alert('No state data found!');
+                return;
+            }
+
+            const parkingSpaces = ['A-12', 'A-13', 'B-5', 'B-6', 'C-10', 'D-2'];
+            let count = 0;
+
+            state.data.assets.forEach((asset, idx) => {
+                if (!asset.details) asset.details = {};
+                asset.details.parkingSpace = parkingSpaces[idx % parkingSpaces.length];
+                count++;
+            });
+
+            // Update routes as well
+            if (state.data.routes) {
+                state.data.routes.forEach(route => {
+                    if (route.asset && route.asset.name) {
+                        const asset = state.data.assets.find(a => a.name === route.asset.name);
+                        if (asset && asset.details && asset.details.parkingSpace) {
+                            if (!route.asset.details) route.asset.details = {};
+                            route.asset.details.parkingSpace = asset.details.parkingSpace;
+                        }
+                    }
+                });
+            }
+
+            if (saveState(state)) {
+                alert('✅ Added parking spaces to ' + count + ' assets!\n\nRefresh the main dashboard to see them.');
+                location.reload();
+            } else {
+                alert('❌ Failed to save state');
+            }
+        }
+
+        // Refresh dashboard
+        function refreshDashboard() {
+            if (window.opener && !window.opener.closed) {
+                window.opener.location.reload();
+                alert('✅ Main dashboard refreshed!');
+            } else {
+                const url = window.location.origin;
+                window.open(url, '_blank');
+            }
+        }
+
+        // Show full data
+        function showFullData() {
+            const state = loadState();
+            const output = document.getElementById('data-dump');
+            
+            if (!state || !state.data) {
+                output.innerHTML = '<p class="error">No data available</p>';
+                return;
+            }
+
+            let html = '<h3>All Assets (' + (state.data.assets?.length || 0) + ')</h3>';
+            html += '<pre>' + JSON.stringify(state.data.assets, null, 2) + '</pre>';
+            output.innerHTML = html;
+        }
+
+        function showAllRoutes() {
+            const state = loadState();
+            const output = document.getElementById('data-dump');
+            
+            if (!state || !state.data) {
+                output.innerHTML = '<p class="error">No data available</p>';
+                return;
+            }
+
+            let html = '<h3>All Routes (' + (state.data.routes?.length || 0) + ')</h3>';
+            html += '<pre>' + JSON.stringify(state.data.routes, null, 2) + '</pre>';
+            output.innerHTML = html;
+        }
+
+        // Run checks on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAsset();
+            checkRoutes();
+            testParkingDisplay();
+        });
+    </script>
+
+    <style>
+        .parking-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #6b7280;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-left: 8px;
+            padding: 2px 6px;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+        }
+        
+        .parking-icon {
+            width: 16px;
+            height: 16px;
+            vertical-align: middle;
+        }
+    </style>
+</body>
+</html>

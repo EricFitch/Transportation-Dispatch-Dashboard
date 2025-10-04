@@ -43,6 +43,14 @@ export function validateDispatchConfig(config) {
     }
 
     const data = config.data || config;
+    
+    // CRITICAL: Preserve migration flags so migrations don't run repeatedly
+    if (data._staffPositionMigrationComplete) {
+        cleanConfig.data._staffPositionMigrationComplete = true;
+    }
+    if (data._assetDetailsMigrationComplete) {
+        cleanConfig.data._assetDetailsMigrationComplete = true;
+    }
 
     // Validate routes
     if (data.routes && Array.isArray(data.routes)) {
@@ -170,6 +178,7 @@ function cleanRoute(route, index) {
         safetyEscorts: Array.isArray(route.safetyEscorts) ? route.safetyEscorts : [],
         notes: typeof route.notes === 'string' ? route.notes : '',
         destination: route.destination || null,
+        departureSequence: typeof route.departureSequence === 'number' ? route.departureSequence : null,
         createdAt: route.createdAt || new Date().toISOString(),
         updatedAt: route.updatedAt || new Date().toISOString()
     };
@@ -197,7 +206,6 @@ function cleanStaff(staff) {
         firstName: staff.firstName || nameParts[0] || '',
         lastName: staff.lastName || nameParts.slice(1).join(' ') || '',
         employeeId: staff.employeeId || '',
-        position: staff.position || '',
         role: staff.role || 'Driver',
         department: staff.department || 'Transportation',
         status: ['Active', 'Inactive'].includes(staff.status) ? staff.status : 'Active',
@@ -239,7 +247,8 @@ function cleanAsset(asset) {
             mileage: 'Unknown',
             lastService: null,
             nextService: null,
-            notes: ''
+            notes: '',
+            parkingSpace: ''
         }
     };
 }

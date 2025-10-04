@@ -722,7 +722,7 @@ class SettingsSystem {
             <span class="text-xl">🎨</span>
             <span>Appearance & Display</span>
           </summary>
-          <div class="settings-section-content p-4 space-y-4">
+          <div class="settings-section-content p-4 space-y-4 max-h-[60vh] overflow-y-auto">
             <div class="setting-group">
               <label class="setting-label block mb-2 font-medium">Route Card Scale</label>
               <input type="range" id="card-scale" min="0.8" max="1.5" step="0.1" value="${display.cardScale}" class="w-full">
@@ -740,6 +740,16 @@ class SettingsSystem {
                 <input type="checkbox" id="animations-enabled" ${display.animationsEnabled ? 'checked' : ''}>
                 <span>Enable animations</span>
               </label>
+            </div>
+
+            <!-- Role Colors Section -->
+            <div class="border-t pt-4 mt-4">
+              <h4 class="font-semibold text-md mb-3 text-gray-700">Role Colors</h4>
+              <p class="text-sm text-gray-500 mb-3">Assign colors to staff roles. These colors will be used for route card backgrounds and accents.</p>
+              <div class="grid grid-cols-2 gap-3" id="role-colors-grid">
+                ${this.createRoleColorsHtml()}
+              </div>
+              <button class="btn btn-secondary mt-3 w-full" id="reset-role-colors">Reset Role Colors to Defaults</button>
             </div>
           </div>
         </details>
@@ -1351,15 +1361,20 @@ class SettingsSystem {
    * Create HTML for role color inputs
    */
   createRoleColorsHtml() {
-    // canonical role list (fallback if not provided elsewhere)
+    // canonical role list matching staff.js getRoleColor defaults
     const roleList = [
-      'Driver', 'Escort', 'Aide', 'Sub', 'Supervisor', 'Dispatcher', 'Manager'
+      'Driver', 'Office Staff', 'Mechanic', 'Safety Escort', 'Utility driver', 'Trainer'
     ];
 
-    const roleColors = (STATE && STATE.data && STATE.data.colors && STATE.data.colors.roles) || {};
-
     return roleList.map(role => {
-      const val = roleColors[role] || '';
+      // Get current color using getRoleColor function if available
+      let val = '#3b82f6'; // default fallback
+      if (typeof window.getRoleColor === 'function') {
+        val = window.getRoleColor(role);
+      } else if (STATE?.data?.colors?.roles?.[role]) {
+        val = STATE.data.colors.roles[role];
+      }
+      
       return `
         <div class="color-input-group">
           <label class="setting-label">${role}</label>

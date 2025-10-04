@@ -10,7 +10,7 @@
 
 // Transportation Dispatch Dashboard Module Dependencies
 import { eventBus } from '../core/events.js';
-import { STATE, saveToLocalStorage, addAsset } from '../core/state.js';
+import { STATE, saveToLocalStorage, syncToFirebaseNow, addAsset } from '../core/state.js';
 import { debounceRender, PERFORMANCE } from '../core/utils.js';
 import { ASSET_STATUS, DYNAMIC_STATUS } from '../core/constants.js';
 import { ValidationService } from '../core/validationService.js';
@@ -249,6 +249,13 @@ function markAssetDown(assetName) {
     // Save to localStorage
     saveToLocalStorage();
     
+    // Immediately sync to Firebase (no 800ms delay for critical asset status changes)
+    syncToFirebaseNow().then(() => {
+        console.log('✅ Asset down status immediately synced to Firebase');
+    }).catch(err => {
+        console.warn('⚠️ Immediate Firebase sync failed, will retry with normal sync:', err);
+    });
+    
     // Emit event for other modules
     eventBus.emit('asset:statusChanged', { 
         assetName, 
@@ -293,6 +300,13 @@ function markAssetRepaired(assetName) {
     
     // Save to localStorage
     saveToLocalStorage();
+    
+    // Immediately sync to Firebase (no 800ms delay for critical asset status changes)
+    syncToFirebaseNow().then(() => {
+        console.log('✅ Asset repair status immediately synced to Firebase');
+    }).catch(err => {
+        console.warn('⚠️ Immediate Firebase sync failed, will retry with normal sync:', err);
+    });
     
     // Emit event for other modules
     eventBus.emit('asset:statusChanged', { 
@@ -523,6 +537,13 @@ function toggleAssetStatus(assetName, reason = '') {
     
     // Save state and re-render IMMEDIATELY (not debounced) to test race condition
     saveToLocalStorage();
+    
+    // Immediately sync to Firebase (no 800ms delay for critical asset status changes)
+    syncToFirebaseNow().then(() => {
+        console.log('✅ Asset down with reason immediately synced to Firebase');
+    }).catch(err => {
+        console.warn('⚠️ Immediate Firebase sync failed, will retry with normal sync:', err);
+    });
     
     // Add a small delay to ensure state is saved before re-render
     setTimeout(() => {
@@ -803,6 +824,14 @@ function handleAssetPanelClick(event) {
                 timestamp: STATE.assetDownReasons[assetName]?.timestamp || new Date().toISOString()
             };
             saveToLocalStorage();
+            
+            // Immediately sync to Firebase (no 800ms delay for critical asset updates)
+            syncToFirebaseNow().then(() => {
+                console.log('✅ Asset down reason update immediately synced to Firebase');
+            }).catch(err => {
+                console.warn('⚠️ Immediate Firebase sync failed, will retry with normal sync:', err);
+            });
+            
             debounceRender('renderAssetPanel');
         }
         return;
@@ -821,6 +850,14 @@ function handleAssetPanelClick(event) {
         if (confirm(`Clear all assignments for ${assetName}?`)) {
             clearAssetAssignments(assetName);
             saveToLocalStorage();
+            
+            // Immediately sync to Firebase (no 800ms delay for critical assignment changes)
+            syncToFirebaseNow().then(() => {
+                console.log('✅ Asset assignment clearing immediately synced to Firebase');
+            }).catch(err => {
+                console.warn('⚠️ Immediate Firebase sync failed, will retry with normal sync:', err);
+            });
+            
             debounceRender('renderAssetPanel');
         }
         return;
@@ -939,6 +976,14 @@ function deleteAssetFromModal(assetName) {
     
     STATE.data.assets = STATE.data.assets.filter(a => a.name !== assetName);
     saveToLocalStorage();
+    
+    // Immediately sync to Firebase (no 800ms delay for critical asset deletion)
+    syncToFirebaseNow().then(() => {
+        console.log('✅ Asset deletion immediately synced to Firebase');
+    }).catch(err => {
+        console.warn('⚠️ Immediate Firebase sync failed, will retry with normal sync:', err);
+    });
+    
     refreshAssetListModal();
     renderAssetPanel();
     

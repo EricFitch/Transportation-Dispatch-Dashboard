@@ -171,13 +171,21 @@ function getDriverRoleColorForRoute(route) {
         const assignmentKey = `${route.name}_${STATE.currentView}`;
         const assignment = STATE.assignments?.[assignmentKey] || {};
         const driverName = assignment.driver || (route.driver && route.driver.name) || null;
+        
+        console.log(`🎨 Getting color for route ${route.id}:`, { driverName, routeDriver: route.driver });
+        
         if (!driverName) return ROUTE_TYPES[Object.keys(ROUTE_TYPES).find(k => ROUTE_TYPES[k].id === route.type)]?.color || '#6b7280';
 
         // Find staff entry
         const staff = STATE.data?.staff?.find(s => s.name === driverName || s.id === driverName);
-        const role = (staff && (staff.position || staff.role)) || null;
+        const role = staff?.role || null;
+        
+        console.log(`🎨 Staff found:`, { name: driverName, role: staff?.role, finalRole: role });
+        
         if (role && typeof window.getRoleColor === 'function') {
-            return window.getRoleColor(role);
+            const color = window.getRoleColor(role);
+            console.log(`🎨 Role color for "${role}":`, color);
+            return color;
         }
 
         // Fallback to staff module getter if present
@@ -448,6 +456,28 @@ function updateRouteConfig(routeNumber, routeType, schedule) {
     renderRouteCards();
     
     return true;
+}
+
+/**
+ * Update route departure sequence
+ */
+function updateRouteDepartureSequence(routeNumber, sequence) {
+    console.log(`🚦 Updating route ${routeNumber} departure sequence to:`, sequence);
+    
+    const route = STATE.data.routes.find(r => r.routeNumber === routeNumber);
+    if (route) {
+        // Handle departureSequence as number or null
+        const num = parseInt(sequence);
+        route.departureSequence = isNaN(num) || num < 1 ? null : num;
+        route.updatedAt = new Date().toISOString();
+        
+        saveToLocalStorage();
+        
+        // Re-render route cards to show updated departure badge
+        renderRouteCards();
+        
+        console.log(`✅ Route ${routeNumber} departure sequence updated to:`, route.departureSequence);
+    }
 }
 
 /**
@@ -863,6 +893,37 @@ function unassignAssetByName(route, assetName) {
 // ROUTE CARD RENDERING
 // =============================================================================
 
+/**
+ * Get departure sequence text (1st Out, 2nd Out, etc.)
+ */
+function getDepartureText(sequence) {
+    if (!sequence) return '';
+    const suffix = ['th', 'st', 'nd', 'rd'];
+    const value = sequence % 100;
+    return sequence + (suffix[(value - 20) % 10] || suffix[value] || suffix[0]) + ' Out';
+}
+
+/**
+ * Get asset parking space for display with icon
+ */
+function getAssetParkingSpace(asset) {
+    console.log('🅿️ getAssetParkingSpace called with asset:', asset);
+    if (!asset) {
+        console.log('🅿️ No asset provided');
+        return '';
+    }
+    if (!asset.details) {
+        console.log('🅿️ Asset has no details:', asset);
+        return '';
+    }
+    if (!asset.details.parkingSpace) {
+        console.log('🅿️ Asset details has no parkingSpace:', asset.details);
+        return '';
+    }
+    console.log('🅿️ Parking space found:', asset.details.parkingSpace);
+    return ` <span class="parking-indicator" style="display: inline-flex; align-items: center; gap: 4px;"><img src="assets/icons/ParkingButton.png" class="parking-icon" alt="Parking" /> ${asset.details.parkingSpace}</span>`;
+}
+
 function generateRouteCardHtml(route) {
     const routeType = ROUTE_TYPES[route.type.toUpperCase().replace('-', '_')] || ROUTE_TYPES.GENERAL_ED;
     const isFieldTrip = route.type === 'field-trips';
@@ -870,17 +931,25 @@ function generateRouteCardHtml(route) {
     const contrast = computeContrastColors(roleAccent);
     const statusPillClass = getStatusPillContainerClass(route.status);
     
+    // Extract route number or use full name for field trips
+    const displayName = isFieldTrip 
+        ? route.name || 'Unnamed Field Trip'
+        : (route.routeNumber || route.name?.replace(/^Route\s*/i, '') || 'N/A');
+    
     return `
        <div class="route-card bg-white rounded-lg shadow-md border p-4 hover:shadow-lg transition-shadow" 
            data-route-id="${route.id}"
            data-route-type="${route.type}"
-           style="background: ${roleAccent}; color: ${contrast.textColor}; border-left:6px solid ${roleAccent}; --panel-bg: ${contrast.panelBg}; --panel-border: ${contrast.panelBorder}; --accent-color: ${roleAccent}; --accent-text-color: ${contrast.textColor}; width: 300px;">
+           style="background: white; color: #111827; border-left: 6px solid ${roleAccent}; --panel-bg: ${contrast.panelBg}; --panel-border: ${contrast.panelBorder}; --accent-color: ${roleAccent}; --accent-text-color: ${contrast.textColor}; width: 300px;">
             
             
             <!-- Route Header -->
-            <div class="route-header flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                    <h3 class="font-bold text-lg text-gray-800">${route.name || 'Unnamed Route'}</h3>
+            <div class="route-header flex items-center justify-between mb-4 gap-2">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <h3 class="route-number-display flex-shrink-0" style="color: ${roleAccent};">${displayName}</h3>
+                    ${route.departureSequence ? `<span class="departure-badge flex-shrink-0">${getDepartureText(route.departureSequence)}</span>` : ''}
+                </div>
+                <div class="flex items-center gap-1 flex-shrink-0">
                     ${!isFieldTrip ? `
                         <button type="button" class="combine-route-btn" 
                                 onclick="handleCombineRoute('${route.id}', '${route.routeNumber}')"
@@ -902,11 +971,11 @@ function generateRouteCardHtml(route) {
                             <img src="assets/icons/DeleteButton.png" class="header-action-icon" alt="" aria-hidden="true" />
                         </button>
                     ` : ''}
-            <button type="button" class="collapse-card-btn text-gray-400 hover:text-gray-600 transition-colors" 
+                    <button type="button" class="collapse-card-btn text-gray-400 hover:text-gray-600 transition-colors" 
                             data-route-toggle="${route.id}"
                             aria-expanded="true"
                             aria-controls="route-content-${route.id}"
-                title="Collapse card"
+                            title="Collapse card"
                             onclick="toggleRouteCard('${route.id}')">
                         <img src="assets/icons/CollapseButton.png" class="toggle-icon header-action-icon transition-transform" alt="" aria-hidden="true" />
                     </button>
@@ -917,7 +986,6 @@ function generateRouteCardHtml(route) {
             <div id="route-content-${route.id}" class="route-card-content">
                 <!-- Status Section -->
                 <div class="status-section mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">STATUS</label>
                     <div class="status-pill ${statusPillClass}" role="group" aria-label="Route status">
                         ${renderStatusSegments(route)}
                     </div>
@@ -965,7 +1033,7 @@ function generateRouteCardHtml(route) {
                     <div class="flex-1 p-2 border border-gray-300 rounded-md bg-gray-50 cursor-pointer"
                          onclick="handleAssignAsset('${route.id}')">
                         ${route.asset ? 
-                            `<span class="text-sm text-gray-800">${route.asset.name}</span>` : 
+                            `<span class="text-sm text-gray-800">${route.asset.name}${getAssetParkingSpace(route.asset)}</span>` : 
                             `<span class="text-sm text-gray-500">Click to assign</span>`
                         }
                     </div>
@@ -1055,6 +1123,18 @@ function generateRouteCardHtml(route) {
     `;
 }
 
+// =============================================================================
+// ROUTE SORTING STATE
+// =============================================================================
+
+// Track sort preference for each route type (default: 'routeNumber', option: 'rollout')
+const ROUTE_SORT_STATE = {
+    'general-ed': 'routeNumber',
+    'special-ed': 'routeNumber',
+    'pre-k': 'routeNumber',
+    'field-trips': 'routeNumber'
+};
+
 function renderRouteCards() {
     console.log('🚗 Rendering route cards...');
     
@@ -1096,29 +1176,7 @@ function renderRouteCards() {
         
         console.log(`🔍 Displaying ${activeRoutes.length} routes for ${STATE.currentView} shift`);
         
-        // Sort routes by route number in ascending order (1, 2, 3, etc.)
-        activeRoutes.sort((a, b) => {
-            // Handle field trip route numbers (FT1, FT2, etc.)
-            if (a.type === 'field-trips' && b.type === 'field-trips') {
-                // Extract numbers from field trip names for more reliable sorting
-                const nameA = a.name || '';
-                const nameB = b.name || '';
-                const matchA = nameA.match(/Field Trip (\d+)/);
-                const matchB = nameB.match(/Field Trip (\d+)/);
-                const numA = matchA ? parseInt(matchA[1]) : 0;
-                const numB = matchB ? parseInt(matchB[1]) : 0;
-                return numA - numB;
-            }
-            
-            // Handle regular route numbers
-            const numA = parseInt(a.routeNumber) || 0;
-            const numB = parseInt(b.routeNumber) || 0;
-            return numA - numB;
-        });
-        
-        console.log(`🔍 Displaying ${activeRoutes.length} routes for ${STATE.currentView} shift (sorted by route number)`);
-        
-        // Group sorted routes by type
+        // Group routes by type first (before sorting, as each type has its own sort preference)
         const routesByType = {};
         Object.keys(ROUTE_TYPES).forEach(key => {
             const typeId = ROUTE_TYPES[key].id;
@@ -1126,6 +1184,41 @@ function renderRouteCards() {
                 routesByType[typeId] = activeRoutes.filter(route => route.type === typeId);
             }
         });
+        
+        // Sort each route type independently based on its sort preference
+        Object.keys(routesByType).forEach(typeId => {
+            const sortBy = ROUTE_SORT_STATE[typeId] || 'routeNumber';
+            const routes = routesByType[typeId];
+            
+            routes.sort((a, b) => {
+                if (sortBy === 'rollout') {
+                    // Sort by departure sequence (roll out)
+                    const seqA = a.departureSequence || 999; // Routes without sequence go to end
+                    const seqB = b.departureSequence || 999;
+                    if (seqA !== seqB) return seqA - seqB;
+                    // If same sequence, fall back to route number
+                    return (parseInt(a.routeNumber) || 0) - (parseInt(b.routeNumber) || 0);
+                } else {
+                    // Sort by route number (default)
+                    if (typeId === 'field-trips') {
+                        // Extract numbers from field trip names
+                        const nameA = a.name || '';
+                        const nameB = b.name || '';
+                        const matchA = nameA.match(/Field Trip (\d+)/);
+                        const matchB = nameB.match(/Field Trip (\d+)/);
+                        const numA = matchA ? parseInt(matchA[1]) : 0;
+                        const numB = matchB ? parseInt(matchB[1]) : 0;
+                        return numA - numB;
+                    }
+                    // Handle regular route numbers
+                    const numA = parseInt(a.routeNumber) || 0;
+                    const numB = parseInt(b.routeNumber) || 0;
+                    return numA - numB;
+                }
+            });
+        });
+        
+        console.log(`🔍 Routes sorted per type preferences:`, ROUTE_SORT_STATE);
         
         // Generate HTML for each route type section (excluding inactive)
         const sectionsHtml = Object.entries(ROUTE_TYPES)
@@ -1142,6 +1235,21 @@ function renderRouteCards() {
                             <span class="text-sm font-normal text-gray-500 ml-2">(${routes.length})</span>
                         </h2>
                         <div class="flex items-center gap-2">
+                            ${routes.length > 0 ? `
+                                <div class="sort-toggle-container flex items-center gap-2 mr-2">
+                                    <span class="text-xs text-gray-500 font-medium">Sort:</span>
+                                    <button class="sort-toggle-btn ${ROUTE_SORT_STATE[type.id] === 'routeNumber' ? 'active' : ''}"
+                                            onclick="toggleRouteSort('${type.id}', 'routeNumber')"
+                                            title="Sort by Route Number">
+                                        #
+                                    </button>
+                                    <button class="sort-toggle-btn ${ROUTE_SORT_STATE[type.id] === 'rollout' ? 'active' : ''}"
+                                            onclick="toggleRouteSort('${type.id}', 'rollout')"
+                                            title="Sort by Roll Out (Departure Sequence)">
+                                        🚦
+                                    </button>
+                                </div>
+                            ` : ''}
                             ${type.id === 'field-trips' ? `
                                 <button class="add-field-trip-btn bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
                                         onclick="addNewFieldTripRoute()">
@@ -1202,6 +1310,20 @@ eventBus.on('colors:changed', (data) => {
     console.log('🎨 Role colors changed, re-rendering route cards', data);
     debounceRender('renderRouteCards');
 });
+
+/**
+ * Toggle route sort order for a specific route type
+ * @param {string} routeType - The route type ID (e.g., 'general-ed')
+ * @param {string} sortBy - Sort method: 'routeNumber' or 'rollout'
+ */
+function toggleRouteSort(routeType, sortBy) {
+    console.log(`🔄 Toggling sort for ${routeType} to ${sortBy}`);
+    ROUTE_SORT_STATE[routeType] = sortBy;
+    renderRouteCards();
+}
+
+// Expose to global scope for onclick handlers
+window.toggleRouteSort = toggleRouteSort;
 
 /**
  * Initialize sample routes for demonstration and testing purposes
@@ -1994,6 +2116,18 @@ window.updateRouteDestination = function(routeId, destination) {
     }
 };
 
+window.updateDepartureSequence = function(routeId, sequence) {
+    console.log('Updating departure sequence:', routeId, sequence);
+    const route = findRouteById(routeId);
+    if (route) {
+        const num = parseInt(sequence);
+        route.departureSequence = isNaN(num) || num < 1 ? null : num;
+        route.updatedAt = new Date().toISOString();
+        saveToLocalStorage();
+        renderRouteCards(); // Re-render to show updated badge
+    }
+};
+
 // =============================================================================
 // FIELD TRIP MANAGEMENT
 // =============================================================================
@@ -2348,7 +2482,10 @@ function createCollapsedSummary(routeId, card) {
     const isFieldTrip = route.type === 'field-trips';
     const hasNotes = Boolean(route.notes && route.notes.trim());
     const driverName = route.driver ? escapeHtml(route.driver.name) : 'No driver';
-    const vehicleName = route.asset ? escapeHtml(route.asset.name) : 'No vehicle';
+    const parkingSpace = route.asset && route.asset.details && route.asset.details.parkingSpace 
+        ? `<span class="parking-indicator"><img src="assets/icons/ParkingButton.png" class="parking-icon" alt="Parking" /> ${escapeHtml(route.asset.details.parkingSpace)}</span>` 
+        : '';
+    const vehicleName = route.asset ? escapeHtml(route.asset.name) + (parkingSpace ? ' ' + parkingSpace : '') : 'No vehicle';
     const trailerName = isFieldTrip && route.trailer ? escapeHtml(route.trailer.name) : null;
     const escortCount = Array.isArray(route.safetyEscorts) ? route.safetyEscorts.length : 0;
 
@@ -2384,6 +2521,7 @@ function createCollapsedSummary(routeId, card) {
             <div class="collapsed-summary-top-row">
                 <div class="collapsed-summary-route-info">
                     <span class="collapsed-summary-route-name">${routeName}</span>
+                    ${route.departureSequence ? `<span class="departure-badge">${getDepartureText(route.departureSequence)}</span>` : ''}
                     ${route.status ? `<span class="collapsed-summary-status-dot" style="background-color: ${getStatusDotColor(route.status)};"></span>` : ''}
                 </div>
                 <div class="collapsed-summary-top-actions">
@@ -2396,7 +2534,6 @@ function createCollapsedSummary(routeId, card) {
                 ${notesMarkup}
                 ${trailerMarkup}
                 ${escortMarkup}
-                <button type="button" class="collapsed-summary-reset" onclick="handleResetCard('${safeRouteId}')">Reset</button>
             </div>
         </div>
     `;
@@ -2733,6 +2870,16 @@ function renderRouteConfigGrid() {
                         <option value="none" ${route.schedule === 'none' ? 'selected' : ''}>⏸️ No Schedule</option>
                     </select>
                 </td>
+                <td class="px-3 py-2">
+                    <input type="number" 
+                           class="route-departure-input w-full px-2 py-1 border rounded text-sm" 
+                           data-route-number="${i}"
+                           placeholder="-"
+                           value="${route.departureSequence || ''}"
+                           min="1"
+                           max="99"
+                           style="width: 60px;">
+                </td>
                 <td class="px-3 py-2 text-xs text-gray-600">
                     ${assignments}
                 </td>
@@ -2823,6 +2970,15 @@ function setupRouteConfigEventListeners() {
             const routeNumber = parseInt(e.target.dataset.routeNumber);
             const newSchedule = e.target.value;
             updateRouteConfig(routeNumber, null, newSchedule);
+        });
+    });
+    
+    // Departure sequence change handlers
+    document.querySelectorAll('.route-departure-input').forEach(input => {
+        input.addEventListener('change', (e) => {
+            const routeNumber = parseInt(e.target.dataset.routeNumber);
+            const newDeparture = e.target.value;
+            updateRouteDepartureSequence(routeNumber, newDeparture);
         });
     });
     

@@ -10,7 +10,7 @@
 
 // Transportation Dispatch Dashboard Module Dependencies
 import { eventBus } from '../core/events.js';
-import { STATE, saveToLocalStorage } from '../core/state.js';
+import { STATE, saveToLocalStorage, syncToFirebaseNow } from '../core/state.js';
 import { debounceRender, PERFORMANCE } from '../core/utils.js';
 
 // =============================================================================
@@ -320,10 +320,10 @@ function groupStaffByRole(staff) {
 function getRoleColor(role) {
     const defaultColors = {
         'Driver': '#3b82f6',           // Blue
-        'Supervisor': '#10b981',       // Green
+        'Office Staff': '#10b981',       // Green
         'Mechanic': '#f59e0b',         // Orange
-        'Monitor': '#8b5cf6',          // Purple
-        'Substitute': '#6b7280',       // Gray
+        'Safety Escort': '#8b5cf6',          // Purple
+        'Utility driver': '#6b7280',       // Gray
         'Trainer': '#ef4444'           // Red
     };
     
@@ -650,6 +650,7 @@ if (typeof window !== 'undefined') {
     window.formatStaffDisplayName = formatStaffDisplayName;
     window.refreshStaffListModal = refreshStaffListModal;
     window.addNewStaffMember = addNewStaffMember;
+    window.updateStaffMember = updateStaffMember;
     window.removeStaffMember = removeStaffMember;
     window.editStaffMember = editStaffMember;
     window.exportStaffListAsCSV = exportStaffListAsCSV;
@@ -685,7 +686,7 @@ if (typeof window !== 'undefined') {
                 </div>
                 <div>
                     <label class="text-sm">Role</label>
-                    <input id="edit-staff-role" class="w-full p-2 border rounded" value="${staff.position || staff.role || ''}" />
+                    <input id="edit-staff-role" class="w-full p-2 border rounded" value="${staff.role || ''}" />
                 </div>
                 <div>
                     <label class="text-sm">Employee ID</label>
@@ -726,15 +727,30 @@ if (typeof window !== 'undefined') {
     window.saveStaffEdit = function(staffId) {
         const staff = STATE.data.staff.find(s => s.id === staffId || s.name === staffId);
         if (!staff) return;
+        
+        const oldRole = staff.role || 'Unknown';
+        
         staff.firstName = document.getElementById('edit-staff-first-name').value.trim();
         staff.lastName = document.getElementById('edit-staff-last-name').value.trim();
-        staff.position = document.getElementById('edit-staff-role').value.trim();
+        staff.role = document.getElementById('edit-staff-role').value.trim();
         staff.employeeId = document.getElementById('edit-staff-employee-id').value.trim();
         staff.phone = document.getElementById('edit-staff-phone').value.trim();
         staff.email = document.getElementById('edit-staff-email').value.trim();
         staff.notes = document.getElementById('edit-staff-notes').value.trim();
+        
+        console.log(`👤 SAVE: Staff ${staff.name || staffId} role changed from "${oldRole}" to "${staff.role}"`);
+        console.log(`👤 SAVE: Full staff object:`, staff);
 
         saveToLocalStorage();
+        
+        // Trigger route card re-render to update colors
+        if (typeof window.renderRouteCards === 'function') {
+            setTimeout(() => {
+                window.renderRouteCards();
+                console.log(`🔄 Route cards refreshed after staff role update`);
+            }, 100);
+        }
+        
         // Refresh UI
         debounceRender('renderStaffPanel');
         if (typeof window.renderStaffDetailsPage === 'function') window.renderStaffDetailsPage('staff-cards-container', {});
@@ -782,7 +798,7 @@ function createStaffModalItem(staff) {
             <div class="w-3 h-3 rounded-full ${statusColor}"></div>
             <div>
                 <div class="font-medium text-gray-900">${displayName}</div>
-                <div class="text-sm text-gray-500">${staff.position || staff.role || 'Staff'} • ${staff.department || 'Transportation'}</div>
+                <div class="text-sm text-gray-500">${staff.role || 'Staff'} • ${staff.department || 'Transportation'}</div>
                 ${staff.employeeId ? `<div class="text-xs text-gray-400">ID: ${staff.employeeId}</div>` : ''}
             </div>
         </div>
@@ -835,8 +851,7 @@ function addNewStaffMember(staffData) {
         firstName: staffData.firstName,
         lastName: staffData.lastName,
         employeeId: staffData.employeeId || '',
-        position: staffData.position || '',
-        role: staffData.position || 'Driver',
+        role: staffData.role || 'Driver',
         department: staffData.department || 'Transportation',
         status: staffData.status || 'Active',
         phone: staffData.phone || '',
@@ -848,6 +863,13 @@ function addNewStaffMember(staffData) {
     STATE.data.staff.push(newStaff);
     saveToLocalStorage();
     
+    // Immediately sync to Firebase (no 800ms delay for critical staff updates)
+    syncToFirebaseNow().then(() => {
+        console.log('✅ New staff member immediately synced to Firebase');
+    }).catch(err => {
+        console.warn('⚠️ Immediate Firebase sync failed, will retry with normal sync:', err);
+    });
+    
     // Refresh the modal and main panel
     refreshStaffListModal();
     renderStaffPanel();
@@ -857,6 +879,67 @@ function addNewStaffMember(staffData) {
     
     console.log(`✅ Staff member added: ${newStaff.name}`);
     return newStaff;
+}
+
+function updateStaffMember(staffId, staffData) {
+    console.log('👥 ===== UPDATE STAFF MEMBER CALLED =====');
+    console.log('👥 Staff ID:', staffId);
+    console.log('👥 Staff Data received:', staffData);
+    console.log('👥 Role from form:', staffData.role);
+    
+    if (!STATE.data) {
+        STATE.data = {};
+    }
+    if (!STATE.data.staff) {
+        STATE.data.staff = [];
+    }
+    
+    const staffIndex = STATE.data.staff.findIndex(s => s.id === staffId || s.name === staffId);
+    if (staffIndex === -1) {
+        throw new Error(`Staff member not found: ${staffId}`);
+    }
+    
+    console.log('👥 Found staff at index:', staffIndex);
+    console.log('👥 Current staff before update:', STATE.data.staff[staffIndex]);
+    
+    // Update the staff member while preserving existing data
+    const updatedStaff = {
+        ...STATE.data.staff[staffIndex],
+        firstName: staffData.firstName,
+        lastName: staffData.lastName,
+        name: `${staffData.firstName} ${staffData.lastName}`,
+        employeeId: staffData.employeeId || '',
+        role: staffData.role || 'Driver',
+        department: staffData.department || 'Transportation',
+        status: staffData.status || 'Active',
+        phone: staffData.phone || '',
+        email: staffData.email || '',
+        notes: staffData.notes || '',
+        lastUpdated: new Date().toISOString()
+    };
+    
+    console.log('👥 Updated staff object:', updatedStaff);
+    console.log('👥 Role set to:', updatedStaff.role);
+    
+    STATE.data.staff[staffIndex] = updatedStaff;
+    saveToLocalStorage();
+    
+    // Immediately sync to Firebase (no 800ms delay for critical staff updates)
+    syncToFirebaseNow().then(() => {
+        console.log('✅ Staff update immediately synced to Firebase');
+    }).catch(err => {
+        console.warn('⚠️ Immediate Firebase sync failed, will retry with normal sync:', err);
+    });
+    
+    // Refresh the modal and main panel
+    refreshStaffListModal();
+    renderStaffPanel();
+    
+    // Emit event
+    eventBus.emit('staff:updated', { staff: updatedStaff });
+    
+    console.log(`✅ Staff member updated: ${updatedStaff.name}`);
+    return updatedStaff;
 }
 
 // =============================================================================
@@ -888,7 +971,7 @@ function renderStaffDetailsPage(container, opts = {}) {
 
         const filtered = staffList.filter(s => {
             const name = `${s.firstName || ''} ${s.lastName || s.name || ''}`.toLowerCase();
-            const role = (s.position || s.role || '').toLowerCase();
+            const role = (s.role || '').toLowerCase();
             const status = (s.status || '').toLowerCase();
 
             if (search) {
@@ -918,9 +1001,14 @@ function renderStaffDetailsPage(container, opts = {}) {
                     <div class="flex justify-between items-start mb-4">
                         <div>
                             <h3 class="text-xl font-bold text-gray-900">${displayName}</h3>
-                            <p class="text-sm text-gray-500">${staff.position || staff.role || 'Staff'}</p>
+                            <p class="text-sm text-gray-500">${staff.role || 'Staff'}</p>
                         </div>
-                        <span class="status-indicator status-${status}">${getStaffStatusBadgeLabel(staff.status || 'Active')}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="status-indicator status-${status}">${getStaffStatusBadgeLabel(staff.status || 'Active')}</span>
+                            <button onclick="event.stopPropagation(); if(typeof window.deleteStaffMember === 'function') window.deleteStaffMember('${staff.id || staff.name}', '${displayName}');" class="delete-staff-btn p-1 rounded hover:bg-red-50 transition-colors" title="Delete Staff Member">
+                                <img src="assets/icons/DeleteButton.png" alt="Delete" class="w-6 h-6">
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Key Info -->
@@ -932,7 +1020,7 @@ function renderStaffDetailsPage(container, opts = {}) {
 
                         <div class="flex justify-between items-center">
                             <span class="text-sm font-medium text-gray-600">Role:</span>
-                            <span class="text-sm text-gray-900">${staff.position || staff.role || 'Staff'}</span>
+                            <span class="text-sm text-gray-900">${staff.role || 'Staff'}</span>
                         </div>
 
                         <div class="flex justify-between items-center">
@@ -1038,6 +1126,43 @@ function removeStaffMember(staffId) {
     console.log(`✅ Staff member removed: ${removedStaff.name}`);
 }
 
+/**
+ * Delete staff member with confirmation dialog
+ */
+function deleteStaffMember(staffId, staffName) {
+    console.log('👥 Delete staff member requested:', staffId, staffName);
+    
+    // Show confirmation dialog
+    const confirmMsg = `Are you sure you want to delete ${staffName}?\n\nThis action cannot be undone.`;
+    if (!confirm(confirmMsg)) {
+        console.log('❌ Staff deletion cancelled by user');
+        return;
+    }
+    
+    // Proceed with deletion
+    removeStaffMember(staffId);
+    
+    // Refresh the staff details page if we're on it
+    if (document.getElementById('staff-cards-container')) {
+        const searchInput = document.getElementById('staff-search');
+        const roleFilter = document.getElementById('staff-role-filter');
+        const statusFilter = document.getElementById('staff-status-filter');
+        
+        renderStaffDetailsPage('staff-cards-container', {
+            search: searchInput ? searchInput.value : '',
+            role: roleFilter ? roleFilter.value : '',
+            status: statusFilter ? statusFilter.value : ''
+        });
+    }
+    
+    console.log('✅ Staff member deleted successfully');
+}
+
+// Make available globally for onclick handlers
+if (typeof window !== 'undefined') {
+    window.deleteStaffMember = deleteStaffMember;
+}
+
 function editStaffMember(staffId) {
     console.log('👥 Editing staff member:', staffId);
     
@@ -1050,11 +1175,25 @@ function editStaffMember(staffId) {
     // Populate the form with existing data
     const form = document.getElementById('add-staff-form');
     if (form) {
-        // If the global add/edit form exists on the page, populate it (existing behavior)
+        // Expand the collapsible form section if it's collapsed
+        const formContent = document.getElementById('add-staff-form-content');
+        const toggleBtn = document.getElementById('toggle-add-staff-form');
+        if (formContent && formContent.classList.contains('hidden')) {
+            formContent.classList.remove('hidden');
+            if (toggleBtn) {
+                const icon = toggleBtn.querySelector('.chevron-icon');
+                if (icon) {
+                    icon.classList.remove('rotate-0');
+                    icon.classList.add('rotate-180');
+                }
+            }
+        }
+        
+        // Populate form fields
         document.getElementById('staff-first-name').value = staff.firstName || '';
         document.getElementById('staff-last-name').value = staff.lastName || '';
         document.getElementById('staff-employee-id').value = staff.employeeId || '';
-        document.getElementById('staff-position').value = staff.position || '';
+        document.getElementById('staff-position').value = staff.role || '';
         document.getElementById('staff-department').value = staff.department || '';
         document.getElementById('staff-status').value = staff.status || '';
         document.getElementById('staff-phone').value = staff.phone || '';
@@ -1070,6 +1209,13 @@ function editStaffMember(staffId) {
             submitBtn.textContent = 'Update Staff Member';
             submitBtn.className = 'px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700';
         }
+        
+        // Scroll to the form
+        setTimeout(() => {
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+        
+        console.log('✅ Staff edit form populated and expanded');
         return;
     }
 
@@ -1099,7 +1245,7 @@ function exportStaffListAsCSV() {
             staff.firstName || '',
             staff.lastName || '',
             staff.employeeId || '',
-            staff.position || '',
+            staff.role || '',
             staff.department || '',
             staff.status || '',
             staff.phone || '',
@@ -1173,7 +1319,7 @@ function handleStaffCSVImport(file) {
                             case 'position':
                             case 'role':
                             case 'title':
-                                staff.position = value;
+                                staff.role = value;
                                 break;
                             case 'department':
                                 staff.department = value || defaultDepartment;
@@ -1246,6 +1392,7 @@ export {
     // Modal management functions
     refreshStaffListModal,
     addNewStaffMember,
+    updateStaffMember,
     removeStaffMember,
     editStaffMember,
     exportStaffListAsCSV,

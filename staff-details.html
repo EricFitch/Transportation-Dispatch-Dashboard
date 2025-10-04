@@ -70,6 +70,141 @@
         </div>
     </div>
 
+    <!-- CSV Import Section (Collapsible) -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <button id="toggle-csv-import" class="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                <span class="font-medium text-gray-700">📁 Bulk Import Staff</span>
+                <span class="toggle-icon text-gray-500 transform transition-transform duration-200">▼</span>
+            </button>
+            <div id="csv-import-content" class="hidden border-t border-gray-200">
+                <div class="p-6">
+                    <div id="staff-csv-drop-zone" class="border-2 border-dashed border-purple-300 rounded-lg p-6 text-center bg-purple-50 hover:bg-purple-100 transition-colors cursor-pointer">
+                        <div class="text-purple-600 mb-2">
+                            <svg class="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                        </div>
+                        <p class="text-purple-700 font-medium">Drag and drop CSV file here</p>
+                        <p class="text-purple-600 text-sm mt-1">or click to browse</p>
+                        <input type="file" id="staff-csv-file-input" class="hidden" accept=".csv,.txt" aria-label="Import staff CSV" />
+                    </div>
+                    <div id="staff-csv-status" class="mt-3 text-sm"></div>
+                    
+                    <!-- Bulk Import Options -->
+                    <div class="mt-4 space-y-3">
+                        <h5 class="font-medium text-gray-600">Bulk Import Defaults</h5>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="bulk-default-staff-status" class="text-sm text-gray-600">Default Status</label>
+                                <select id="bulk-default-staff-status" class="w-full p-2 border rounded text-sm" aria-label="Bulk default staff status">
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                    <option value="On Leave">On Leave</option>
+                                    <option value="Training">Training</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="bulk-default-department" class="text-sm text-gray-600">Default Department</label>
+                                <select id="bulk-default-department" class="w-full p-2 border rounded text-sm" aria-label="Bulk default department">
+                                    <option value="Transportation">Transportation</option>
+                                    <option value="Dispatch">Dispatch</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Administration">Administration</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Staff Form Section (Collapsible) -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <button id="toggle-add-staff-form" class="w-full p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                <span class="font-medium text-gray-700">➕ Add New Staff Member</span>
+                <span class="toggle-icon text-gray-500 transform transition-transform duration-200">▼</span>
+            </button>
+            <div id="add-staff-form-content" class="hidden border-t border-gray-200">
+                <div class="p-6">
+                    <form id="add-staff-form" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="staff-first-name" class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                                <input type="text" id="staff-first-name" class="w-full p-2 border rounded" aria-required="true" required>
+                            </div>
+                            <div>
+                                <label for="staff-last-name" class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                                <input type="text" id="staff-last-name" class="w-full p-2 border rounded" aria-required="true" required>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="staff-employee-id" class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+                                <input type="text" id="staff-employee-id" class="w-full p-2 border rounded" aria-label="Employee ID">
+                            </div>
+                            <div>
+                                <label for="staff-position" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                                <select id="staff-position" class="w-full p-2 border rounded" aria-label="Staff role">
+                                    <option value="Driver">Driver</option>
+                                    <option value="Utility driver">Utility Driver</option>
+                                    <option value="Safety Escort">Safety Escort</option>
+                                    <option value="Mechanic">Mechanic</option>
+                                    <option value="Trainer">Trainer</option>
+                                    <option value="Office Staff">Office Staff</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="staff-department" class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                                <select id="staff-department" class="w-full p-2 border rounded" aria-label="Staff department">
+                                    <option value="Transportation">Transportation</option>
+                                    <option value="Dispatch">Dispatch</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Administration">Administration</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="staff-status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select id="staff-status" class="w-full p-2 border rounded" aria-label="Staff status">
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                    <option value="On Leave">On Leave</option>
+                                    <option value="Training">Training</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="staff-phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input type="tel" id="staff-phone" class="w-full p-2 border rounded" aria-label="Staff phone number">
+                            </div>
+                            <div>
+                                <label for="staff-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" id="staff-email" class="w-full p-2 border rounded" aria-label="Staff email address">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="staff-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                            <textarea id="staff-notes" class="w-full p-2 border rounded" rows="2" aria-label="Staff notes"></textarea>
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button type="button" id="cancel-add-staff" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                                Add Staff Member
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Search and Filters -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
         <div class="bg-white rounded-lg shadow-sm p-4">
@@ -84,10 +219,11 @@
                     <select id="role-filter" title="Filter by role" aria-label="Filter by role" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         <option value="">All Roles</option>
                         <option value="Driver">Driver</option>
-                        <option value="Supervisor">Supervisor</option>
+                        <option value="Utility driver">Utility Driver</option>
+                        <option value="Safety Escort">Safety Escort</option>
                         <option value="Mechanic">Mechanic</option>
-                        <option value="Monitor">Monitor</option>
                         <option value="Trainer">Trainer</option>
+                        <option value="Office Staff">Office Staff</option>
                     </select>
                     <select id="status-filter" title="Filter by status" aria-label="Filter by status" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         <option value="">All Status</option>
@@ -194,13 +330,17 @@
             });
 
             document.getElementById('add-staff-btn').addEventListener('click', () => {
-                const addForm = document.getElementById('add-staff-form');
-                if (addForm) {
-                    addForm.scrollIntoView({ behavior: 'smooth' });
-                } else if (window.eventBus) {
-                    window.eventBus.emit('staff:showAddForm');
-                } else {
-                    alert('Add staff form not available');
+                const formContent = document.getElementById('add-staff-form-content');
+                const toggleBtn = document.getElementById('toggle-add-staff-form');
+                if (formContent && toggleBtn) {
+                    // Expand form if collapsed
+                    if (formContent.classList.contains('hidden')) {
+                        formContent.classList.remove('hidden');
+                        const icon = toggleBtn.querySelector('.toggle-icon');
+                        if (icon) icon.style.transform = 'rotate(180deg)';
+                    }
+                    // Scroll to form
+                    toggleBtn.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             });
 
@@ -246,6 +386,239 @@
             }
 
             tryInitialRender();
+        })();
+    </script>
+    <script>
+        // Staff Management Functionality - Collapsible Sections, CSV Import, Form Submission
+        (function() {
+            console.log('👥 Setting up staff management functionality...');
+
+            // Collapsible sections
+            const setupCollapsible = (toggleBtnId, contentId) => {
+                const toggleBtn = document.getElementById(toggleBtnId);
+                const content = document.getElementById(contentId);
+                if (toggleBtn && content) {
+                    toggleBtn.addEventListener('click', () => {
+                        const isHidden = content.classList.contains('hidden');
+                        content.classList.toggle('hidden');
+                        const icon = toggleBtn.querySelector('.toggle-icon');
+                        if (icon) {
+                            icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+                        }
+                    });
+                }
+            };
+
+            setupCollapsible('toggle-csv-import', 'csv-import-content');
+            setupCollapsible('toggle-add-staff-form', 'add-staff-form-content');
+
+            // Staff form submission
+            const staffForm = document.getElementById('add-staff-form');
+            if (staffForm) {
+                staffForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    const formData = {
+                        firstName: document.getElementById('staff-first-name').value.trim(),
+                        lastName: document.getElementById('staff-last-name').value.trim(),
+                        employeeId: document.getElementById('staff-employee-id').value.trim(),
+                        role: document.getElementById('staff-position').value.trim(),
+                        department: document.getElementById('staff-department').value,
+                        status: document.getElementById('staff-status').value,
+                        phone: document.getElementById('staff-phone').value.trim(),
+                        email: document.getElementById('staff-email').value.trim(),
+                        notes: document.getElementById('staff-notes').value.trim()
+                    };
+
+                    if (!formData.firstName || !formData.lastName) {
+                        showStaffStatus('First name and last name are required.', true);
+                        return;
+                    }
+
+                    try {
+                        const editingId = staffForm.dataset.editingId;
+                        
+                        if (editingId) {
+                            // Update existing staff member using staff module function
+                            if (typeof window.updateStaffMember === 'function') {
+                                window.updateStaffMember(editingId, formData);
+                            } else {
+                                throw new Error('updateStaffMember function not available');
+                            }
+                            delete staffForm.dataset.editingId;
+                            
+                            // Reset button text
+                            const submitBtn = staffForm.querySelector('button[type="submit"]');
+                            if (submitBtn) {
+                                submitBtn.textContent = 'Add Staff Member';
+                                submitBtn.className = 'px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700';
+                            }
+                        } else {
+                            // Add new staff member
+                            if (typeof window.addNewStaffMember === 'function') {
+                                window.addNewStaffMember(formData);
+                            }
+                        }
+
+                        // Clear form
+                        staffForm.reset();
+                        showStaffStatus('✅ Staff member saved successfully!', false);
+                        
+                        // Refresh the staff list
+                        if (typeof window.renderStaffDetailsPage === 'function') {
+                            window.renderStaffDetailsPage('staff-cards-container', {});
+                        }
+                        
+                        // Collapse form after successful save
+                        setTimeout(() => {
+                            const formContent = document.getElementById('add-staff-form-content');
+                            const toggleBtn = document.getElementById('toggle-add-staff-form');
+                            if (formContent && formContent.classList.contains('hidden') === false) {
+                                formContent.classList.add('hidden');
+                                const icon = toggleBtn?.querySelector('.toggle-icon');
+                                if (icon) icon.style.transform = 'rotate(0deg)';
+                            }
+                        }, 1500);
+                        
+                    } catch (error) {
+                        console.error('Error saving staff member:', error);
+                        showStaffStatus('❌ Error saving staff member. Please try again.', true);
+                    }
+                });
+            }
+
+            // Cancel button
+            const cancelBtn = document.getElementById('cancel-add-staff');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => {
+                    staffForm.reset();
+                    const formContent = document.getElementById('add-staff-form-content');
+                    const toggleBtn = document.getElementById('toggle-add-staff-form');
+                    if (formContent) {
+                        formContent.classList.add('hidden');
+                        const icon = toggleBtn?.querySelector('.toggle-icon');
+                        if (icon) icon.style.transform = 'rotate(0deg)';
+                    }
+                    const statusElement = document.getElementById('staff-form-status');
+                    if (statusElement) statusElement.remove();
+                });
+            }
+
+            // Note: updateStaffMember function is now provided by the staff module
+
+            // Show status message
+            const showStaffStatus = (message, isError) => {
+                const staffForm = document.getElementById('add-staff-form');
+                if (!staffForm) return;
+                
+                let statusElement = document.getElementById('staff-form-status');
+                if (!statusElement) {
+                    statusElement = document.createElement('div');
+                    statusElement.id = 'staff-form-status';
+                    statusElement.className = 'mt-3 p-3 rounded text-sm';
+                    staffForm.appendChild(statusElement);
+                }
+                
+                statusElement.className = `mt-3 p-3 rounded text-sm ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+                statusElement.textContent = message;
+                
+                // Auto-hide success messages
+                if (!isError) {
+                    setTimeout(() => {
+                        statusElement?.remove();
+                    }, 5000);
+                }
+            };
+
+            // CSV Import functionality
+            const csvDropZone = document.getElementById('staff-csv-drop-zone');
+            const csvFileInput = document.getElementById('staff-csv-file-input');
+
+            if (csvDropZone && csvFileInput) {
+                // File input change handler
+                csvFileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        handleStaffCSVFile(e.target.files[0]);
+                    }
+                });
+
+                // Drag and drop handlers
+                csvDropZone.addEventListener('click', () => {
+                    csvFileInput.click();
+                });
+
+                csvDropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    csvDropZone.classList.add('border-purple-500', 'bg-purple-200');
+                });
+
+                csvDropZone.addEventListener('dragleave', () => {
+                    csvDropZone.classList.remove('border-purple-500', 'bg-purple-200');
+                });
+
+                csvDropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    csvDropZone.classList.remove('border-purple-500', 'bg-purple-200');
+                    
+                    if (e.dataTransfer.files.length > 0) {
+                        handleStaffCSVFile(e.dataTransfer.files[0]);
+                    }
+                });
+            }
+
+            const handleStaffCSVFile = async (file) => {
+                if (!file.name.toLowerCase().endsWith('.csv')) {
+                    showStaffCSVStatus('❌ Please select a CSV file.', true);
+                    return;
+                }
+
+                try {
+                    showStaffCSVStatus('⏳ Processing CSV file...', false);
+                    
+                    if (typeof window.handleStaffCSVImport === 'function') {
+                        const result = await window.handleStaffCSVImport(file);
+                        showStaffCSVStatus(`✅ Successfully imported ${result.imported} out of ${result.total} staff members.`, false);
+                        
+                        // Refresh the staff list
+                        if (typeof window.renderStaffDetailsPage === 'function') {
+                            window.renderStaffDetailsPage('staff-cards-container', {});
+                        }
+                        
+                        // Auto-collapse CSV section after successful import
+                        setTimeout(() => {
+                            const csvContent = document.getElementById('csv-import-content');
+                            const toggleBtn = document.getElementById('toggle-csv-import');
+                            if (csvContent && csvContent.classList.contains('hidden') === false) {
+                                csvContent.classList.add('hidden');
+                                const icon = toggleBtn?.querySelector('.toggle-icon');
+                                if (icon) icon.style.transform = 'rotate(0deg)';
+                            }
+                        }, 3000);
+                    } else {
+                        throw new Error('CSV import function not available');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error processing staff CSV:', error);
+                    showStaffCSVStatus(`❌ Error: ${error.message}`, true);
+                }
+            };
+
+            const showStaffCSVStatus = (message, isError) => {
+                const statusElement = document.getElementById('staff-csv-status');
+                if (!statusElement) return;
+                
+                statusElement.className = `mt-3 p-3 rounded text-sm ${isError ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`;
+                statusElement.textContent = message;
+                
+                // Auto-hide messages after delay
+                setTimeout(() => {
+                    statusElement.textContent = '';
+                    statusElement.className = 'mt-3 text-sm';
+                }, isError ? 8000 : 5000);
+            };
+
+            console.log('✅ Staff management functionality ready');
         })();
     </script>
     <script>

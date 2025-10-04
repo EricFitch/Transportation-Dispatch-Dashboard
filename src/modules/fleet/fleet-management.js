@@ -251,6 +251,7 @@ export class FleetManagement {
             licensePlate: details.licensePlate || '',
             fuelType: details.fuelType || 'Unknown',
             lastService: details.lastService || null,
+            parkingSpace: details.parkingSpace || '',
             notes: details.notes || ''
         };
     }
@@ -335,6 +336,7 @@ export class FleetManagement {
                         <div><span class="font-medium text-gray-600">Asset Number:</span> ${asset.name}</div>
                         <div><span class="font-medium text-gray-600">Type:</span> ${asset.type}</div>
                         <div><span class="font-medium text-gray-600">Status:</span> <span class="status-indicator status-${asset.status || 'available'}">${this.getStatusLabel(asset.status || 'available')}</span></div>
+                        ${details.parkingSpace ? `<div><span class="font-medium text-gray-600">Parking Space:</span> <span class="text-blue-600 font-semibold">${details.parkingSpace}</span></div>` : ''}
                         <div><span class="font-medium text-gray-600">Make:</span> ${details.make}</div>
                         <div><span class="font-medium text-gray-600">Model:</span> ${details.model}</div>
                         <div><span class="font-medium text-gray-600">Year:</span> ${details.year}</div>
@@ -429,6 +431,12 @@ export class FleetManagement {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
                             <input type="text" name="capacity" value="${details.capacity}" placeholder="e.g., 72 passengers" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Parking Space</label>
+                            <input type="text" name="parkingSpace" value="${details.parkingSpace || ''}" placeholder="e.g., A-12, Bay 3" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
@@ -641,12 +649,31 @@ export class FleetManagement {
         asset.details.mileage = formData.get('mileage') || 'Unknown';
         asset.details.lastService = formData.get('lastService') || null;
         asset.details.nextService = formData.get('nextService') || null;
+        asset.details.parkingSpace = formData.get('parkingSpace') || '';
         asset.details.notes = formData.get('notes') || '';
+        
+        console.log(`🅿️ SAVE: Asset ${assetName} parking space set to:`, asset.details.parkingSpace);
+        console.log(`🅿️ SAVE: Full asset details:`, asset.details);
 
         // Add update timestamp to notes
         const timestamp = new Date().toLocaleString();
         const updateNote = `${timestamp}: Asset details updated`;
         asset.details.notes = asset.details.notes ? `${asset.details.notes}\n\n${updateNote}` : updateNote;
+
+        // IMPORTANT: Update all routes that use this asset
+        const routes = STATE.data?.routes || [];
+        routes.forEach(route => {
+            if (route.asset && route.asset.name === assetName) {
+                // Update the asset reference in the route with the new details
+                route.asset = { ...asset };
+                console.log(`✅ Updated asset details on route: ${route.name || route.routeNumber}`);
+            }
+            if (route.trailer && route.trailer.name === assetName) {
+                // Update trailer reference if this asset is used as a trailer
+                route.trailer = { ...asset };
+                console.log(`✅ Updated trailer details on route: ${route.name || route.routeNumber}`);
+            }
+        });
 
         // Save to localStorage
         saveToLocalStorage();
@@ -659,9 +686,22 @@ export class FleetManagement {
         closeAssetModal();
         
         // Show success message
-        this.showSuccessMessage(`Asset ${assetName} details updated successfully`);
+        this.showSuccessMessage(`Asset ${assetName} details updated successfully. Route cards will refresh automatically.`);
         
-        console.log(`✅ Asset ${assetName} details updated successfully`);
+        // Trigger route card re-render if available
+        if (typeof window.renderRouteCards === 'function') {
+            setTimeout(() => {
+                window.renderRouteCards();
+                console.log(`🔄 Route cards refreshed to show updated asset details`);
+            }, 100);
+        }
+        
+        // Emit event for other parts of the app to react
+        if (eventBus && typeof eventBus.emit === 'function') {
+            eventBus.emit('asset:updated', { assetName, details: asset.details });
+        }
+        
+        console.log(`✅ Asset ${assetName} details updated successfully and propagated to all routes`);
     }
 
     saveAssetStatus(assetName) {

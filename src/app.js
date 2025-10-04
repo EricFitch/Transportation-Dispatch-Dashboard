@@ -70,21 +70,8 @@ import { settingsSystem } from './modules/ui/settingsSystem.js?v=20251002';
 // DISPATCH MODULES
 // ==========================================================================
 
-import { 
-  renderAll as renderAllRoutes,
-  handleRouteCardClick,
-  generateRouteCardHtml,
-  generateFieldTripsHtml,
-  handleAssignmentClick,
-  handleClearAssignment,
-  handleStatusChange,
-  handleResetRoute,
-  handleResetFieldTrip,
-  getRoutesByShift,
-  getUnassignedRoutes,
-  getRoutesByStatus,
-  exportRouteData
-} from './modules/dispatch/routes.js';
+// Legacy routes.js import removed - using routeCards.js as the active system
+// import { ... } from './modules/dispatch/routes.js'; // LEGACY - REMOVED
 
 // Import new route cards system
 import {
@@ -435,20 +422,16 @@ class ModularDispatchApp {
     
     // Dispatch modules - group functions into module objects
     const routesModule = {
-      renderAll: renderAllRoutes,
+      // Using routeCards.js as the active system
       renderRouteCards,
-      handleRouteCardClick,
-      generateRouteCardHtml,
-      generateFieldTripsHtml,
-      handleAssignmentClick,
-      handleClearAssignment,
-      handleStatusChange,
-      handleResetRoute,
-      handleResetFieldTrip,
-      getRoutesByShift,
-      getUnassignedRoutes,
-      getRoutesByStatus,
-      exportRouteData
+      createRoute,
+      assignDriver,
+      assignAsset,
+      addSafetyEscort,
+      removeSafetyEscort,
+      updateRouteNotes,
+      resetRouteBoard
+      // Legacy routes.js functions removed
     };
     this.modules.set('DispatchRoutes', routesModule);
     
@@ -731,7 +714,7 @@ class ModularDispatchApp {
     window.saveToLocalStorage = saveToLocalStorage;
     
     // =============================================================================
-    // ROUTE OPERATIONS (from routeCards.js and routes.js)
+    // ROUTE OPERATIONS (from routeCards.js - active system)
     // =============================================================================
     window.createRoute = createRoute;
     window.assignDriver = assignDriver;
@@ -1753,13 +1736,9 @@ async function bootstrap() {
         e.stopPropagation();
         closeSlideout();
         
-        // Open staff management modal using ModalService
-        ModalService.open('staff-management-modal', () => {
-          // Refresh the staff list when modal opens
-          if (window.refreshStaffListModal) {
-            window.refreshStaffListModal();
-          }
-        });
+        // Navigate to staff details page (consolidated interface)
+        console.log('👥 Staff Management button clicked - navigating to staff-details.html');
+        window.location.href = 'staff-details.html';
       });
     }
 
@@ -1777,7 +1756,7 @@ async function bootstrap() {
 
     // Close button handlers for modals using ModalService
     ModalService.setupCloseButton('route-modal-close', 'route-management-modal');
-    ModalService.setupCloseButton('staff-modal-close', 'staff-management-modal');
+    // Staff modal removed - staff management consolidated into staff-details.html
     ModalService.setupCloseButton('asset-modal-close', 'asset-management-modal');
 
     // Route Management CSV Import Functionality
@@ -2452,9 +2431,14 @@ async function bootstrap() {
       };
     };
 
-    // Staff Management Functionality
+    // Staff Management Functionality - REMOVED
+    // All staff management functionality has been moved to staff-details.html page
+    // This function is no longer needed as we consolidated modal-based staff management
+    // into a dedicated full-page interface at staff-details.html
     const setupStaffManagement = () => {
-      console.log('👥 Setting up staff management...');
+      console.log('⚠️ setupStaffManagement is deprecated - staff management moved to staff-details.html');
+      // Function body removed - no longer used
+      return;
 
       // Make function available globally for use in modal open
       window.refreshStaffListModal = refreshStaffListModal;
@@ -2652,8 +2636,8 @@ async function bootstrap() {
     // Initialize manual bulk entry functionality
     setupManualBulkEntry();
 
-    // Initialize staff management
-    setupStaffManagement();
+    // Staff management moved to staff-details.html page (no longer modal-based)
+    // setupStaffManagement(); // REMOVED - consolidated into staff-details.html
     
     // Initialize asset bulk management functionality
     setupAssetBulkManagement();

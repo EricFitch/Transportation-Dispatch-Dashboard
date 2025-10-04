@@ -246,12 +246,32 @@ function addAsset(asset) {
         console.warn('❌ Asset already exists:', asset.name);
         return false;
     }
+    
+    // Initialize details property if not present
+    if (!asset.details) {
+        asset.details = {
+            make: 'Unknown',
+            model: 'Unknown',
+            year: 'Unknown',
+            capacity: asset.capacity || 0,
+            vin: '',
+            licensePlate: '',
+            fuelType: 'Unknown',
+            mileage: 'Unknown',
+            lastService: null,
+            nextService: null,
+            parkingSpace: '',
+            notes: ''
+        };
+    }
+    
     STATE.data.assets.push(asset);
     STATE.isDirty = true;
     saveToLocalStorage();
     if (typeof window !== 'undefined' && window.eventBus) {
         window.eventBus.emit('assets:dataChanged');
     }
+    console.log('✅ Asset added with details structure:', asset.name);
     return true;
 }
 
@@ -291,6 +311,101 @@ function deleteAsset(name) {
     }
     return true;
 }
+/**
+ * Migrate existing assets to include details property
+ * This ensures all assets have the proper structure for parking spaces and other details
+ */
+function migrateAssetsToDetailsStructure() {
+    if (!Array.isArray(STATE.data?.assets)) return;
+    
+    // Check if migration has already been completed
+    if (STATE.data._assetDetailsMigrationComplete) {
+        console.log('ℹ️ Asset details migration already completed, skipping');
+        return;
+    }
+    
+    console.log(`🔧 Starting ONE-TIME asset details migration for ${STATE.data.assets.length} assets...`);
+    let migratedCount = 0;
+    STATE.data.assets.forEach(asset => {
+        if (!asset.details) {
+            asset.details = {
+                make: asset.make || 'Unknown',
+                model: asset.model || 'Unknown',
+                year: asset.year || 'Unknown',
+                capacity: asset.capacity || 0,
+                vin: asset.vin || '',
+                licensePlate: asset.license || asset.licensePlate || '',
+                fuelType: asset.fuel || asset.fuelType || 'Unknown',
+                mileage: asset.mileage || 'Unknown',
+                lastService: asset.lastService || null,
+                nextService: asset.nextService || null,
+                parkingSpace: asset.parkingSpace || '',
+                notes: asset.notes || ''
+            };
+            migratedCount++;
+            console.log(`🔧 ✓ Migrated asset ${asset.name} to details structure`);
+        }
+    });
+    
+    // Mark migration as complete so it never runs again
+    STATE.data._assetDetailsMigrationComplete = true;
+    
+    if (migratedCount > 0) {
+        console.log(`✅ ONE-TIME migration: Migrated ${migratedCount} asset(s) to details structure`);
+        saveToLocalStorage();
+    } else {
+        console.log(`ℹ️ No asset details migration needed - migration complete`);
+        saveToLocalStorage(); // Save the completion flag
+    }
+}
+
+/**
+ * Ensure staff position and role fields are synchronized
+ * This fixes any staff where position was updated but role wasn't, or vice versa
+ */
+function migrateStaffPositionRoleSync() {
+    if (!Array.isArray(STATE.data?.staff)) {
+        console.log('⚠️ No staff array found for migration');
+        return;
+    }
+    
+    // Check if migration has already been completed
+    if (STATE.data._staffPositionMigrationComplete) {
+        console.log('ℹ️ Staff position/role migration already completed, skipping');
+        return;
+    }
+    
+    console.log(`🔧 Starting ONE-TIME staff position/role sync for ${STATE.data.staff.length} staff members...`);
+    let syncedCount = 0;
+    
+    STATE.data.staff.forEach((staff, index) => {
+        const position = staff.position || '';
+        const role = staff.role || '';
+        const name = staff.name || `${staff.firstName} ${staff.lastName}`;
+        
+        console.log(`🔍 Staff ${index}: ${name} - position="${position}", role="${role}"`);
+        
+        // Only sync if position is empty and role exists
+        // This is a ONE-TIME migration to populate empty position fields
+        if (!position && role && role !== '') {
+            staff.position = role;
+            syncedCount++;
+            console.log(`🔧 ✓ Migrated ${name}: position set to "${role}"`);
+        }
+    });
+    
+    // Mark migration as complete so it never runs again
+    STATE.data._staffPositionMigrationComplete = true;
+    
+    if (syncedCount > 0) {
+        console.log(`✅ ONE-TIME migration: Synchronized ${syncedCount} staff position/role field(s)`);
+        saveToLocalStorage();
+    } else {
+        console.log(`ℹ️ No staff position/role sync needed - migration complete`);
+        saveToLocalStorage(); // Save the completion flag
+    }
+}
+
 function loadData() {
     console.log('📊 Loading data...');
     
@@ -330,6 +445,9 @@ function loadData() {
         } else {
             STATE.data = embeddedData;
         }
+        
+        // MIGRATIONS: Ensure data structure consistency
+        migrateAssetsToDetailsStructure();
         
     } catch (error) {
         console.warn('⚠️ Error loading saved config, using embedded data:', error);
@@ -523,6 +641,7 @@ function scheduleRemoteSave(payload) {
                 state: configToSave,
                 updatedAt: serverTimestamp ? serverTimestamp() : new Date().toISOString()
             }, { merge: true });
+            console.log('✅ State synced to Firebase (debounced)');
         } catch (error) {
             console.error('❌ Failed to sync state to Firebase:', error);
         } finally {
@@ -532,6 +651,31 @@ function scheduleRemoteSave(payload) {
             }
         }
     }, 800);
+}
+
+/**
+ * Immediately sync to Firebase without debounce delay
+ * Use for critical updates like staff/fleet changes that need instant persistence
+ */
+async function syncToFirebaseNow(payload = null) {
+    if (!REMOTE_SYNC.enabled || !REMOTE_SYNC.modules || !REMOTE_SYNC.docRef) {
+        console.warn('⚠️ Firebase sync not enabled, cannot sync immediately');
+        return false;
+    }
+
+    try {
+        const configToSave = payload || buildPersistencePayload();
+        const { setDoc, serverTimestamp } = REMOTE_SYNC.modules;
+        await setDoc(REMOTE_SYNC.docRef, {
+            state: configToSave,
+            updatedAt: serverTimestamp ? serverTimestamp() : new Date().toISOString()
+        }, { merge: true });
+        console.log('✅ State immediately synced to Firebase');
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to immediately sync state to Firebase:', error);
+        return false;
+    }
 }
 
 function saveToLocalStorage(options = {}) {
@@ -766,6 +910,7 @@ export {
     setState,
     loadData,
     saveToLocalStorage,
+    syncToFirebaseNow,
     getEmbeddedData,
     updateRouteNote,
     updateFieldTripNote,
