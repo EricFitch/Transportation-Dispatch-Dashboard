@@ -597,11 +597,6 @@ async function initializeRemoteSync(initialPayload) {
 function applyRemoteState(remoteConfig, options = {}) {
     if (!remoteConfig) return;
     try {
-        console.log('📥 applyRemoteState called:', {
-            hasStaff: !!remoteConfig.data?.staff,
-            staffCount: remoteConfig.data?.staff?.length,
-            sampleStaff: remoteConfig.data?.staff?.[0]?.name
-        });
         const embedded = getEmbeddedData();
         const data = remoteConfig.data || {};
         STATE.data = {
@@ -689,12 +684,6 @@ async function syncToFirebaseNow(payload = null) {
 
     try {
         const configToSave = payload || buildPersistencePayload();
-        console.log('📤 syncToFirebaseNow saving:', {
-            hasStaff: !!configToSave.data?.staff,
-            staffCount: configToSave.data?.staff?.length,
-            sampleStaff: configToSave.data?.staff?.[0]?.name,
-            sampleRole: configToSave.data?.staff?.[0]?.role
-        });
         const { setDoc, serverTimestamp } = REMOTE_SYNC.modules;
         await setDoc(REMOTE_SYNC.docRef, {
             state: configToSave,
