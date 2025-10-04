@@ -153,8 +153,19 @@
         </div>
     </div>
 
-    <!-- Firebase configuration (required for real-time sync) -->
-    <script src="./firebase-config.js"></script>
+    <!-- Firebase configuration MUST load first (before ES modules start) -->
+    <script>
+        // Inline Firebase config to ensure it's available before modules load
+        window.__FIREBASE_CONFIG__ = window.__FIREBASE_CONFIG__ || {
+            apiKey: 'AIzaSyBGbxK8yWIB9U43CqSUO4xnNqtbM8dReRc',
+            authDomain: 'dispatch-board-12bb8.firebaseapp.com',
+            projectId: 'dispatch-board-12bb8',
+            storageBucket: 'dispatch-board-12bb8.firebasestorage.app',
+            messagingSenderId: '1004294250716',
+            appId: '1:1004294250716:web:32f59f17f37f94e3e45419',
+            measurementId: 'G-52W13WNHQP'
+        };
+    </script>
 
     <!-- Scripts -->
     <script type="module" src="src/modules/core/state.js"></script>
