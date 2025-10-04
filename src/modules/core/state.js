@@ -49,8 +49,27 @@ function isRemoteSyncFeatureEnabled() {
     }
 }
 
+// Firebase configuration embedded directly in the module
+// This ensures it's always available, regardless of script loading order
+const EMBEDDED_FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyBGbxK8yWIB9U43CqSUO4xnNqtbM8dReRc',
+    authDomain: 'dispatch-board-12bb8.firebaseapp.com',
+    projectId: 'dispatch-board-12bb8',
+    storageBucket: 'dispatch-board-12bb8.firebasestorage.app',
+    messagingSenderId: '1004294250716',
+    appId: '1:1004294250716:web:32f59f17f37f94e3e45419',
+    measurementId: 'G-52W13WNHQP'
+};
+
 function getFirebaseConfig() {
     if (!hasWindow) return null;
+    
+    // First, try to use embedded config (most reliable)
+    if (EMBEDDED_FIREBASE_CONFIG && EMBEDDED_FIREBASE_CONFIG.apiKey) {
+        return EMBEDDED_FIREBASE_CONFIG;
+    }
+    
+    // Fallback to window.__FIREBASE_CONFIG__ for backward compatibility
     const cfg = window.__FIREBASE_CONFIG__ || null;
     if (!cfg || !cfg.apiKey) {
         return null;
