@@ -1,89 +1,90 @@
 # Transportation Dispatch Dashboard
 
-🚌 **Professional school district transportation dispatch system optimized for web deployment**
+🚌 **Professional school district transportation dispatch system with Firebase real-time sync**
 
-A comprehensive transportation management system featuring real-time fleet tracking, route management, staff assignments, and advanced reporting capabilities. Designed for Firebase hosting with touch screen optimization.
+A comprehensive transportation management system featuring real-time fleet tracking, route management, staff assignments, and advanced reporting capabilities. Deployed on Firebase with multi-device synchronization and touch screen optimization.
+
+**Live Demo**: [https://dispatch-board-12bb8.web.app](https://dispatch-board-12bb8.web.app)
 
 ## 🎯 Features
 
-- **Web-Based Dashboard**: Optimized for browser deployment with Firebase hosting
+### Core Capabilities
+- **Real-Time Firebase Sync**: Multi-device synchronization with instant updates across all connected clients
 - **Touch Screen Optimized**: Designed specifically for large touch displays (75+ inches)
-- **Real-time Fleet Tracking**: Live status updates with 10-7, 10-8, and 10-11 radio codes
-- **Advanced Routing**: Dynamic route management with GPS tracking
-- **Staff Management**: Complete driver and monitor assignment system
+- **Live Fleet Tracking**: Real-time status updates with 10-7, 10-8, and 10-11 radio codes
+- **Advanced Route Management**: Dynamic routing with GPS tracking and departure sequencing
+- **Role-Based Visualization**: Driver roles color-code route cards (Trainer=Red, Driver=Blue, etc.)
+- **Collapsible Card View**: Compact route display with expand/collapse functionality
+- **Staff Management**: Complete driver and monitor assignment system with dedicated page
+- **Fleet Management**: Full asset tracking with parking space indicators and status monitoring
 - **Comprehensive Reporting**: Detailed timestamp reports with route analytics
-- **Data Import/Export**: CSV support for fleet and routing databases
-- **Dark/Light Mode**: AM/PM toggle with visual mode switching
+- **Data Import/Export**: CSV support for bulk operations and backups
+- **Dark/Light Mode**: AM/PM shift toggle with visual mode switching
 - **PWA Support**: Progressive Web App with offline capability
-- **Responsive Design**: Tailwind CSS for consistent styling across devicesDispatch Dashboard
-
-🚌 **Professional school district transportation dispatch system optimized for 75-inch touch displays**
-
-A comprehensive transportation management system featuring real-time fleet tracking, route management, staff assignments, and advanced reporting capabilities.
-
-## � Features
-
-- **75-inch Touch Optimized**: Designed specifically for large touch displays
-- **Real-time Fleet Tracking**: Live status updates with 10-7, 10-8, and 10-11 radio codes
-- **Advanced Routing**: Dynamic route management with GPS tracking
-- **Staff Management**: Complete driver and monitor assignment system
-- **Comprehensive Reporting**: Detailed timestamp reports with route analytics
-- **Data Import/Export**: CSV support for fleet and routing databases
-- **Dark/Light Mode**: AM/PM toggle with visual mode switching
-- **Service Worker**: Offline capability and performance optimization
-- **Responsive Design**: Tailwind CSS for consistent styling
+- **Responsive Design**: Tailwind CSS for consistent styling across devices
 
 ## 📁 Project Structure
 
 ```
 Dispatch Command Center/
 ├── index.html                 # Main dashboard interface
-├── package.json              # Project configuration
-├── sw.js                     # Service worker for offline support
-├── manifest.json             # PWA manifest for app-like experience
+├── staff-details.html         # Staff management page
+├── fleet-details.html         # Fleet management page
+├── firebase-config.js         # Firebase configuration (embedded in state.js)
+├── firebase.json              # Firebase hosting configuration
+├── firestore.rules            # Firestore security rules
+├── package.json               # Project configuration
+├── sw.js                      # Service worker for offline support
+├── manifest.json              # PWA manifest for app-like experience
 ├── assets/
-│   └── css/
-│       └── dashboard.css      # Complete styling system
+│   ├── css/
+│   │   └── dashboard.css      # Complete styling system
+│   └── icons/                 # UI icons and graphics
 ├── src/
-│   ├── app.js                # Application entry point
-│   ├── modules/              # Modular JavaScript components
-│   │   ├── core/             # State, utils, events
-│   │   ├── dispatch/         # Routes, staff, assets
-│   │   ├── touch/            # Touch display optimization
-│   │   ├── fleet/            # Fleet management & service
-│   │   ├── ui/               # Search, settings, utilities
-│   │   ├── operations/       # Field trips, route operations
-│   │   └── data/             # Import/export functionality
-│   └── styles/               # Organized CSS modules
+│   ├── app.js                 # Application entry point
+│   ├── firebase.js            # Firebase initialization
+│   ├── modules/               # Modular JavaScript components
+│   │   ├── core/              # State management, utils, events, validation
+│   │   ├── dispatch/          # Routes, staff, assets, route cards
+│   │   ├── touch/             # Touch display optimization & gestures
+│   │   ├── fleet/             # Fleet management & service tracking
+│   │   ├── ui/                # Search, settings, modals, utilities
+│   │   ├── operations/        # Field trips, assignments, bulk operations
+│   │   └── data/              # Import/export functionality
+│   └── styles/                # Organized CSS modules
+│       ├── main.css           # Main stylesheet
+│       ├── components/        # Button, modal components
+│       ├── dispatch/          # Route card styles
+│       ├── touch/             # Touch feedback styles
+│       └── ui/                # UI component styles
+├── docs/
+│   └── archive/               # Historical implementation documentation
+└── tests/                     # Test files
 ```
 
 ## 🚀 Firebase Deployment
 
+### Current Deployment
+**Live URL**: [https://dispatch-board-12bb8.web.app](https://dispatch-board-12bb8.web.app)  
+**Project ID**: dispatch-board-12bb8  
+**Branch**: Firebase-Deploy  
+
 ### Prerequisites
 - Firebase CLI installed: `npm install -g firebase-tools`
-- Firebase project set up in console
+- Firebase project configured in Firebase Console
 - Login to Firebase: `firebase login`
 
-### Deployment Steps
+### Quick Deploy
 
-1. **Initialize Firebase in your project**:
-   ```bash
-   firebase init hosting
-   ```
-   - Select your Firebase project
-   - Set public directory to current folder (`.`)
-   - Configure as single-page app: Yes
-   - Don't overwrite index.html
+```bash
+firebase deploy --only hosting
+```
 
-2. **Deploy to Firebase**:
-   ```bash
-   firebase deploy
-   ```
+### Full Deployment (Hosting + Firestore Rules)
 
-3. **Custom Domain (Optional)**:
-   ```bash
-   firebase hosting:channel:create live
-   ```
+```bash
+firebase deploy --only hosting,firestore:rules
+```
 
 ### Local Development with Firebase
 
@@ -93,13 +94,33 @@ Test the application locally before deploying:
 firebase serve
 ```
 
-This will start a local Firebase hosting server at `http://localhost:5000` (or another port if 5000 is in use). The local server simulates the Firebase hosting environment, allowing you to test:
+This starts a local Firebase hosting server at `http://localhost:5000`. The local server simulates the Firebase hosting environment, allowing you to test:
 - Static file serving
-- Firebase configuration
+- Firebase real-time sync
 - Service worker behavior
 - All app functionality before deployment
 
 Press `Ctrl+C` to stop the local server.
+
+### Initial Setup (Already Completed)
+
+If setting up a new Firebase project:
+
+1. **Initialize Firebase**:
+   ```bash
+   firebase init hosting
+   ```
+   - Select your Firebase project
+   - Set public directory to current folder (`.`)
+   - Configure as single-page app: Yes
+   - Don't overwrite existing files
+
+2. **Initialize Firestore**:
+   ```bash
+   firebase init firestore
+   ```
+   - Accept default `firestore.rules`
+   - Accept default `firestore.indexes.json`
 
 ## 💾 Data Management
 
@@ -111,70 +132,92 @@ Files can be imported via the settings panel or drag-and-drop interface.
 
 ### 🔄 Real-Time Sync (Firebase)
 
-Multi-user synchronization is now wired through Firebase. To enable it:
+Multi-device synchronization is **automatically enabled** through Firebase Firestore. The Firebase configuration is embedded directly in `src/modules/core/state.js` for reliable initialization.
 
-1. **Create a Firebase project** (Firestore in native mode).
-2. **Populate `firebase-config.js`** with your project credentials. The stub file ships with empty strings—replace them with the real values exported from the Firebase console:
+#### How It Works
 
-    ```js
-    // firebase-config.js
-    window.__FIREBASE_CONFIG__ = {
-       apiKey: '...your key...',
-       authDomain: '...firebaseapp.com',
+- **Automatic Sync**: All route, staff, and fleet changes sync immediately to Firestore (`dispatch/sharedState`)
+- **Multi-Device**: Changes on one device appear instantly on all connected devices
+- **Event-Driven**: Updates broadcast through the event bus (`routes:dataChanged`, `assets:dataChanged`, `staff:updated`)
+- **Fallback**: Gracefully falls back to localStorage if Firebase is unreachable
+- **Zero Config**: No manual configuration needed - works out of the box
+
+#### For New Firebase Projects
+
+If you're setting up a new Firebase project:
+
+1. **Create a Firebase project** in the [Firebase Console](https://console.firebase.google.com/) (Firestore in native mode)
+
+2. **Update Firebase config** in `src/modules/core/state.js`:
+   ```javascript
+   const EMBEDDED_FIREBASE_CONFIG = {
+       apiKey: 'your-api-key',
+       authDomain: 'your-project.firebaseapp.com',
        projectId: 'your-project-id',
-       storageBucket: 'your-project-id.appspot.com',
-       messagingSenderId: '...',
-       appId: '...'
-    };
-    ```
-
-    For production deployments, you can generate this file during your build or serve it from a secure endpoint so secrets stay out of source control.
-
-3. **Deploy Firestore security rules**. The repo ships with `firestore.rules`, which locks access to `dispatch/sharedState` to authenticated users. Adjust the path if you change the collection/document names in `src/modules/core/state.js`.
-4. **Enable Anonymous Authentication** under *Build → Authentication → Sign-in method*. The dashboard signs in anonymously so the stricter Firestore rules still work without a manual login flow. You can swap this for another auth strategy later.
-5. **Deploy hosting and rules together**:
-   ```bash
-   firebase deploy --only hosting,firestore:rules
+       storageBucket: 'your-project.appspot.com',
+       messagingSenderId: 'your-sender-id',
+       appId: 'your-app-id',
+       measurementId: 'your-measurement-id'
+   };
    ```
 
-With the configuration in place the dashboard will:
+3. **Enable Anonymous Authentication**:
+   - Navigate to *Build → Authentication → Sign-in method*
+   - Enable "Anonymous" provider
+   - This allows the app to write to Firestore without manual login
 
-- Mirror the entire shared state to `dispatch/sharedState` in Firestore.
-- Listen for remote updates and broadcast them through the event bus (`routes:dataChanged`, `assets:dataChanged`, etc.).
-- Fall back to localStorage gracefully if Firebase is unreachable.
+4. **Deploy Firestore rules**:
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+
+The included `firestore.rules` file provides secure access to the `dispatch/sharedState` document for authenticated users.
 
 ## 🎯 Core Modules
 
 ### **Core Infrastructure**
-- `core/state.js` - State management and localStorage
+- `core/state.js` - State management, Firebase sync, and localStorage with embedded Firebase config
 - `core/utils.js` - Performance utilities and debouncing
-- `core/events.js` - Global event handling and keyboard navigation
+- `core/events.js` - Global event bus and keyboard navigation
+- `core/validationService.js` - Data validation and error handling
+- `firebase.js` - Firebase SDK initialization
 
 ### **Touch Optimization (75" Display)**
 - `touch/gestures.js` - Touch gestures, long press, swipe detection
 - `touch/feedback.js` - Visual and haptic feedback systems
 - `touch/responsive.js` - Large screen adaptation and responsive layouts
+- `touch/controller.js` - Touch event coordination
 
 ### **Transportation Dispatch**
 - `dispatch/routes.js` - Route rendering and management
-- `dispatch/staff.js` - Driver and monitor assignment operations  
-- `dispatch/assets.js` - Bus and vehicle fleet management
-- `dispatch/routeCards.js` - Interactive route card system
+- `dispatch/staff.js` - Driver and monitor assignment operations with immediate Firebase sync
+- `dispatch/assets.js` - Bus and vehicle fleet management with parking space tracking
+- `dispatch/routeCards.js` - Interactive route card system with collapse/expand and role-based colors
 
 ### **Fleet Management**
 - `fleet/service.js` - Fleet service status and maintenance tracking
 - `fleet/management.js` - Comprehensive fleet operations
+- **fleet-details.html** - Dedicated fleet management page with full asset CRUD operations
+
+### **Staff Management**
+- **staff-details.html** - Dedicated staff management page with role assignments
+- Role-based color coding (Driver=Blue, Trainer=Red, Mechanic=Orange, etc.)
+- CSV import/export for bulk operations
+- Real-time sync across all pages
 
 ### **Operations**
 - `operations/assignments.js` - Assignment confirmation and clearing
 - `operations/fieldTrips.js` - Field trip management and scheduling
 - `operations/routeManagement.js` - Advanced route control systems
+- `operations/bulk.js` - Bulk operations for efficiency
 
 ### **User Interface**
 - `ui/search.js` - Advanced search and filtering capabilities
 - `ui/settingsSystem.js` - Settings panels with diagnostics
 - `ui/system.js` - System utilities and modal management
 - `ui/advancedSearch.js` - Enhanced search functionality
+- `ui/modalService.js` - Modal dialog management
+- `ui/cardManagement.js` - Route card interaction handlers
 
 ### **Data Management**
 - `data/importExport.js` - CSV import/export and data synchronization
@@ -216,14 +259,18 @@ The dispatcher interface uses explicit element IDs, delegated listeners, and sha
 - Complete the placeholder implementations for `window.exportFleetData` and `window.addNewAsset` to provide inline functionality from Fleet Details.
 - When extending the UI, continue using delegated listeners and module exports so new controls remain testable and maintainable.
 
-## �🔧 Technical Details
+## 🔧 Technical Details
 
 - **Architecture**: ES6 modules with clean separation of concerns
-- **Styling**: Tailwind CSS via CDN for rapid development
-- **Performance**: Service worker for offline capability
-- **Touch Support**: Optimized for large touch displays with gesture recognition
-- **Data Persistence**: LocalStorage with CSV import/export
-- **Real-time Updates**: Live status tracking and notifications
+- **Database**: Firebase Firestore for real-time multi-device synchronization
+- **State Management**: Embedded Firebase config in state.js for reliable initialization
+- **Styling**: Tailwind CSS via CDN for rapid development and responsive design
+- **Performance**: Service worker for offline capability and caching
+- **Touch Support**: Optimized for 75+ inch touch displays with gesture recognition
+- **Data Persistence**: Dual-layer persistence (Firebase primary, localStorage fallback)
+- **Real-time Updates**: Live status tracking with instant cross-device synchronization
+- **PWA**: Progressive Web App with manifest and service worker
+- **Hosting**: Firebase Hosting with global CDN
 
 ## � Reporting Features
 
@@ -247,10 +294,42 @@ The dispatcher interface uses explicit element IDs, delegated listeners, and sha
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+## 🎨 Recent Features
+
+### Role-Based Color Coding
+Route cards display colors based on the assigned driver's role:
+- **Driver** → Blue (#3b82f6)
+- **Utility Driver** → Gray (#6b7280)
+- **Safety Escort** → Purple (#8b5cf6)
+- **Mechanic** → Orange (#f59e0b)
+- **Trainer** → Red (#ef4444)
+- **Office Staff** → Green (#10b981)
+
+### Collapsible Route Cards
+- Clean, compact view when collapsed
+- Route number displays in driver's role color
+- One-click expand/collapse
+- Shows driver, vehicle, and key info at a glance
+- "Collapse All" button for quick board overview
+
+### Immediate Firebase Sync
+- Staff role changes sync instantly to Firebase
+- Fleet status updates propagate to all devices
+- No data loss when navigating between pages
+- Embedded Firebase config ensures sync works on all pages
+
+### Parking Space Indicators
+- Visual parking space badges on route cards
+- Parking icons in fleet management
+- Easy vehicle location tracking
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
-**Status**: Production ready - Full functionality implemented and tested
+**Status**: ✅ Production Ready - Deployed to Firebase  
+**Last Updated**: October 3, 2025  
+**Version**: 2.0 (Firebase Real-Time Sync)  
+**Live URL**: https://dispatch-board-12bb8.web.app
