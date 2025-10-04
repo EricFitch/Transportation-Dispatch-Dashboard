@@ -2491,7 +2491,11 @@ function createCollapsedSummary(routeId, card) {
 
     const safeRouteId = escapeHtml(route.id);
     const safeRouteNumber = route.routeNumber ? escapeHtml(route.routeNumber) : '';
-    const routeName = escapeHtml(route.name || 'Unnamed Route');
+    // Extract route number or use full name for field trips (remove "Route" prefix for regular routes)
+    const displayName = isFieldTrip 
+        ? route.name || 'Unnamed Field Trip'
+        : (route.routeNumber || route.name?.replace(/^Route\s*/i, '') || 'N/A');
+    const routeName = escapeHtml(displayName);
     const noteContent = hasNotes ? escapeHtml(route.notes) : '';
 
     const notesMarkup = hasNotes
