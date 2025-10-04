@@ -2481,6 +2481,10 @@ function createCollapsedSummary(routeId, card) {
 
     const isFieldTrip = route.type === 'field-trips';
     const hasNotes = Boolean(route.notes && route.notes.trim());
+    
+    // Get the driver role color (same as expanded view)
+    const roleAccent = getDriverRoleColorForRoute(route);
+    
     const driverName = route.driver ? escapeHtml(route.driver.name) : 'No driver';
     const parkingSpace = route.asset && route.asset.details && route.asset.details.parkingSpace 
         ? `<span class="parking-indicator"><img src="assets/icons/ParkingButton.png" class="parking-icon" alt="Parking" /> ${escapeHtml(route.asset.details.parkingSpace)}</span>` 
@@ -2524,7 +2528,7 @@ function createCollapsedSummary(routeId, card) {
         <div class="collapsed-summary" data-route-id="${safeRouteId}">
             <div class="collapsed-summary-top-row">
                 <div class="collapsed-summary-route-info">
-                    <span class="collapsed-summary-route-name">${routeName}</span>
+                    <span class="collapsed-summary-route-name" style="color: ${roleAccent};">${routeName}</span>
                     ${route.departureSequence ? `<span class="departure-badge">${getDepartureText(route.departureSequence)}</span>` : ''}
                     ${route.status ? `<span class="collapsed-summary-status-dot" style="background-color: ${getStatusDotColor(route.status)};"></span>` : ''}
                 </div>
