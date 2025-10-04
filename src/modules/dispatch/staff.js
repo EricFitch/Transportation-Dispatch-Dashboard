@@ -924,6 +924,7 @@ function updateStaffMember(staffId, staffData) {
     STATE.data.staff[staffIndex] = updatedStaff;
     saveToLocalStorage();
     
+    console.log('🔥 About to call syncToFirebaseNow...');
     // Immediately sync to Firebase (no 800ms delay for critical staff updates)
     syncToFirebaseNow().then(() => {
         console.log('✅ Staff update immediately synced to Firebase');
